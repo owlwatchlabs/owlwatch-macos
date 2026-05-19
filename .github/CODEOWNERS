@@ -1,0 +1,7 @@
+# CODEOWNERS for nightwatch
+#
+# Reviewed automatically by GitHub when a PR touches matching paths.
+# Expand per SPM module, app, and extension as contributors arrive.
+# See docs/repo-config.md for the review policy this file implements.
+
+* @xorxorjmp
