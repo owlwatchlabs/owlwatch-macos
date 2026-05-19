@@ -30,12 +30,37 @@ document and the merged PR.
 
 **Settings → Code security**
 
+Available on every repository (enable now):
+
 - [x] Dependency graph
 - [x] Dependabot alerts
 - [x] Dependabot security updates
-- [x] Secret scanning
-- [x] Push protection for secrets
-- [x] Private vulnerability reporting
+
+GitHub Advanced Security (GHAS) features — free on **public** repos, paid on
+private repos. Track and enable when the repository flips to public:
+
+- [ ] Secret scanning *(GHAS-gated on private)*
+- [ ] Push protection for secrets *(GHAS-gated on private; sub-toggle of Secret scanning)*
+- [ ] Private vulnerability reporting *(GHAS-gated on private)*
+
+### Private repo posture
+
+`nightwatch` is private during incubation and will flip to public at or
+before the M15 release. The three GHAS-gated features are intentionally
+deferred — buying GHAS for a solo private repo is not in scope. The
+consequences while private:
+
+- Secrets committed to the repo are detected only after-the-fact, by Dependabot
+  or by manual review. Treat every commit as if it could be made public
+  tomorrow: no credentials, no signing identities, no provisioning profiles,
+  no internal hostnames.
+- The `gitleaks` CI check (PR #3) is the de-facto secret scanner until GHAS
+  is available. It runs on every PR and is non-bypassable.
+- Vulnerability reports from external researchers go through the contact in
+  `SECURITY.md` until private vulnerability reporting is enabled.
+
+When the repo goes public, enable all three GHAS features in the same
+configuration pass and update this section.
 
 ---
 
@@ -132,15 +157,22 @@ circumstances.
 
 ## Current state (M0)
 
-- Branch protection: **not yet applied.** This document is the spec; apply
-  via the GitHub UI immediately after this PR merges.
-- Repo-level merge settings: **not yet applied.** Disable merge commits and
-  enable squash + rebase as part of the same configuration pass.
-- Commit signing: contributor environment requires SSH or GPG configuration
-  per the section above before opening any subsequent PR.
-- Historical note: PR #1 (the scaffold) landed as a merge commit because
-  protection had not yet been applied. Linear history applies from PR #2
-  onward.
+- Branch protection: applied in the GitHub UI after PR #2 merged. Required
+  status checks remain unset until PR #3 (CI workflows) lands; see the
+  Required status checks table above.
+- Repo-level merge settings: applied (merge commits disabled, squash + rebase
+  enabled, head branches auto-deleted).
+- Commit signing: SSH signing via `~/.ssh/github_personal`, with the
+  passphrase cached in the macOS Keychain via `ssh-add --apple-use-keychain`
+  and `allowedSignersFile` configured for local verification. CI inherits
+  signing through the contributor's commits; CI itself does not author
+  commits.
+- Repository visibility: **private during incubation.** See the Private repo
+  posture subsection above. Flip to public at or before the M15 release and
+  enable the three GHAS-gated Code Security features as part of that pass.
+- Historical note: PRs #1 and #2 landed as merge commits because branch
+  protection was applied between them and the "linear history" rule had not
+  yet taken effect. Linear history applies from PR #3 onward.
 
 ---
 
