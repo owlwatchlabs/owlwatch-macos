@@ -1,0 +1,35 @@
+# Required status check: `rules-validate`. Spec: docs/repo-config.md
+# Stub until M13. Real validator (schema + MITRE + fixtures) lands when the
+# detection-rule pipeline goes live. Until then, the job exists so branch
+# protection can require it from M0 onward without a "never reports" trap.
+name: Rules validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rules-validate-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  rules-validate:
+    name: rules-validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stub validator
+        shell: bash
+        run: |
+          if [ -d "rules" ] && [ -n "$(find rules -name '*.yml' -o -name '*.yaml' -print -quit)" ]; then
+            echo "::warning::rules/ contains YAML but no validator is wired (stub until M13)."
+            echo "Listing rules/ for record:"
+            find rules -name '*.yml' -o -name '*.yaml' | sort
+          else
+            echo "::notice::No rules/ directory or no YAML rule files; nothing to validate (stub until M13)."
+          fi
