@@ -1,0 +1,62 @@
+# Required status checks: `build`, `test`. Spec: docs/repo-config.md
+name: Build & test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: build
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect Swift package
+        id: detect
+        shell: bash
+        run: |
+          if [ -f "Package.swift" ]; then
+            echo "has_package=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_package=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No Package.swift at repo root; skipping swift build (placeholder until M1)."
+          fi
+
+      - name: Toolchain version
+        if: steps.detect.outputs.has_package == 'true'
+        run: swift --version
+
+      - name: swift build
+        if: steps.detect.outputs.has_package == 'true'
+        run: swift build --build-tests -c debug
+
+  test:
+    name: test
+    runs-on: macos-15
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect Swift package
+        id: detect
+        shell: bash
+        run: |
+          if [ -f "Package.swift" ]; then
+            echo "has_package=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_package=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No Package.swift at repo root; skipping swift test (placeholder until M1)."
+          fi
+
+      - name: swift test
+        if: steps.detect.outputs.has_package == 'true'
+        run: swift test --parallel

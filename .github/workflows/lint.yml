@@ -1,0 +1,40 @@
+# Required status check: `lint`. Spec: docs/repo-config.md
+name: Lint
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    name: lint
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect Swift sources
+        id: detect
+        shell: bash
+        run: |
+          if [ -n "$(find . -name '*.swift' -not -path './.build/*' -not -path './.git/*' -print -quit)" ]; then
+            echo "has_swift=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_swift=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No Swift sources found; skipping SwiftLint (placeholder until M1)."
+          fi
+
+      - name: SwiftLint version
+        if: steps.detect.outputs.has_swift == 'true'
+        run: swiftlint version
+
+      - name: Run SwiftLint
+        if: steps.detect.outputs.has_swift == 'true'
+        run: swiftlint --strict --reporter github-actions-logging
