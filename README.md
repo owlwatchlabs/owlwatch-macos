@@ -6,7 +6,7 @@ Nightwatch is an open-source Endpoint Detection and Response platform for macOS,
 [![Tests](https://img.shields.io/badge/tests-planned-lightgrey)](#)
 [![Coverage](https://img.shields.io/badge/coverage-planned-lightgrey)](#)
 [![Release](https://img.shields.io/badge/release-M0%20in%20progress-lightgrey)](#)
-[![License](https://img.shields.io/badge/license-pending%20ADR--0002-lightgrey)](#)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 [![Platforms](https://img.shields.io/badge/platforms-macOS%2014%2B%20%7C%20iOS%2017%2B-blue)](#)
 [![Rules](https://img.shields.io/badge/rules--validated-planned-lightgrey)](#)
 
@@ -80,7 +80,7 @@ See `SECURITY.md` for coordinated disclosure policy and reporting expectations.
 
 ## License
 
-License selection is pending ADR-0002.
+Nightwatch is licensed under the [Apache License 2.0](LICENSE). See [ADR-0002](docs/adr/0002-license.md) for the rationale and the source-file header convention (`// SPDX-License-Identifier: Apache-2.0`).
 
 ## Acknowledgments
 
