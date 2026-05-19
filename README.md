@@ -17,15 +17,21 @@ Demo assets are planned for M0. Source scripts will live in `docs/demos/` and wi
 ## Features
 
 - [x] M0 repository skeleton
-- [ ] M0 CI, lint, and rule-validation workflow stubs
-- [ ] M0 signed empty macOS app, iOS app, and System Extension targets
+- [x] M0 CI, lint, and rule-validation workflow stubs
+- [x] M0 signed empty macOS app and iOS app targets (System Extensions deferred to M7/M8/M10/M12)
+- [x] M0 initial ADRs and Apache 2.0 license
 - [ ] M1 process inspection library and `nwctl ps`
 - [ ] M2 Mach-O and Universal binary parser
 - [ ] M3 code-signing and notarization inspection
 - [ ] M4 host network state inspection
 - [ ] M5 persistence enumeration
+- [ ] M7 Network Extension filter provider
 - [ ] M8 Endpoint Security event ingestion
+- [ ] M10 persistence monitor (real-time)
+- [ ] M12 DNS proxy and heuristics
 - [ ] M13 detection rules engine and tested rule library
+- [ ] M14 iOS companion (posture, App Attest)
+- [ ] M15 v1.0 notarized release
 
 ## Architecture
 
