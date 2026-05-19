@@ -1,0 +1,38 @@
+# Xcode
+DerivedData/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# Signing and secrets
+*.p12
+*.cer
+*.mobileprovision
+*.provisionprofile
+.env
+.env.*
+
+# macOS
+.DS_Store
+
+# Build artifacts
+*.dmg
+*.pkg
+*.xcarchive
+*.ipa
+*.app
+*.appex
+*.systemextension
+
+# Logs and reports
+*.log
+coverage/
+*.profdata
+*.profraw
+
