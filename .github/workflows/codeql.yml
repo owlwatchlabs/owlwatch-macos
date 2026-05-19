@@ -51,3 +51,9 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:swift"
+          # SARIF upload requires GitHub Advanced Security, which is paid on
+          # private repos. nightwatch defers GHAS until it flips public at or
+          # before M15 (see docs/repo-config.md "Private repo posture"). Run
+          # the queries locally so the job still gates on findings; skip the
+          # upload until Code Scanning is enabled in repo settings.
+          upload: never
