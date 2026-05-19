@@ -24,20 +24,46 @@ jobs:
         id: detect
         shell: bash
         run: |
-          if [ -f "Package.swift" ]; then
+          if [ -f "packages/Package.swift" ]; then
             echo "has_package=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_package=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No Package.swift at repo root; skipping swift build (placeholder until M1)."
+            echo "::notice::No packages/Package.swift; skipping swift build."
           fi
 
       - name: Toolchain version
         if: steps.detect.outputs.has_package == 'true'
         run: swift --version
 
-      - name: swift build
+      - name: swift build (packages)
         if: steps.detect.outputs.has_package == 'true'
-        run: swift build --build-tests -c debug
+        run: swift build --package-path packages --build-tests -c debug
+
+      - name: Build macOS app (Nightwatch)
+        if: hashFiles('apps/Nightwatch/Nightwatch.xcodeproj/project.pbxproj') != ''
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project apps/Nightwatch/Nightwatch.xcodeproj \
+            -scheme Nightwatch \
+            -destination 'platform=macOS' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: Build iOS app (NightwatchMobile)
+        if: hashFiles('apps/NightwatchMobile/NightwatchMobile.xcodeproj/project.pbxproj') != ''
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project apps/NightwatchMobile/NightwatchMobile.xcodeproj \
+            -scheme NightwatchMobile \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
 
   test:
     name: test
@@ -50,13 +76,13 @@ jobs:
         id: detect
         shell: bash
         run: |
-          if [ -f "Package.swift" ]; then
+          if [ -f "packages/Package.swift" ]; then
             echo "has_package=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_package=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No Package.swift at repo root; skipping swift test (placeholder until M1)."
+            echo "::notice::No packages/Package.swift; skipping swift test."
           fi
 
-      - name: swift test
+      - name: swift test (packages)
         if: steps.detect.outputs.has_package == 'true'
-        run: swift test --parallel
+        run: swift test --package-path packages --parallel
