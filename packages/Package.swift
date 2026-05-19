@@ -18,14 +18,14 @@ let modules: [String] = [
     "NWProtocol",
     "NWRules",
     "NWStore",
-    "NWUIKit",
+    "NWUIKit"
 ]
 
 let package = Package(
     name: "Nightwatch",
     platforms: [
         .macOS(.v14),
-        .iOS(.v17),
+        .iOS(.v17)
     ],
     products: modules.map { name in
         .library(name: name, targets: [name])
