@@ -1,5 +1,8 @@
 # console.tape — placeholder
 #
+# Surface: terminal UI (`nwctl console --follow`). Runs in a regular
+# terminal, drives VHS the same way the `nwctl` CLI does.
+#
 # User story: the Nightwatch console streams events live with filters by
 # process, path, signing identity, and rule match. Becomes meaningful at M6
 # when NWLog ships and the console view starts surfacing structured events.
