@@ -12,7 +12,7 @@ Nightwatch is an open-source Endpoint Detection and Response platform for macOS,
 
 ## Demo
 
-Demo assets are planned for M0. Source scripts will live in `docs/demos/` and will cover the menu-bar agent, console, and `nwctl` quickstart.
+Demo recording scripts live in [`docs/demos/`](docs/demos/) and cover the menu-bar agent, console, and `nwctl` quickstart. They are [VHS](https://github.com/charmbracelet/vhs) tape files; run `vhs docs/demos/<name>.tape` to regenerate. At M0 the tapes are placeholders pointing at behavior that ships in later milestones — see [`docs/demos/README.md`](docs/demos/README.md) for the convention and the per-tape milestone mapping.
 
 ## Features
 
