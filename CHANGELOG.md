@@ -6,7 +6,12 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 
 ## [Unreleased]
 
-_No entries yet. M1 work (process inspector, `nwctl ps`) lands here._
+### Added
+
+- **`NWProcess` module** — first real implementation of an `NW*` library. Public surface: `RunningProcess` value type (pid, parentPid, name, path, userId) and `NWProcess.all()` / `NWProcess.snapshot(pid:)` static APIs. Backed by libproc (`proc_listpids`, `proc_pidinfo` PROC_PIDTBSDINFO, `proc_pidpath`). No entitlements required.
+- **`nwctl` executable target** — first shipping binary. Built on Apple's `swift-argument-parser` (v1.5+).
+- **`nwctl ps`** — first user-visible command. Prints the current process table as a fixed-width table (PID, PPID, USER, NAME columns; `--paths` / `-p` adds the executable path). Errors-on-individual-PID are silently skipped so the snapshot reflects the caller's view of the table rather than failing the whole command.
+- **`nwctl --version`** — prints `0.1.0-m0`. Version string is currently a hardcoded literal; M1 milestone-close lands a build-time derivation.
 
 ## [v0.1.0-m0] — 2026-05-20
 

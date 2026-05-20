@@ -8,7 +8,10 @@ DerivedData/
 # Swift Package Manager
 .build/
 .swiftpm/
-Package.resolved
+# Package.resolved IS committed: nightwatch ships an executable (nwctl) plus
+# downstream consumers (apps, future extensions), so dependency versions
+# need to be pinned for reproducible builds. See SwiftPM docs on
+# "Package.resolved File" / "Library vs. tool packages".
 
 # Signing and secrets
 *.p12

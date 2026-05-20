@@ -1,12 +1,14 @@
-# nwctl.tape — placeholder
+# nwctl.tape
 #
-# User story: a user runs `nwctl ps` and sees a process tree annotated with
-# code-signing status, parent chain, and bundle ID. Becomes meaningful once
-# M1 ships the NWProcess library and the nwctl CLI.
+# Surface: CLI (`nwctl ps`).
 #
-# Until M1 lands, this tape only records the placeholder "command not found"
-# error. The structure is in place so the M1 PR can edit a script, not author
-# a new file.
+# User story: a user runs `nwctl ps` and sees the current process table
+# with PID, PPID, user, and process name. The `--paths` flag adds the
+# executable path. Tree view, arguments, libraries, and open files land in
+# M1.2 / M1.3.
+#
+# This tape assumes nwctl is built and on PATH. Until `make install` ships
+# (M1-close), use `swift run --package-path packages nwctl ps` instead.
 #
 # Regenerate: `vhs docs/demos/nwctl.tape` (writes to docs/demos/out/nwctl.gif)
 
@@ -18,14 +20,18 @@ Set Height 500
 Set TypingSpeed 50ms
 Set Theme "Dracula"
 
-Type "# nwctl is the Nightwatch command-line. Real behavior lands at M1."
+Type "# nwctl ps — process table snapshot via libproc."
 Enter
 Sleep 1s
 
-Type "nwctl ps --tree"
-Enter
-Sleep 1s
-
-Type "# (M1: process tree with code-signing status, bundle ID, parent chain)"
+Type "nwctl ps | head -15"
 Enter
 Sleep 2s
+
+Type "# --paths / -p adds the executable column."
+Enter
+Sleep 1s
+
+Type "nwctl ps --paths | head -8"
+Enter
+Sleep 3s
