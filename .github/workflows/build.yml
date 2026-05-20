@@ -31,6 +31,17 @@ jobs:
             echo "::notice::No packages/Package.swift; skipping swift build."
           fi
 
+      - name: Cache SwiftPM build artifacts
+        if: steps.detect.outputs.has_package == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            packages/.build
+            ~/Library/Caches/org.swift.swiftpm
+          key: spm-${{ runner.os }}-${{ hashFiles('packages/Package.swift', 'packages/Package.resolved') }}
+          restore-keys: |
+            spm-${{ runner.os }}-
+
       - name: Toolchain version
         if: steps.detect.outputs.has_package == 'true'
         run: swift --version
@@ -82,6 +93,17 @@ jobs:
             echo "has_package=false" >> "$GITHUB_OUTPUT"
             echo "::notice::No packages/Package.swift; skipping swift test."
           fi
+
+      - name: Cache SwiftPM build artifacts
+        if: steps.detect.outputs.has_package == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            packages/.build
+            ~/Library/Caches/org.swift.swiftpm
+          key: spm-${{ runner.os }}-${{ hashFiles('packages/Package.swift', 'packages/Package.resolved') }}
+          restore-keys: |
+            spm-${{ runner.os }}-
 
       - name: swift test (packages)
         if: steps.detect.outputs.has_package == 'true'
