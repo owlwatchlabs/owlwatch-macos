@@ -12,7 +12,7 @@ Nightwatch is an open-source Endpoint Detection and Response platform for macOS,
 
 ## Demo
 
-Demo recording scripts live in [`docs/demos/`](docs/demos/) and cover the menu-bar agent, console, and `nwctl` quickstart. They are [VHS](https://github.com/charmbracelet/vhs) tape files; run `vhs docs/demos/<name>.tape` to regenerate. At M0 the tapes are placeholders pointing at behavior that ships in later milestones — see [`docs/demos/README.md`](docs/demos/README.md) for the convention and the per-tape milestone mapping.
+Demo recording scripts live in [`docs/demos/`](docs/demos/) and cover the **CLI and TUI surfaces** — the event console (`nwctl console --follow`) and the `nwctl` quickstart. They are [VHS](https://github.com/charmbracelet/vhs) tape files; run `vhs docs/demos/<name>.tape` to regenerate. Menu-bar and iOS surfaces are recorded separately via screen capture when they ship (M2/M3, M14); see [`docs/demos/README.md`](docs/demos/README.md) for the full recording approach. At M0 the tapes are placeholders pointing at behavior that ships in later milestones.
 
 ## Features
 
