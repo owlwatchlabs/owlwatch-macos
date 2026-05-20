@@ -6,7 +6,7 @@ Nightwatch is an open-source Endpoint Detection and Response platform for macOS,
 [![Tests](https://img.shields.io/badge/tests-planned-lightgrey)](#)
 [![Coverage](https://img.shields.io/badge/coverage-planned-lightgrey)](#)
 [![Release](https://img.shields.io/badge/release-M0%20in%20progress-lightgrey)](#)
-[![License](https://img.shields.io/badge/license-pending%20ADR--0002-lightgrey)](#)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 [![Platforms](https://img.shields.io/badge/platforms-macOS%2014%2B%20%7C%20iOS%2017%2B-blue)](#)
 [![Rules](https://img.shields.io/badge/rules--validated-planned-lightgrey)](#)
 
@@ -17,15 +17,21 @@ Demo assets are planned for M0. Source scripts will live in `docs/demos/` and wi
 ## Features
 
 - [x] M0 repository skeleton
-- [ ] M0 CI, lint, and rule-validation workflow stubs
-- [ ] M0 signed empty macOS app, iOS app, and System Extension targets
+- [x] M0 CI, lint, and rule-validation workflow stubs
+- [x] M0 signed empty macOS app and iOS app targets (System Extensions deferred to M7/M8/M10/M12)
+- [x] M0 initial ADRs and Apache 2.0 license
 - [ ] M1 process inspection library and `nwctl ps`
 - [ ] M2 Mach-O and Universal binary parser
 - [ ] M3 code-signing and notarization inspection
 - [ ] M4 host network state inspection
 - [ ] M5 persistence enumeration
+- [ ] M7 Network Extension filter provider
 - [ ] M8 Endpoint Security event ingestion
+- [ ] M10 persistence monitor (real-time)
+- [ ] M12 DNS proxy and heuristics
 - [ ] M13 detection rules engine and tested rule library
+- [ ] M14 iOS companion (posture, App Attest)
+- [ ] M15 v1.0 notarized release
 
 ## Architecture
 
@@ -80,7 +86,7 @@ See `SECURITY.md` for coordinated disclosure policy and reporting expectations.
 
 ## License
 
-License selection is pending ADR-0002.
+Nightwatch is licensed under the [Apache License 2.0](LICENSE). See [ADR-0002](docs/adr/0002-license.md) for the rationale and the source-file header convention (`// SPDX-License-Identifier: Apache-2.0`).
 
 ## Acknowledgments
 
