@@ -74,6 +74,72 @@ final class OWBinaryTests: XCTestCase {
         }
     }
 
+    // MARK: - Symbol table (M2.2)
+
+    func testParseWithoutIncludeSymbolsLeavesSymbolsNil() throws {
+        let binary = try OWBinary.parse(at: URL(fileURLWithPath: "/bin/ls"))
+        XCTAssertTrue(binary.slices.allSatisfy { $0.symbols == nil },
+                      "Default parse() should leave Slice.symbols == nil")
+    }
+
+    func testParseWithIncludeSymbolsPopulatesEachSlice() throws {
+        let binary = try OWBinary.parse(at: URL(fileURLWithPath: "/bin/ls"), includeSymbols: true)
+        for slice in binary.slices {
+            XCTAssertNotNil(slice.symbols, "includeSymbols=true must populate Slice.symbols")
+            XCTAssertFalse(slice.symbols?.isEmpty ?? true,
+                           "Expected /bin/ls slice to have at least one symbol")
+        }
+    }
+
+    func testBinLsImportsLibcSymbols() throws {
+        // /bin/ls links libSystem; libSystem provides _malloc, _free, _printf etc.
+        // Those must appear in /bin/ls's symbol table as undefined externals.
+        let binary = try OWBinary.parse(at: URL(fileURLWithPath: "/bin/ls"), includeSymbols: true)
+        let allSymbolNames: Set<String> = Set(
+            binary.slices.flatMap { $0.symbols ?? [] }.map(\.name)
+        )
+        let hasLibcImport = allSymbolNames.contains("_printf") || allSymbolNames.contains("_malloc")
+        XCTAssertTrue(
+            hasLibcImport,
+            "Expected /bin/ls to import _printf or _malloc from libSystem; sample: \(allSymbolNames.prefix(10))"
+        )
+    }
+
+    func testBinLsHasUndefinedExternalSymbols() throws {
+        let binary = try OWBinary.parse(at: URL(fileURLWithPath: "/bin/ls"), includeSymbols: true)
+        for slice in binary.slices {
+            let symbols = try XCTUnwrap(slice.symbols)
+            let imports = symbols.filter { $0.isExternal && $0.kind == .undefined }
+            XCTAssertGreaterThan(
+                imports.count, 0,
+                "Expected /bin/ls to have at least one external undefined symbol (an import)"
+            )
+        }
+    }
+
+    func testSymbolNmCodeIsUppercaseForExternal() {
+        let external = Symbol(
+            name: "_main", kind: .defined, value: 0x100000000,
+            isExternal: true, isPrivateExternal: false,
+            sectionIndex: 1, descriptionBits: 0
+        )
+        XCTAssertEqual(external.nmCode, "S")
+
+        let local = Symbol(
+            name: "_local", kind: .defined, value: 0,
+            isExternal: false, isPrivateExternal: false,
+            sectionIndex: 1, descriptionBits: 0
+        )
+        XCTAssertEqual(local.nmCode, "s")
+
+        let undefinedExternal = Symbol(
+            name: "_printf", kind: .undefined, value: 0,
+            isExternal: true, isPrivateExternal: false,
+            sectionIndex: 0, descriptionBits: 0
+        )
+        XCTAssertEqual(undefinedExternal.nmCode, "U")
+    }
+
     // MARK: - Architecture mapping
 
     func testArchitectureNameIsCorrectForKnownTypes() {

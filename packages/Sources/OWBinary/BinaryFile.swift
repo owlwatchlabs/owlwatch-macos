@@ -36,22 +36,117 @@ public struct BinaryFile: Sendable, Equatable, Hashable {
 }
 
 /// A single architecture's Mach-O image inside a `BinaryFile`.
+///
+/// `symbols` is populated only when the caller passes `includeSymbols: true`
+/// to `OWBinary.parse(at:)`. The three-state convention matches `OWProcess`:
+/// `nil` when not captured, `[]` when capture was requested but the slice
+/// has no `LC_SYMTAB` (stripped binary, or `LC_DYSYMTAB` only), populated
+/// array otherwise.
 public struct Slice: Sendable, Equatable, Hashable {
     public let architecture: Architecture
     public let fileType: FileType
     public let flags: UInt32
     public let loadCommands: [LoadCommand]
+    public let symbols: [Symbol]?
 
     public init(
         architecture: Architecture,
         fileType: FileType,
         flags: UInt32,
-        loadCommands: [LoadCommand]
+        loadCommands: [LoadCommand],
+        symbols: [Symbol]? = nil
     ) {
         self.architecture = architecture
         self.fileType = fileType
         self.flags = flags
         self.loadCommands = loadCommands
+        self.symbols = symbols
+    }
+}
+
+/// A single Mach-O symbol-table entry (`struct nlist` / `struct nlist_64`).
+///
+/// The Mach-O symbol table is a unified table containing every symbol the
+/// binary defines, imports, exports, or carries as debug information. Each
+/// entry's classification lives in the `n_type` byte; this type unpacks that
+/// byte into Swift-friendly fields.
+///
+/// For external symbols (`isExternal == true`):
+/// - `.undefined` entries are **imports** — names this binary uses but
+///   relies on the linker / dyld to resolve from another image.
+/// - `.defined` entries are **exports** — names this binary makes
+///   available to other images linking against it.
+///
+/// `.stab` entries are STABS-format debugging information (file paths,
+/// line numbers, etc.); they're not "real" symbols in the link-time sense.
+public struct Symbol: Sendable, Equatable, Hashable {
+    public let name: String
+    public let kind: Kind
+    /// For defined symbols: the address (image-relative virtual address)
+    /// of the symbol in the loaded binary. For undefined / absolute / stab
+    /// entries: the raw `n_value` field (often 0).
+    public let value: UInt64
+    /// `n_type & N_EXT != 0` — visible across translation units / dylibs.
+    public let isExternal: Bool
+    /// `n_type & N_PEXT != 0` — "private external"; the symbol was
+    /// originally external but linker scoping has hidden it.
+    public let isPrivateExternal: Bool
+    /// 1-based section index for `.defined` symbols, 0 for everything else.
+    public let sectionIndex: UInt8
+    /// Raw `n_desc` field — version info, library ordinal for imports,
+    /// reference flags, etc. Preserved for callers that need to decode it.
+    public let descriptionBits: UInt16
+
+    public enum Kind: Sendable, Equatable, Hashable {
+        /// `N_UNDF` — name used but defined elsewhere (an import).
+        case undefined
+        /// `N_ABS` — symbol with a fixed value, not bound to any section.
+        case absolute
+        /// `N_SECT` — defined in section `sectionIndex`.
+        case defined
+        /// `N_PBUD` — prebound undefined (legacy prebinding optimization).
+        case prebound
+        /// `N_INDR` — alias for another symbol; `value` is a string-table
+        /// offset to the target name.
+        case indirect
+        /// `N_STAB` — STABS-format debug entry. `rawType` is the full
+        /// 8-bit `n_type` so callers that need to decode the specific
+        /// stab type (N_SO, N_FUN, ...) can switch on it.
+        case stab(rawType: UInt8)
+    }
+
+    public init(
+        name: String,
+        kind: Kind,
+        value: UInt64,
+        isExternal: Bool,
+        isPrivateExternal: Bool,
+        sectionIndex: UInt8,
+        descriptionBits: UInt16
+    ) {
+        self.name = name
+        self.kind = kind
+        self.value = value
+        self.isExternal = isExternal
+        self.isPrivateExternal = isPrivateExternal
+        self.sectionIndex = sectionIndex
+        self.descriptionBits = descriptionBits
+    }
+
+    /// `nm(1)`-style single-character type code. Uppercase for external,
+    /// lowercase for local. Lossy compared to the structured `kind` /
+    /// `isExternal` / `sectionIndex` fields but useful for compact display.
+    public var nmCode: Character {
+        let code: Character
+        switch kind {
+        case .undefined: code = "u"
+        case .absolute: code = "a"
+        case .defined: code = "s"  // we don't yet distinguish text/data sections
+        case .prebound: code = "p"
+        case .indirect: code = "i"
+        case .stab: code = "-"  // stab entries have no nm code; '-' is a placeholder
+        }
+        return isExternal ? Character(code.uppercased()) : code
     }
 }
 
