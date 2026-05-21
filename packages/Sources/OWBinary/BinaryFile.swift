@@ -37,6 +37,13 @@ public struct BinaryFile: Sendable, Equatable, Hashable {
 
 /// A single architecture's Mach-O image inside a `BinaryFile`.
 ///
+/// `fileOffsetInBinary` is the byte offset where this slice's Mach-O image
+/// begins within the overall file. `0` for a thin Mach-O; the value of the
+/// corresponding `fat_arch.offset` for a slice inside a Universal binary.
+/// Every offset on the slice's `Segment`s and `Section`s (`fileOffset`) is
+/// relative to this base — add the two when reading from the underlying
+/// file.
+///
 /// `symbols` is populated only when the caller passes `includeSymbols: true`
 /// to `OWBinary.parse(at:)`. The three-state convention matches `OWProcess`:
 /// `nil` when not captured, `[]` when capture was requested but the slice
@@ -46,6 +53,7 @@ public struct Slice: Sendable, Equatable, Hashable {
     public let architecture: Architecture
     public let fileType: FileType
     public let flags: UInt32
+    public let fileOffsetInBinary: UInt64
     public let loadCommands: [LoadCommand]
     public let symbols: [Symbol]?
 
@@ -53,12 +61,14 @@ public struct Slice: Sendable, Equatable, Hashable {
         architecture: Architecture,
         fileType: FileType,
         flags: UInt32,
+        fileOffsetInBinary: UInt64,
         loadCommands: [LoadCommand],
         symbols: [Symbol]? = nil
     ) {
         self.architecture = architecture
         self.fileType = fileType
         self.flags = flags
+        self.fileOffsetInBinary = fileOffsetInBinary
         self.loadCommands = loadCommands
         self.symbols = symbols
     }
@@ -244,8 +254,9 @@ public enum FileType: Sendable, Equatable, Hashable {
 ///
 /// The variants cover the surface that matters for an EDR's binary
 /// inspection: dynamic-library linkage (`Dylib`), runtime search paths
-/// (`Rpath`), identity (`UUID`), and entry point (`Main`). Everything else
-/// is `.other(rawType:)` with the raw `cmd` value preserved.
+/// (`Rpath`), identity (`UUID`), entry point (`Main`), and memory layout
+/// (`Segment`). Everything else is `.other(rawType:)` with the raw `cmd`
+/// value preserved.
 public enum LoadCommand: Sendable, Equatable, Hashable {
     /// LC_LOAD_DYLIB, LC_LOAD_WEAK_DYLIB, LC_REEXPORT_DYLIB,
     /// LC_LAZY_LOAD_DYLIB, LC_LOAD_UPWARD_DYLIB, LC_ID_DYLIB.
@@ -259,6 +270,10 @@ public enum LoadCommand: Sendable, Equatable, Hashable {
 
     /// LC_MAIN — entry point offset and initial stack size.
     case main(entryOffset: UInt64, stackSize: UInt64)
+
+    /// LC_SEGMENT (32-bit) or LC_SEGMENT_64. Defines a region of the binary
+    /// that maps into memory, including the sections within it.
+    case segment(Segment)
 
     /// Any other load command. The raw 32-bit `cmd` value is preserved so
     /// callers can match against constants from `<mach-o/loader.h>`.
@@ -306,5 +321,137 @@ public enum LoadCommand: Sendable, Equatable, Hashable {
     public var asLinkedDylib: Dylib? {
         guard case let .dylib(payload) = self, !payload.isSelfIdentity else { return nil }
         return payload
+    }
+}
+
+// MARK: - Segments + sections (M2.3)
+
+/// A single Mach-O segment (`LC_SEGMENT` / `LC_SEGMENT_64`).
+///
+/// A segment is a contiguous region of the binary that the dynamic linker
+/// maps into the process's address space. Each segment carries virtual-
+/// address layout, file-offset layout, VM protection bits, and zero or more
+/// sections (sub-regions with their own names, like `__text` for code or
+/// `__data` for initialized globals).
+public struct Segment: Sendable, Equatable, Hashable {
+    public let name: String              // e.g. "__TEXT", "__DATA", "__LINKEDIT"
+    public let vmAddress: UInt64
+    public let vmSize: UInt64
+    public let fileOffset: UInt64        // offset within the slice (not the universal binary)
+    public let fileSize: UInt64
+    public let maxProtection: SegmentProtection
+    public let initialProtection: SegmentProtection
+    public let flags: UInt32
+    public let sections: [Section]
+
+    public init(
+        name: String,
+        vmAddress: UInt64,
+        vmSize: UInt64,
+        fileOffset: UInt64,
+        fileSize: UInt64,
+        maxProtection: SegmentProtection,
+        initialProtection: SegmentProtection,
+        flags: UInt32,
+        sections: [Section]
+    ) {
+        self.name = name
+        self.vmAddress = vmAddress
+        self.vmSize = vmSize
+        self.fileOffset = fileOffset
+        self.fileSize = fileSize
+        self.maxProtection = maxProtection
+        self.initialProtection = initialProtection
+        self.flags = flags
+        self.sections = sections
+    }
+}
+
+/// VM protection bitfield (`vm_prot_t` in `<mach/vm_prot.h>`).
+///
+/// Combinations to look for in EDR analysis:
+/// - **`[.read, .execute]`** (`r-x`) — the conventional `__TEXT` permission,
+///   safe and expected.
+/// - **`[.read, .write]`** (`rw-`) — the conventional `__DATA` permission,
+///   safe and expected.
+/// - **`[.read, .write, .execute]`** (`rwx`) — *suspicious*. A segment that
+///   is simultaneously writable and executable is a strong packing /
+///   self-modifying-code signal and should never appear in a normal
+///   release-built binary.
+public struct SegmentProtection: OptionSet, Sendable, Equatable, Hashable {
+    public let rawValue: Int32
+    public init(rawValue: Int32) { self.rawValue = rawValue }
+
+    public static let read = SegmentProtection(rawValue: 0x01)     // VM_PROT_READ
+    public static let write = SegmentProtection(rawValue: 0x02)    // VM_PROT_WRITE
+    public static let execute = SegmentProtection(rawValue: 0x04)  // VM_PROT_EXECUTE
+
+    /// Compact `chmod(1)`-style three-character form, e.g. `r-x`.
+    public var symbolicForm: String {
+        let r = contains(.read) ? "r" : "-"
+        let w = contains(.write) ? "w" : "-"
+        let x = contains(.execute) ? "x" : "-"
+        return "\(r)\(w)\(x)"
+    }
+}
+
+/// A single Mach-O section (`struct section` / `section_64`).
+///
+/// Sections are sub-regions within a segment. The `__TEXT` segment
+/// typically contains `__text` (executable code), `__cstring` (read-only
+/// string literals), `__const` (read-only initialized data), etc. The
+/// `__DATA` segment typically contains `__data` (initialized data), `__bss`
+/// (uninitialized data), `__la_symbol_ptr` (lazy-binding symbol pointers),
+/// etc.
+public struct Section: Sendable, Equatable, Hashable {
+    public let name: String              // e.g. "__text", "__cstring", "__data"
+    public let segmentName: String       // parent segment's name
+    public let address: UInt64           // virtual address
+    public let size: UInt64              // size in bytes
+    public let fileOffset: UInt32        // offset within the slice
+    public let flags: UInt32
+
+    public init(
+        name: String,
+        segmentName: String,
+        address: UInt64,
+        size: UInt64,
+        fileOffset: UInt32,
+        flags: UInt32
+    ) {
+        self.name = name
+        self.segmentName = segmentName
+        self.address = address
+        self.size = size
+        self.fileOffset = fileOffset
+        self.flags = flags
+    }
+}
+
+/// Result of computing Shannon entropy over a section's file-backed bytes.
+///
+/// `entropy` is in bits per byte and ranges from 0.0 (every byte identical)
+/// to 8.0 (perfectly uniform distribution). Compiled native code typically
+/// scores 5.5–6.5; compressed or encrypted data scores above 7.5; pure
+/// ASCII text scores around 4.0–4.5.
+public struct SectionEntropy: Sendable, Equatable, Hashable {
+    public let sliceIndex: Int
+    public let segmentName: String
+    public let sectionName: String
+    public let entropy: Double
+    public let size: UInt64
+
+    public init(
+        sliceIndex: Int,
+        segmentName: String,
+        sectionName: String,
+        entropy: Double,
+        size: UInt64
+    ) {
+        self.sliceIndex = sliceIndex
+        self.segmentName = segmentName
+        self.sectionName = sectionName
+        self.entropy = entropy
+        self.size = size
     }
 }

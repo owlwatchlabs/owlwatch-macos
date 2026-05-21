@@ -36,6 +36,12 @@ struct InspectCommand: ParsableCommand {
     @Flag(name: .long, help: "With --symbols, restrict output to external symbols (imports + exports).")
     var externalOnly: Bool = false
 
+    @Flag(name: .long, help: "List every segment and section with size and VM protection bits.")
+    var segments: Bool = false
+
+    @Flag(name: .long, help: "Compute Shannon entropy (bits/byte, 0..8) for each section.")
+    var entropy: Bool = false
+
     func run() throws {
         let url = URL(fileURLWithPath: path)
         let binary = try OWBinary.parse(at: url, includeSymbols: symbols)
@@ -63,9 +69,16 @@ struct InspectCommand: ParsableCommand {
             if libs {
                 appendDylibs(for: slice, into: &lines)
             }
+            if segments {
+                appendSegments(for: slice, into: &lines)
+            }
             if symbols {
                 appendSymbols(for: slice, externalOnly: externalOnly, into: &lines)
             }
+        }
+
+        if entropy {
+            try appendEntropy(for: binary, into: &lines)
         }
 
         FileHandle.standardOutput.write(Data((lines.joined(separator: "\n") + "\n").utf8))
@@ -95,6 +108,51 @@ private func appendRPaths(for slice: Slice, into lines: inout [String]) {
     for entry in entries {
         lines.append("    \(entry)")
     }
+}
+
+private func appendSegments(for slice: Slice, into lines: inout [String]) {
+    let segments = slice.loadCommands.compactMap { command -> Segment? in
+        if case let .segment(payload) = command { return payload } else { return nil }
+    }
+    guard !segments.isEmpty else { return }
+    lines.append("  Segments (\(segments.count)):")
+    for segment in segments {
+        let initProt = segment.initialProtection.symbolicForm
+        let maxProt = segment.maxProtection.symbolicForm
+        let segName = segment.name.padding(toLength: 14, withPad: " ", startingAt: 0)
+        let vmSize = formatBytes(segment.vmSize)
+        let fileOff = String(segment.fileOffset, radix: 16)
+        lines.append("    \(segName) \(initProt)/\(maxProt)  vm=\(vmSize)  fileoff=0x\(fileOff)")
+        for section in segment.sections {
+            let sectName = section.name.padding(toLength: 20, withPad: " ", startingAt: 0)
+            let sectionSize = formatBytes(section.size)
+            let sectFileOff = String(section.fileOffset, radix: 16)
+            lines.append("      \(section.segmentName).\(sectName)  size=\(sectionSize)  fileoff=0x\(sectFileOff)")
+        }
+    }
+}
+
+private func appendEntropy(for binary: BinaryFile, into lines: inout [String]) throws {
+    let entropies = try OWBinary.sectionEntropies(of: binary)
+    guard !entropies.isEmpty else { return }
+    lines.append("")
+    lines.append("Section entropy (\(entropies.count) sections):")
+    lines.append("  slice  section                                  entropy  size")
+    for entry in entropies {
+        let qualifiedName = "\(entry.segmentName).\(entry.sectionName)"
+        let padded = qualifiedName.padding(toLength: 40, withPad: " ", startingAt: 0)
+        let entropyStr = String(format: "%.3f", entry.entropy)
+        let sizeStr = formatBytes(entry.size)
+        let flag = entry.entropy > 7.0 ? " [HIGH]" : ""
+        lines.append("  [\(entry.sliceIndex)]    \(padded)  \(entropyStr)   \(sizeStr)\(flag)")
+    }
+}
+
+private func formatBytes(_ bytes: UInt64) -> String {
+    if bytes < 1024 { return "\(bytes) B" }
+    if bytes < 1024 * 1024 { return String(format: "%.1f KiB", Double(bytes) / 1024.0) }
+    if bytes < 1024 * 1024 * 1024 { return String(format: "%.1f MiB", Double(bytes) / (1024.0 * 1024.0)) }
+    return String(format: "%.1f GiB", Double(bytes) / (1024.0 * 1024.0 * 1024.0))
 }
 
 private func appendSymbols(for slice: Slice, externalOnly: Bool, into lines: inout [String]) {

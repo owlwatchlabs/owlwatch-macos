@@ -23,6 +23,8 @@ private let lcRPath: UInt32 = 0x8000_001C
 private let lcUUID: UInt32 = 0x0000_001B
 private let lcMain: UInt32 = 0x8000_0028
 private let lcSymtab: UInt32 = 0x0000_0002
+private let lcSegment: UInt32 = 0x0000_0001
+private let lcSegment64: UInt32 = 0x0000_0019
 
 // MARK: - nlist n_type bitfield (from <mach-o/nlist.h>)
 
@@ -173,6 +175,7 @@ struct Parser {
             architecture: architecture,
             fileType: fileType,
             flags: flags,
+            fileOffsetInBinary: UInt64(base),
             loadCommands: loadCommands,
             symbols: symbols
         )
@@ -265,9 +268,136 @@ struct Parser {
             return parseUUIDCommand(start: start, size: size)
         case lcMain:
             return parseMainCommand(start: start, size: size, littleEndian: littleEndian)
+        case lcSegment64:
+            return parseSegmentCommand(start: start, size: size, is64Bit: true, littleEndian: littleEndian)
+        case lcSegment:
+            return parseSegmentCommand(start: start, size: size, is64Bit: false, littleEndian: littleEndian)
         default:
             return .other(rawType: cmd)
         }
+    }
+
+    private func parseSegmentCommand(
+        start: Int,
+        size: Int,
+        is64Bit: Bool,
+        littleEndian: Bool
+    ) -> LoadCommand {
+        // Header layout (after cmd+cmdsize):
+        //   char segname[16]
+        //   uint{32,64} vmaddr, vmsize, fileoff, filesize
+        //   int32 maxprot, int32 initprot
+        //   uint32 nsects, uint32 flags
+        let headerEnd: Int
+        let segnameOffset = start + 8
+        let addressOffset = start + 8 + 16  // skip cmd(4) + cmdsize(4) + segname(16)
+
+        if is64Bit {
+            headerEnd = addressOffset + 8 + 8 + 8 + 8 + 4 + 4 + 4 + 4  // = 72 total
+        } else {
+            headerEnd = addressOffset + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4  // = 56 total
+        }
+        guard size >= (headerEnd - start) else {
+            return .other(rawType: is64Bit ? lcSegment64 : lcSegment)
+        }
+
+        let segmentName = readFixedString(start: segnameOffset, length: 16)
+        let vmAddress: UInt64
+        let vmSize: UInt64
+        let fileOffset: UInt64
+        let fileSize: UInt64
+        let cursor: Int
+        if is64Bit {
+            vmAddress = readUInt64(at: addressOffset, littleEndian: littleEndian)
+            vmSize = readUInt64(at: addressOffset + 8, littleEndian: littleEndian)
+            fileOffset = readUInt64(at: addressOffset + 16, littleEndian: littleEndian)
+            fileSize = readUInt64(at: addressOffset + 24, littleEndian: littleEndian)
+            cursor = addressOffset + 32
+        } else {
+            vmAddress = UInt64(readUInt32(at: addressOffset, littleEndian: littleEndian))
+            vmSize = UInt64(readUInt32(at: addressOffset + 4, littleEndian: littleEndian))
+            fileOffset = UInt64(readUInt32(at: addressOffset + 8, littleEndian: littleEndian))
+            fileSize = UInt64(readUInt32(at: addressOffset + 12, littleEndian: littleEndian))
+            cursor = addressOffset + 16
+        }
+        let maxProt = Int32(bitPattern: readUInt32(at: cursor, littleEndian: littleEndian))
+        let initProt = Int32(bitPattern: readUInt32(at: cursor + 4, littleEndian: littleEndian))
+        let nsects = readUInt32(at: cursor + 8, littleEndian: littleEndian)
+        let flags = readUInt32(at: cursor + 12, littleEndian: littleEndian)
+
+        // Sections immediately follow the segment header.
+        let sectionStart = is64Bit ? cursor + 16 : cursor + 16
+        let sectionStride = is64Bit ? 80 : 68  // sizeof(section_64) vs sizeof(section)
+        var sections: [Section] = []
+        sections.reserveCapacity(Int(nsects))
+        for index in 0..<Int(nsects) {
+            let secOffset = sectionStart + index * sectionStride
+            guard secOffset + sectionStride <= start + size else { break }
+            sections.append(parseSection(
+                at: secOffset,
+                is64Bit: is64Bit,
+                littleEndian: littleEndian
+            ))
+        }
+
+        return .segment(Segment(
+            name: segmentName,
+            vmAddress: vmAddress,
+            vmSize: vmSize,
+            fileOffset: fileOffset,
+            fileSize: fileSize,
+            maxProtection: SegmentProtection(rawValue: maxProt),
+            initialProtection: SegmentProtection(rawValue: initProt),
+            flags: flags,
+            sections: sections
+        ))
+    }
+
+    private func parseSection(at start: Int, is64Bit: Bool, littleEndian: Bool) -> Section {
+        // section / section_64 layout:
+        //   char sectname[16]
+        //   char segname[16]
+        //   uint{32,64} addr, size
+        //   uint32 offset, align, reloff, nreloc, flags, reserved1, reserved2
+        //   (section_64 adds reserved3)
+        let sectName = readFixedString(start: start, length: 16)
+        let segName = readFixedString(start: start + 16, length: 16)
+        let address: UInt64
+        let size: UInt64
+        let metadataOffset: Int
+        if is64Bit {
+            address = readUInt64(at: start + 32, littleEndian: littleEndian)
+            size = readUInt64(at: start + 40, littleEndian: littleEndian)
+            metadataOffset = start + 48
+        } else {
+            address = UInt64(readUInt32(at: start + 32, littleEndian: littleEndian))
+            size = UInt64(readUInt32(at: start + 36, littleEndian: littleEndian))
+            metadataOffset = start + 40
+        }
+        let fileOffset = readUInt32(at: metadataOffset, littleEndian: littleEndian)
+        // skip align(4) reloff(4) nreloc(4) → flags is at metadataOffset+16
+        let flags = readUInt32(at: metadataOffset + 16, littleEndian: littleEndian)
+
+        return Section(
+            name: sectName,
+            segmentName: segName,
+            address: address,
+            size: size,
+            fileOffset: fileOffset,
+            flags: flags
+        )
+    }
+
+    private func readFixedString(start: Int, length: Int) -> String {
+        // Section / segment names in Mach-O are fixed-length char arrays
+        // padded with NULs. Read up to the first NUL (or the full length).
+        var end = start
+        let limit = start + length
+        while end < limit, bytes[end] != 0 {
+            end += 1
+        }
+        let array: [UInt8] = (start..<end).map { bytes[$0] }
+        return String(bytes: array, encoding: .utf8) ?? ""
     }
 
     private func parseDylibCommand(
