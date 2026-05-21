@@ -20,7 +20,7 @@ Demo recording scripts live in [`docs/demos/`](docs/demos/) and cover the **CLI 
 - [x] M0 CI, lint, and rule-validation workflow stubs
 - [x] M0 signed empty macOS app and iOS app targets (System Extensions deferred to M7/M8/M10/M12)
 - [x] M0 initial ADRs and Apache 2.0 license
-- [ ] M1 process inspection library and `owlwatch ps`
+- [x] M1 process inspection library (`OWProcess`) and `owlwatch ps` with `--tree`, `--args`, `--files`, `--pid`
 - [ ] M2 Mach-O and Universal binary parser
 - [ ] M3 code-signing and notarization inspection
 - [ ] M4 host network state inspection
