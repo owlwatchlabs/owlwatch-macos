@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-05-21. Supersedes the **Bundle identifiers** subsection of [ADR-0001](0001-tech-stack-lock-in.md).
+Accepted — 2026-05-21. Supersedes the **Bundle identifiers** subsection of [ADR-0001](0001-tech-stack-lock-in.md). Repository transferred to `owlwatchlabs/owlwatch-macos` on 2026-05-21 as a same-day follow-up to this ADR's decision; the "Repository" line below was updated for accuracy, but the rename decision recorded here is unchanged.
 
 ## Context
 
@@ -21,7 +21,7 @@ The following are adopted as of this ADR, superseding the relevant clauses of AD
 
 - **Product name:** `Owlwatch` (single-cap, no space). Replaces `Nightwatch` everywhere.
 - **Publisher / vendor identity:** `OwlWatch Labs` (intercap, two words). Used in `LICENSE` copyright lines, Apple Developer Program registration, future "About" panels, and external attribution.
-- **Repository:** `xorxorjmp/owlwatch` on GitHub (rename pending; GitHub auto-redirects the old URL).
+- **Repository:** `owlwatchlabs/owlwatch-macos` on GitHub (transferred from `xorxorjmp/nightwatch` via the intermediate state `xorxorjmp/owlwatch`; GitHub auto-redirects every prior URL).
 - **Command-line:** `owlwatch` (was `nwctl`). The binary's first subcommand remains `ps`, so the new invocation is `owlwatch ps`.
 - **Swift module prefix:** `OW*` (was `NW*`). All 17 library modules and 17 test targets renamed: `OWAttest`, `OWBinary`, `OWCodeSigning`, `OWCore`, `OWDNS`, `OWDevices`, `OWEndpoint`, `OWLog`, `OWNetwork`, `OWNetworkExt`, `OWPersistence`, `OWPosture`, `OWProcess`, `OWProtocol`, `OWRules`, `OWStore`, `OWUIKit`.
 
@@ -60,7 +60,7 @@ This shape (`<publisher>.<product>.<surface>`) is the most idiomatic Apple bundl
 
 - **A single sweeping PR.** ~80 file changes covering all sources, docs, ADRs, configs, workflows, project specs, Xcode workspace, and Apple entitlement-request scaffold. Mechanical, but large.
 - **The v0.1.0-m0 tag retains the old name.** The tag was pushed before this rename. Its commit message says "Nightwatch v0.1.0-m0" and references `dev.xorxorjmp.nightwatch.*`. Tags are immutable in practice; the v0.1.0-m0 tag remains as a historical artifact recording the project's foundation under the prior name. `git log v0.1.0-m0` faithfully reproduces the state at that point.
-- **GitHub repo URL changes.** The `xorxorjmp/nightwatch` URL keeps working via GitHub's automatic redirect, but external links to specific files or PR numbers under the old URL may render slightly differently. No action required from external consumers; the redirect is permanent.
+- **GitHub repo URL changes.** Every prior URL — `xorxorjmp/nightwatch`, `xorxorjmp/owlwatch`, `owlwatchlabs/owlwatch` — keeps resolving via GitHub's automatic redirect chain to the current `owlwatchlabs/owlwatch-macos`. External links to specific files or PR numbers may render slightly differently after the chain resolves. No action required from external consumers; the redirects are permanent.
 - **Apple entitlement requests need updating before submission.** The draft justifications in [`docs/apple-developer/entitlement-requests.md`](../apple-developer/entitlement-requests.md) reference the old bundle IDs. The rename PR updates them; no submission has yet happened, so no Apple-side correspondence needs amending.
 
 ### Reversibility
