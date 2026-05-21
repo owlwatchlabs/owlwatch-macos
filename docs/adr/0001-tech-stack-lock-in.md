@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted — 2026-05-19. Lands as part of M0 (Foundation).
+Accepted — 2026-05-19. Lands as part of M0 (Foundation). **Bundle-identifiers subsection superseded by [ADR-0003](0003-rename-to-owlwatch.md) (2026-05-21).** Project name `Owlwatch` and module prefix `OW*` shown below reflect the post-rename state; this document was originally written under the project's working name `Nightwatch` with module prefix `NW*` and bundle ID namespace `dev.xorxorjmp.nightwatch.*`. The technical decisions (Swift version, SPM, XcodeGen, deployment floors, CI runner image) are unchanged.
 
 ## Context
 
-Nightwatch ships through 15 milestones (M1–M15) over an extended timeline. Each milestone introduces code into a shared workspace, contributors, and CI pipelines. Tech choices made informally early on become irreversible later: a Swift version bump, a project-file format change, or a deployment-target floor change can each touch dozens of targets and risk breaking signed builds.
+Owlwatch ships through 15 milestones (M1–M15) over an extended timeline. Each milestone introduces code into a shared workspace, contributors, and CI pipelines. Tech choices made informally early on become irreversible later: a Swift version bump, a project-file format change, or a deployment-target floor change can each touch dozens of targets and risk breaking signed builds.
 
 This ADR locks in the choices already made by the time M0 closes so that:
 
@@ -26,34 +26,34 @@ The following are locked. Changing any of them requires a superseding ADR.
 ### Build system
 
 - **Swift Package Manager** is the source of truth for library code under `packages/`. Every `NW*` module is an SPM target; tests are SPM test targets.
-- **Xcode workspace** wraps SPM plus per-app/extension `.xcodeproj` files. The workspace lives at repo root: `Nightwatch.xcworkspace`.
+- **Xcode workspace** wraps SPM plus per-app/extension `.xcodeproj` files. The workspace lives at repo root: `Owlwatch.xcworkspace`.
 - **XcodeGen** generates `.xcodeproj` content from per-project `project.yml` specs. Both the YAML and the generated `.xcodeproj` are committed: YAML is the source of truth, the generated file is committed so CI does not need XcodeGen installed.
 
 ### Platforms and deployment
 
 - **macOS 14 (Sonoma)** minimum for the macOS app, every package target, and the future Endpoint / Network / DNS / Persistence extensions.
-- **iOS 17** minimum for `NightwatchMobile` and the iOS-side `NW*` modules (`NWPosture`, `NWAttest`).
+- **iOS 17** minimum for `OwlwatchMobile` and the iOS-side `NW*` modules (`OWPosture`, `OWAttest`).
 
 ### Frameworks
 
 - **AppKit + SwiftUI** for the macOS menubar app. `MenuBarExtra` is the dropdown surface (macOS 13+ API).
 - **SwiftUI** for the iOS companion.
-- **Endpoint Security framework** (M8+) for the `NightwatchEndpoint` system extension.
-- **Network Extension framework** (M7+) for `NightwatchNetwork` (filter provider) and `NightwatchDNS` (DNS proxy provider).
+- **Endpoint Security framework** (M8+) for the `OwlwatchEndpoint` system extension.
+- **Network Extension framework** (M7+) for `OwlwatchNetwork` (filter provider) and `OwlwatchDNS` (DNS proxy provider).
 - **XCTest** is the test framework for M0. Swift Testing (swift-testing) is not adopted yet; revisit when Apple ships it as the Xcode default.
 
 ### Bundle identifiers
 
-Every target uses the `dev.xorxorjmp.nightwatch.*` namespace:
+Every target uses the `com.owlwatchlabs.owlwatch.*` namespace:
 
 | Target | Bundle ID |
 |---|---|
-| macOS menubar app | `dev.xorxorjmp.nightwatch` |
-| iOS app | `dev.xorxorjmp.nightwatch.mobile` |
-| Endpoint Security ext (M8) | `dev.xorxorjmp.nightwatch.endpoint` |
-| Network Extension filter (M7) | `dev.xorxorjmp.nightwatch.network` |
-| DNS proxy provider (M12) | `dev.xorxorjmp.nightwatch.dns` |
-| Persistence monitor (M10) | `dev.xorxorjmp.nightwatch.persistence` |
+| macOS menubar app | `com.owlwatchlabs.owlwatch` |
+| iOS app | `com.owlwatchlabs.owlwatch.mobile` |
+| Endpoint Security ext (M8) | `com.owlwatchlabs.owlwatch.endpoint` |
+| Network Extension filter (M7) | `com.owlwatchlabs.owlwatch.network` |
+| DNS proxy provider (M12) | `com.owlwatchlabs.owlwatch.dns` |
+| Persistence monitor (M10) | `com.owlwatchlabs.owlwatch.persistence` |
 
 This is a personal-namespace pattern, not a domain-ownership claim. If the project ever acquires a real domain, the rename is a one-PR change documented as a superseding ADR.
 
@@ -77,7 +77,7 @@ This is a personal-namespace pattern, not a domain-ownership claim. If the proje
 
 ### What this costs
 
-- Locking to Swift 6 / strict concurrency means every `NW*` module pays the strict-concurrency tax. For modules that wrap C APIs (`NWBinary` for Mach-O, `NWEndpoint` for ES C structs), this is real work — `Sendable` conformance and isolation annotations are not free.
+- Locking to Swift 6 / strict concurrency means every `NW*` module pays the strict-concurrency tax. For modules that wrap C APIs (`OWBinary` for Mach-O, `OWEndpoint` for ES C structs), this is real work — `Sendable` conformance and isolation annotations are not free.
 - macOS 14 / iOS 17 floors mean a contributor on macOS 13 or earlier cannot run the apps. The project assumes contributors keep up with current macOS.
 - XcodeGen as a dependency for adding new targets means M7+ extension PRs require contributors to install it. Mitigated by committing the generated `.xcodeproj` so consumers of the repo (CI, casual cloners) do not need XcodeGen themselves.
 
@@ -90,4 +90,4 @@ Each decision is reversible via a superseding ADR. Some are cheap to flip (Swift
 - **Tuist** instead of XcodeGen — Swift DSL for project generation. Heavier dependency; recompiles its Swift DSL on each generation run; XcodeGen's YAML is sufficient for this project's complexity. Reconsider if multi-platform sharing (visionOS, watchOS) becomes a real need.
 - **Pure SPM with no Xcode workspace** — works for libraries but the macOS menubar app and iOS companion need `.app` bundles, Info.plist, entitlements, and code signing, none of which are first-class in SPM. Rejected.
 - **Swift 5.x with opt-in strict concurrency** — would lower the migration cost short-term, but locks the project to a deprecated mode the moment Swift 7 ships. Rejected.
-- **Sigma / Falco rule syntax** for the future detection schema — explicitly out of scope per `CLAUDE.md`. The detection schema is Nightwatch-native; this ADR does not pre-empt ADR-0003 (M13), which will land that schema.
+- **Sigma / Falco rule syntax** for the future detection schema — explicitly out of scope per `CLAUDE.md`. The detection schema is Owlwatch-native; this ADR does not pre-empt ADR-0003 (M13), which will land that schema.

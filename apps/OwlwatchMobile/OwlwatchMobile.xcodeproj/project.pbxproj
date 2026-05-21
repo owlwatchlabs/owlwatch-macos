@@ -1,0 +1,354 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		119FB6C9D28A0D3272FBDC3F /* OWAttest in Frameworks */ = {isa = PBXBuildFile; productRef = 14DB983A1B19679FD757E2DF /* OWAttest */; };
+		1E2DA90CC64B4B65F2492735 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 108B1BF40C749F5D331631AC /* ContentView.swift */; };
+		48E1571D76ACDFF90569C6AB /* OwlwatchMobileApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B688871CAFB51B4062A1A746 /* OwlwatchMobileApp.swift */; };
+		5E086B5CD1293ED5AC73715E /* OWPosture in Frameworks */ = {isa = PBXBuildFile; productRef = 38F912FC5E2168E75DC0086B /* OWPosture */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		099671BA0E9F5C2E8BCB3509 /* OwlwatchMobile.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = OwlwatchMobile.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		108B1BF40C749F5D331631AC /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		26FB41D528EFEF7667C105CD /* packages */ = {isa = PBXFileReference; lastKnownFileType = folder; name = packages; path = ../../packages; sourceTree = SOURCE_ROOT; };
+		B688871CAFB51B4062A1A746 /* OwlwatchMobileApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OwlwatchMobileApp.swift; sourceTree = "<group>"; };
+		D732B487DB4398E667F5956C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		3C95C1F3DFA77B1DDE59A129 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5E086B5CD1293ED5AC73715E /* OWPosture in Frameworks */,
+				119FB6C9D28A0D3272FBDC3F /* OWAttest in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		147CEE3BEEF49AEE6F9CD165 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				108B1BF40C749F5D331631AC /* ContentView.swift */,
+				D732B487DB4398E667F5956C /* Info.plist */,
+				B688871CAFB51B4062A1A746 /* OwlwatchMobileApp.swift */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		60E9E91B38CCB2146769F815 = {
+			isa = PBXGroup;
+			children = (
+				FFAD91D83E24238AC5FAD9D7 /* Packages */,
+				147CEE3BEEF49AEE6F9CD165 /* Sources */,
+				E51028E64A39EFB076CFEEB6 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E51028E64A39EFB076CFEEB6 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				099671BA0E9F5C2E8BCB3509 /* OwlwatchMobile.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		FFAD91D83E24238AC5FAD9D7 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				26FB41D528EFEF7667C105CD /* packages */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D152499E47F34959532DB1ED /* OwlwatchMobile */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0088B72CB97268E55DBB9FFA /* Build configuration list for PBXNativeTarget "OwlwatchMobile" */;
+			buildPhases = (
+				B519EDD6EEF0061D76B5270E /* Sources */,
+				3C95C1F3DFA77B1DDE59A129 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = OwlwatchMobile;
+			packageProductDependencies = (
+				38F912FC5E2168E75DC0086B /* OWPosture */,
+				14DB983A1B19679FD757E2DF /* OWAttest */,
+			);
+			productName = OwlwatchMobile;
+			productReference = 099671BA0E9F5C2E8BCB3509 /* OwlwatchMobile.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		19E8306713AC343968AD4D69 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					D152499E47F34959532DB1ED = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = AABFEBE9A1A001D8CCD53C72 /* Build configuration list for PBXProject "OwlwatchMobile" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 60E9E91B38CCB2146769F815;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				2E5C994DEE3ABFA1BA3102BF /* XCLocalSwiftPackageReference "../../packages" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = E51028E64A39EFB076CFEEB6 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D152499E47F34959532DB1ED /* OwlwatchMobile */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		B519EDD6EEF0061D76B5270E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1E2DA90CC64B4B65F2492735 /* ContentView.swift in Sources */,
+				48E1571D76ACDFF90569C6AB /* OwlwatchMobileApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		756A78180DCA28609DA669A1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		8FF0BAC734BE2CB5C10C1DC7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Sources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.owlwatchlabs.owlwatch.mobile;
+				PRODUCT_NAME = OwlwatchMobile;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		B06A1FFCE7F0E4A761B33FE2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		D8EA637D4D00F4FDD1C5C257 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Sources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.owlwatchlabs.owlwatch.mobile;
+				PRODUCT_NAME = OwlwatchMobile;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0088B72CB97268E55DBB9FFA /* Build configuration list for PBXNativeTarget "OwlwatchMobile" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8FF0BAC734BE2CB5C10C1DC7 /* Debug */,
+				D8EA637D4D00F4FDD1C5C257 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		AABFEBE9A1A001D8CCD53C72 /* Build configuration list for PBXProject "OwlwatchMobile" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B06A1FFCE7F0E4A761B33FE2 /* Debug */,
+				756A78180DCA28609DA669A1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		2E5C994DEE3ABFA1BA3102BF /* XCLocalSwiftPackageReference "../../packages" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../packages;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		14DB983A1B19679FD757E2DF /* OWAttest */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = OWAttest;
+		};
+		38F912FC5E2168E75DC0086B /* OWPosture */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = OWPosture;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 19E8306713AC343968AD4D69 /* Project object */;
+}

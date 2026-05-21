@@ -1,6 +1,6 @@
 # Repository configuration
 
-Canonical specification of GitHub repository settings for `nightwatch`. The
+Canonical specification of GitHub repository settings for `owlwatch`. The
 GitHub UI is the source of truth for *applied* configuration; this document
 is the source of truth for *intended* configuration. Any drift is a bug.
 
@@ -45,7 +45,7 @@ private repos. Track and enable when the repository flips to public:
 
 ### Private repo posture
 
-`nightwatch` is private during incubation and will flip to public at or
+`owlwatch` is private during incubation and will flip to public at or
 before the M15 release. The three GHAS-gated features are intentionally
 deferred — buying GHAS for a solo private repo is not in scope. The
 consequences while private:

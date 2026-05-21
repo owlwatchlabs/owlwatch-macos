@@ -50,26 +50,26 @@ jobs:
         if: steps.detect.outputs.has_package == 'true'
         run: swift build --package-path packages --build-tests -c debug
 
-      - name: Build macOS app (Nightwatch)
-        if: hashFiles('apps/Nightwatch/Nightwatch.xcodeproj/project.pbxproj') != ''
+      - name: Build macOS app (Owlwatch)
+        if: hashFiles('apps/Owlwatch/Owlwatch.xcodeproj/project.pbxproj') != ''
         run: |
           set -o pipefail
           xcodebuild build \
-            -project apps/Nightwatch/Nightwatch.xcodeproj \
-            -scheme Nightwatch \
+            -project apps/Owlwatch/Owlwatch.xcodeproj \
+            -scheme Owlwatch \
             -destination 'platform=macOS' \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY=""
 
-      - name: Build iOS app (NightwatchMobile)
-        if: hashFiles('apps/NightwatchMobile/NightwatchMobile.xcodeproj/project.pbxproj') != ''
+      - name: Build iOS app (OwlwatchMobile)
+        if: hashFiles('apps/OwlwatchMobile/OwlwatchMobile.xcodeproj/project.pbxproj') != ''
         run: |
           set -o pipefail
           xcodebuild build \
-            -project apps/NightwatchMobile/NightwatchMobile.xcodeproj \
-            -scheme NightwatchMobile \
+            -project apps/OwlwatchMobile/OwlwatchMobile.xcodeproj \
+            -scheme OwlwatchMobile \
             -destination 'generic/platform=iOS Simulator' \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO \

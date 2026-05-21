@@ -2,27 +2,27 @@
 import PackageDescription
 
 let modules: [String] = [
-    "NWAttest",
-    "NWBinary",
-    "NWCodeSigning",
-    "NWCore",
-    "NWDNS",
-    "NWDevices",
-    "NWEndpoint",
-    "NWLog",
-    "NWNetwork",
-    "NWNetworkExt",
-    "NWPersistence",
-    "NWPosture",
-    "NWProcess",
-    "NWProtocol",
-    "NWRules",
-    "NWStore",
-    "NWUIKit"
+    "OWAttest",
+    "OWBinary",
+    "OWCodeSigning",
+    "OWCore",
+    "OWDNS",
+    "OWDevices",
+    "OWEndpoint",
+    "OWLog",
+    "OWNetwork",
+    "OWNetworkExt",
+    "OWPersistence",
+    "OWPosture",
+    "OWProcess",
+    "OWProtocol",
+    "OWRules",
+    "OWStore",
+    "OWUIKit"
 ]
 
 let package = Package(
-    name: "Nightwatch",
+    name: "Owlwatch",
     platforms: [
         .macOS(.v14),
         .iOS(.v17)
@@ -32,7 +32,7 @@ let package = Package(
             .library(name: name, targets: [name])
         }
         + [
-            .executable(name: "nwctl", targets: ["nwctl"])
+            .executable(name: "owlwatch", targets: ["owlwatch"])
         ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.5.0")
@@ -46,13 +46,13 @@ let package = Package(
         }
         + [
             .executableTarget(
-                name: "nwctl",
+                name: "owlwatch",
                 dependencies: [
-                    .byName(name: "NWProcess"),
+                    .byName(name: "OWProcess"),
                     .product(name: "ArgumentParser", package: "swift-argument-parser")
                 ]
             ),
-            .testTarget(name: "nwctlTests", dependencies: [.byName(name: "nwctl")])
+            .testTarget(name: "owlwatchTests", dependencies: [.byName(name: "owlwatch")])
         ],
     swiftLanguageModes: [.v6]
 )

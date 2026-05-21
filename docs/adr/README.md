@@ -1,6 +1,6 @@
 # Architecture Decision Records (ADRs)
 
-ADRs capture significant architectural decisions for Nightwatch — what was decided, why, and what the alternatives were. They form the durable record of why the project is shaped the way it is.
+ADRs capture significant architectural decisions for Owlwatch — what was decided, why, and what the alternatives were. They form the durable record of why the project is shaped the way it is.
 
 ## Filename format
 
@@ -28,3 +28,4 @@ The "Alternatives considered" section is load-bearing: an ADR without it is a pr
 
 - [0001 — Tech stack lock-in](0001-tech-stack-lock-in.md)
 - [0002 — License: Apache 2.0](0002-license.md)
+- [0003 — Rename project to Owlwatch and adopt `com.owlwatchlabs.owlwatch.*` bundle IDs](0003-rename-to-owlwatch.md)

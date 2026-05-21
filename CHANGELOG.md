@@ -1,28 +1,35 @@
 # Changelog
 
-All notable user-visible and operational changes to Nightwatch are tracked here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+All notable user-visible and operational changes to Owlwatch are tracked here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m1`, ...) to keep the link between milestones and tags explicit. The `[Unreleased]` section accumulates entries between tags; each PR that ships a user-visible or operational change adds a line under the relevant subsection.
 
 ## [Unreleased]
 
+### Changed
+
+- **Project renamed from `Nightwatch` to `Owlwatch`** per [ADR-0003](docs/adr/0003-rename-to-owlwatch.md). Bundle ID namespace moved from `dev.xorxorjmp.nightwatch.*` to `com.owlwatchlabs.owlwatch.*`; Swift module prefix moved from `NW*` to `OW*`; CLI binary renamed from `nwctl` to `owlwatch`. The `OwlWatch Labs` publisher identity backs `owlwatchlabs.com` (registered). The `v0.1.0-m0` tag retains the old names as a historical artifact; everything after this PR lands under the new ones.
+
 ### Added
 
-- **`NWProcess` module** — first real implementation of an `NW*` library. Public surface: `RunningProcess` value type (pid, parentPid, name, path, userId) and `NWProcess.all()` / `NWProcess.snapshot(pid:)` static APIs. Backed by libproc (`proc_listpids`, `proc_pidinfo` PROC_PIDTBSDINFO, `proc_pidpath`). No entitlements required.
-- **`nwctl` executable target** — first shipping binary. Built on Apple's `swift-argument-parser` (v1.5+).
-- **`nwctl ps`** — first user-visible command. Prints the current process table as a fixed-width table (PID, PPID, USER, NAME columns; `--paths` / `-p` adds the executable path). Errors-on-individual-PID are silently skipped so the snapshot reflects the caller's view of the table rather than failing the whole command.
-- **`nwctl --version`** — prints `0.1.0-m0`. Version string is currently a hardcoded literal; M1 milestone-close lands a build-time derivation.
+- **`OWProcess` module** — first real implementation of an `OW*` library. Public surface: `RunningProcess` value type (pid, parentPid, name, path, userId) and `OWProcess.all()` / `OWProcess.snapshot(pid:)` static APIs. Backed by libproc (`proc_listpids`, `proc_pidinfo` PROC_PIDTBSDINFO, `proc_pidpath`). No entitlements required.
+- **`owlwatch` executable target** — first shipping binary. Built on Apple's `swift-argument-parser` (v1.5+).
+- **`owlwatch ps`** — first user-visible command. Prints the current process table as a fixed-width table (PID, PPID, USER, NAME columns; `--paths` / `-p` adds the executable path). Errors-on-individual-PID are silently skipped so the snapshot reflects the caller's view of the table rather than failing the whole command.
+- **`owlwatch --version`** — prints `0.1.0-m0`. Version string is currently a hardcoded literal; M1 milestone-close lands a build-time derivation.
+- **ADR-0003** at `docs/adr/0003-rename-to-owlwatch.md` documenting the rename, superseding the bundle-identifier subsection of ADR-0001.
 
 ## [v0.1.0-m0] — 2026-05-20
 
-The foundation milestone. Establishes the repository, build system, CI, governance, and supporting documentation that every later milestone depends on. No user-visible runtime behavior yet — the macOS menu-bar app and iOS companion are empty SwiftUI shells, and the `nwctl` CLI does not exist.
+The foundation milestone. Establishes the repository, build system, CI, governance, and supporting documentation that every later milestone depends on. No user-visible runtime behavior yet — the macOS menu-bar app and iOS companion are empty SwiftUI shells, and the `owlwatch` CLI does not exist.
+
+> **Historical note.** This tag was published under the project's original name `Nightwatch`, with module prefix `NW*`, bundle ID namespace `dev.xorxorjmp.nightwatch.*`, and CLI name `nwctl`. The project was renamed to Owlwatch shortly after the tag landed (see [ADR-0003](docs/adr/0003-rename-to-owlwatch.md)). The bullets below are written in the post-rename vocabulary; `git checkout v0.1.0-m0` produces the original tree with the prior names intact.
 
 ### Added
 
 - **Repository scaffolding** (`apps/`, `extensions/`, `packages/`, `rules/`, `scripts/`, `tools/`, `docs/`) plus the meta files `README.md`, `ROADMAP.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`.
-- **Swift 6 SPM package** at `packages/` with 17 library targets (`NWAttest`, `NWBinary`, `NWCodeSigning`, `NWCore`, `NWDNS`, `NWDevices`, `NWEndpoint`, `NWLog`, `NWNetwork`, `NWNetworkExt`, `NWPersistence`, `NWPosture`, `NWProcess`, `NWProtocol`, `NWRules`, `NWStore`, `NWUIKit`) and 17 matching test targets. All compile under `swiftLanguageModes: [.v6]` (strict concurrency).
-- **Xcode workspace** (`Nightwatch.xcworkspace`) integrating the SPM package, a macOS menu-bar app target (`apps/Nightwatch/`), and an iOS companion target (`apps/NightwatchMobile/`). XcodeGen `project.yml` specs are the source of truth; generated `.xcodeproj` files are committed so CI does not need XcodeGen installed.
-- **Bundle ID namespace** `dev.xorxorjmp.nightwatch.*` for every current and future target. Documented in ADR-0001.
+- **Swift 6 SPM package** at `packages/` with 17 library targets (`OWAttest`, `OWBinary`, `OWCodeSigning`, `OWCore`, `OWDNS`, `OWDevices`, `OWEndpoint`, `OWLog`, `OWNetwork`, `OWNetworkExt`, `OWPersistence`, `OWPosture`, `OWProcess`, `OWProtocol`, `OWRules`, `OWStore`, `OWUIKit`) and 17 matching test targets. All compile under `swiftLanguageModes: [.v6]` (strict concurrency).
+- **Xcode workspace** (`Owlwatch.xcworkspace`) integrating the SPM package, a macOS menu-bar app target (`apps/Owlwatch/`), and an iOS companion target (`apps/OwlwatchMobile/`). XcodeGen `project.yml` specs are the source of truth; generated `.xcodeproj` files are committed so CI does not need XcodeGen installed.
+- **Bundle ID namespace** `com.owlwatchlabs.owlwatch.*` for every current and future target. Documented in ADR-0001.
 - **GitHub Actions CI** on `macos-15` runners with six required status checks: `build`, `test`, `lint` (SwiftLint), `codeql` (security-extended queries), `gitleaks`, `rules-validate` (stub until M13).
 - **Branch protection on `main`**: PR required, 1 approval, signed commits, linear history, no force pushes, no deletions, no admin bypass (except the documented solo-maintainer review-rule bypass).
 - **Pull request template**, `CODEOWNERS`, signed-commit configuration (SSH signing with `allowedSignersFile` for local verification).
@@ -31,7 +38,7 @@ The foundation milestone. Establishes the repository, build system, CI, governan
 - **ADR-0002** at `docs/adr/0002-license.md` — records the Apache 2.0 decision, the SPDX-only source-file header convention (`// SPDX-License-Identifier: Apache-2.0`), and "inbound = outbound" contribution model (no separate CLA).
 - **ADR conventions** at `docs/adr/README.md` — filename format, section order, never-edit-after-merge rule.
 - **Apple restricted-entitlement request scaffold** at `docs/apple-developer/entitlement-requests.md` — drafted justifications for Endpoint Security client (M8), Network Extension content-filter-provider (M7), and Network Extension dns-proxy (M12). Ready to submit once paid Apple Developer Program enrollment completes.
-- **Demo infrastructure** at `docs/demos/` — VHS tape placeholders for the CLI/TUI surfaces (`nwctl.tape` for M1, `console.tape` for M6) and documented screen-capture approach for menu-bar (M2/M3) and iOS (M14) surfaces.
+- **Demo infrastructure** at `docs/demos/` — VHS tape placeholders for the CLI/TUI surfaces (`owlwatch.tape` for M1, `console.tape` for M6) and documented screen-capture approach for menu-bar (M2/M3) and iOS (M14) surfaces.
 - **Repository configuration spec** at `docs/repo-config.md` — canonical record of intended GitHub settings; the GitHub UI is the source of truth for *applied* configuration, this document is the source of truth for *intended* configuration.
 
 ### Governance
@@ -42,8 +49,8 @@ The foundation milestone. Establishes the repository, build system, CI, governan
 
 ### Notes
 
-- **No user-installable artifact ships with this tag.** The next runnable binary lands at M1 (`nwctl ps`); the next visible app surface lands at M2/M3.
+- **No user-installable artifact ships with this tag.** The next runnable binary lands at M1 (`owlwatch ps`); the next visible app surface lands at M2/M3.
 - The four planned system extensions — Endpoint Security (M8), Network Extension filter (M7), DNS proxy (M12), Persistence monitor (M10) — exist as placeholder directories under `extensions/` but have no target shells yet. Each lands in its own milestone PR with the appropriate Apple-restricted entitlement (assuming Apple approval has landed by then).
 
-[Unreleased]: https://github.com/xorxorjmp/nightwatch/compare/v0.1.0-m0...HEAD
-[v0.1.0-m0]: https://github.com/xorxorjmp/nightwatch/releases/tag/v0.1.0-m0
+[Unreleased]: https://github.com/xorxorjmp/owlwatch/compare/v0.1.0-m0...HEAD
+[v0.1.0-m0]: https://github.com/xorxorjmp/owlwatch/releases/tag/v0.1.0-m0

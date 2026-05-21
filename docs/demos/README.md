@@ -1,6 +1,6 @@
 # Demos
 
-Source-controlled scripts that record Nightwatch's **command-line and terminal surfaces** — the event console and the `nwctl` CLI — to GIFs and MP4s. Every demo asset for these surfaces that appears in `README.md`, the project website, or release notes traces back to a script in this directory.
+Source-controlled scripts that record Owlwatch's **command-line and terminal surfaces** — the event console and the `owlwatch` CLI — to GIFs and MP4s. Every demo asset for these surfaces that appears in `README.md`, the project website, or release notes traces back to a script in this directory.
 
 Demos of the **macOS menu-bar app** and **iOS companion** are recorded separately (screen recording, not terminal capture) — see the "GUI surfaces" section below.
 
@@ -26,7 +26,7 @@ brew install vhs
 
 ## Convention (`.tape` files)
 
-- One `.tape` file per CLI/TUI surface. Current files: `nwctl.tape`, `console.tape`. Add more as new terminal surfaces ship.
+- One `.tape` file per CLI/TUI surface. Current files: `owlwatch.tape`, `console.tape`. Add more as new terminal surfaces ship.
 - Each `.tape` declares an explicit `Output` path under `docs/demos/out/` (gitignored — see below).
 - `Set` directives at the top of each tape pin font, size, theme, and frame rate so output is reproducible across machines.
 - A comment header on every `.tape` describes the user story the demo tells in one or two sentences and lists the regeneration command.
@@ -53,11 +53,11 @@ Both are inherently less reproducible than VHS tapes — there's no "run a scrip
 
 ## State at M0
 
-The two `.tape` files in this directory are **placeholders**. They reference behavior that does not yet exist (`nwctl ps`, the event console) and will not produce useful recordings until the milestones that introduce that behavior ship:
+The two `.tape` files in this directory are **placeholders**. They reference behavior that does not yet exist (`owlwatch ps`, the event console) and will not produce useful recordings until the milestones that introduce that behavior ship:
 
 | Tape | Surface type | Real behavior available at |
 |---|---|---|
-| `nwctl.tape` | CLI | M1 (`NWProcess` + `nwctl ps`) |
-| `console.tape` | TUI (`nwctl console --follow`) | M6 (`NWLog` event console) |
+| `owlwatch.tape` | CLI | M1 (`OWProcess` + `owlwatch ps`) |
+| `console.tape` | TUI (`owlwatch console --follow`) | M6 (`OWLog` event console) |
 
 Until then the tapes serve as a forcing function: each milestone PR that ships a CLI/TUI surface updates the matching tape so the demo is current the day the feature lands, not three releases later.
