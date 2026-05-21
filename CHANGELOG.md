@@ -6,7 +6,11 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 
 ## [Unreleased]
 
-_No entries yet. M2 work (`OWBinary` — Mach-O / Universal parsing, linked-library enumeration) lands here._
+### Added
+
+- **M2.1: `OWBinary` module** — first parser for Mach-O and Universal (fat) binaries. Public surface: `OWBinary.parse(at:)`; value types `BinaryFile` (with `linkedDylibs` convenience), `Slice`, `Architecture` (`.i386`, `.x86_64`, `.arm`, `.arm64`, `.arm64_32`, `.unknown(cpuType:)`), `FileType` (`.executable`, `.dylib`, `.dynamicLinker`, `.bundle`, ... + `.other(rawType:)`), and `LoadCommand` enum (`.dylib(Dylib)`, `.rpath(path:)`, `.uuid(UUID)`, `.main(entryOffset:stackSize:)`, `.other(rawType:)`). `OWBinaryError` covers the four failure modes (`unreadable`, `unrecognizedMagic`, `malformed`, `truncated`). No entitlements required; parses any Mach-O the caller can `read(2)`.
+- **M2.1: `owlwatch inspect <path>`** — first non-`ps` subcommand. Reads the file, parses its Mach-O / Universal headers and load commands, and prints a structural summary per slice. Flags: `--libs` lists every linked dynamic library (closes M1.3's deferred deliverable), `--rpaths` lists every `LC_RPATH` entry, `--identity` prints `LC_UUID` + `LC_MAIN` entry offset and stack size.
+- **M2.1: load-command coverage in this PR** — `LC_LOAD_DYLIB`, `LC_LOAD_WEAK_DYLIB`, `LC_REEXPORT_DYLIB`, `LC_LAZY_LOAD_DYLIB`, `LC_LOAD_UPWARD_DYLIB`, `LC_ID_DYLIB`, `LC_RPATH`, `LC_UUID`, `LC_MAIN`. Everything else lands in `LoadCommand.other(rawType:)` with the raw 32-bit `cmd` value preserved so callers can switch on the constants from `<mach-o/loader.h>` if they need finer-grained handling. `LC_SYMTAB` (symbol tables) and entropy / packing signals follow at M2.2 and M2.3.
 
 ## [v0.2.0-m1] — 2026-05-21
 
