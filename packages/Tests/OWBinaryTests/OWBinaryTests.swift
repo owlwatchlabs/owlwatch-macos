@@ -140,6 +140,111 @@ final class OWBinaryTests: XCTestCase {
         XCTAssertEqual(undefinedExternal.nmCode, "U")
     }
 
+    // MARK: - Segments + sections (M2.3)
+
+    func testParseExposesStandardSegmentsForBinLs() throws {
+        let binary = try OWBinary.parse(at: URL(fileURLWithPath: "/bin/ls"))
+        for slice in binary.slices {
+            let segmentNames = Set(slice.loadCommands.compactMap { command -> String? in
+                if case let .segment(payload) = command { return payload.name } else { return nil }
+            })
+            XCTAssertTrue(segmentNames.contains("__TEXT"), "Expected __TEXT segment")
+            XCTAssertTrue(segmentNames.contains("__LINKEDIT"), "Expected __LINKEDIT segment")
+        }
+    }
+
+    func testTextSegmentIsReadExecuteAndDataIsReadWrite() throws {
+        let binary = try OWBinary.parse(at: URL(fileURLWithPath: "/bin/ls"))
+        for slice in binary.slices {
+            for command in slice.loadCommands {
+                guard case let .segment(segment) = command else { continue }
+                if segment.name == "__TEXT" {
+                    XCTAssertTrue(segment.initialProtection.contains(.read))
+                    XCTAssertTrue(segment.initialProtection.contains(.execute))
+                    XCTAssertFalse(segment.initialProtection.contains(.write),
+                                   "__TEXT should be r-x, not writable")
+                }
+                if segment.name == "__DATA" {
+                    XCTAssertTrue(segment.initialProtection.contains(.read))
+                    XCTAssertTrue(segment.initialProtection.contains(.write))
+                    XCTAssertFalse(segment.initialProtection.contains(.execute),
+                                   "__DATA should be rw-, not executable")
+                }
+            }
+        }
+    }
+
+    func testTextSegmentContainsTextSection() throws {
+        let binary = try OWBinary.parse(at: URL(fileURLWithPath: "/bin/ls"))
+        for slice in binary.slices {
+            let textSegment = slice.loadCommands.compactMap { command -> Segment? in
+                if case let .segment(payload) = command, payload.name == "__TEXT" { return payload }
+                return nil
+            }.first
+            let textSegmentValue = try XCTUnwrap(textSegment, "Expected __TEXT segment")
+            XCTAssertTrue(textSegmentValue.sections.contains { $0.name == "__text" },
+                          "__TEXT segment should contain a __text section")
+        }
+    }
+
+    func testSegmentProtectionSymbolicForm() {
+        XCTAssertEqual(SegmentProtection([.read, .execute]).symbolicForm, "r-x")
+        XCTAssertEqual(SegmentProtection([.read, .write]).symbolicForm, "rw-")
+        XCTAssertEqual(SegmentProtection([.read, .write, .execute]).symbolicForm, "rwx")
+        XCTAssertEqual(SegmentProtection([]).symbolicForm, "---")
+    }
+
+    // MARK: - Entropy (M2.3)
+
+    func testEntropyOfZeroLengthRangeIsZero() throws {
+        let entropy = try OWBinary.entropy(
+            of: URL(fileURLWithPath: "/bin/ls"),
+            fileOffset: 0,
+            length: 0
+        )
+        XCTAssertEqual(entropy, 0.0)
+    }
+
+    func testEntropyOfUniformBytesIsZero() {
+        // 1000 bytes of 0xFF — entropy should be exactly 0.
+        let bytes = [UInt8](repeating: 0xFF, count: 1000)
+        XCTAssertEqual(shannonEntropy(of: bytes), 0.0, accuracy: 1e-9)
+    }
+
+    func testEntropyOfUniformDistributionIsEight() {
+        // 256 bytes, one of each value — entropy should be exactly 8.0.
+        let bytes: [UInt8] = (0..<256).map { UInt8($0) }
+        XCTAssertEqual(shannonEntropy(of: bytes), 8.0, accuracy: 1e-9)
+    }
+
+    func testTextSectionEntropyIsInCompiledCodeRange() throws {
+        // Compiled native code on macOS is typically 5.5–6.8 bits/byte.
+        // Below 5 means highly repetitive (could be all-NOPs); above 7
+        // is suspicious (possibly packed). /bin/ls's __TEXT.__text should
+        // fit comfortably in the middle.
+        let binary = try OWBinary.parse(at: URL(fileURLWithPath: "/bin/ls"))
+        let entropies = try OWBinary.sectionEntropies(of: binary)
+        let textEntropies = entropies.filter { $0.segmentName == "__TEXT" && $0.sectionName == "__text" }
+        XCTAssertFalse(textEntropies.isEmpty, "Expected at least one __TEXT.__text section")
+        for entry in textEntropies {
+            XCTAssertGreaterThan(entry.entropy, 5.0,
+                                 "__TEXT.__text entropy=\(entry.entropy) below 5.0 is suspicious")
+            XCTAssertLessThan(entry.entropy, 7.0,
+                              "__TEXT.__text entropy=\(entry.entropy) above 7.0 is suspicious (packing?)")
+        }
+    }
+
+    func testSectionEntropiesSkipsZerofillSections() throws {
+        // The __DATA segment of /bin/ls includes __bss and possibly __common,
+        // both of which are zerofill (no on-disk bytes). They must not appear
+        // in sectionEntropies output — including them would produce bogus
+        // entropy values from reading unrelated bytes.
+        let binary = try OWBinary.parse(at: URL(fileURLWithPath: "/bin/ls"))
+        let entropies = try OWBinary.sectionEntropies(of: binary)
+        let bssEntries = entropies.filter { $0.sectionName == "__bss" }
+        XCTAssertTrue(bssEntries.isEmpty, "__bss is zerofill; sectionEntropies should skip it")
+    }
+
     // MARK: - Architecture mapping
 
     func testArchitectureNameIsCorrectForKnownTypes() {
