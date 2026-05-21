@@ -1,11 +1,11 @@
 # console.tape — placeholder
 #
-# Surface: terminal UI (`nwctl console --follow`). Runs in a regular
-# terminal, drives VHS the same way the `nwctl` CLI does.
+# Surface: terminal UI (`owlwatch console --follow`). Runs in a regular
+# terminal, drives VHS the same way the `owlwatch` CLI does.
 #
-# User story: the Nightwatch console streams events live with filters by
+# User story: the Owlwatch console streams events live with filters by
 # process, path, signing identity, and rule match. Becomes meaningful at M6
-# when NWLog ships and the console view starts surfacing structured events.
+# when OWLog ships and the console view starts surfacing structured events.
 #
 # Regenerate: `vhs docs/demos/console.tape` (writes to docs/demos/out/console.gif)
 
@@ -21,7 +21,7 @@ Type "# Console surface lands at M6. Tape tracks expected behavior."
 Enter
 Sleep 1s
 
-Type "nwctl console --follow"
+Type "owlwatch console --follow"
 Enter
 Sleep 1s
 

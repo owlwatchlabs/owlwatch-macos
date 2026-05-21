@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted — 2026-05-19. Lands as part of M0 (Foundation).
+Accepted — 2026-05-19. Lands as part of M0 (Foundation). Project name `Owlwatch` shown below reflects the post-rename state ([ADR-0003](0003-rename-to-owlwatch.md), 2026-05-21); this document was originally written under the project's working name `Nightwatch`. The license decision (Apache 2.0) is unchanged; only the project name in the prose has moved.
 
 ## Context
 
-Nightwatch is an open-source Endpoint Detection and Response tool whose components will eventually integrate with Apple's restricted security frameworks (Endpoint Security, Network Extension, DNS Proxy, System Extension). The license choice affects:
+Owlwatch is an open-source Endpoint Detection and Response tool whose components will eventually integrate with Apple's restricted security frameworks (Endpoint Security, Network Extension, DNS Proxy, System Extension). The license choice affects:
 
 - Whether enterprises can adopt, embed, or fork the project without friction.
 - Whether contributors can use the project in their work without legal review overhead.
@@ -17,7 +17,7 @@ A license decision delayed past M0 would block the M0-close tag (`v0.1.0-m0`) an
 
 ## Decision
 
-Nightwatch is licensed under the **Apache License 2.0**.
+Owlwatch is licensed under the **Apache License 2.0**.
 
 The full text ships as `/LICENSE` at the repository root. The license governs every file in the repository unless a file explicitly states otherwise (none currently do).
 
@@ -27,19 +27,19 @@ The full text ships as `/LICENSE` at the repository root. The license governs ev
 
 - **Patent grant** (Section 3). Every contributor grants every user a patent license over their contributions. The same section's termination clause discourages drive-by patent suits: a downstream user that sues the project (or any user) over its content loses their patent rights under the license. For an EDR that may invent or codify defensive primitives, this matters.
 - **Enterprise adoption friction is low.** Apache 2.0 is on every major enterprise legal team's allowlist. Contrast with the GPL family, where adoption often requires case-by-case review and can be blocked outright.
-- **Embeddability.** Downstream projects — including commercial EDR products — can ship Nightwatch (or its parts) without releasing their own source. The expected trade-off: stronger uptake, weaker contribute-back guarantee.
+- **Embeddability.** Downstream projects — including commercial EDR products — can ship Owlwatch (or its parts) without releasing their own source. The expected trade-off: stronger uptake, weaker contribute-back guarantee.
 - **NOTICE preservation** (Section 4). Redistribution must preserve the `LICENSE` and any `NOTICE` file, providing a minimal attribution floor.
 
 ### What Apache 2.0 costs
 
-- **No copyleft.** A downstream commercial fork can ship Nightwatch unchanged, or modified, without releasing their changes. If the project's goal were to force contribute-back, GPLv3 or AGPLv3 would do that; Apache 2.0 does not. Accepted: the adoption upside outweighs the loss of forced reciprocity.
+- **No copyleft.** A downstream commercial fork can ship Owlwatch unchanged, or modified, without releasing their changes. If the project's goal were to force contribute-back, GPLv3 or AGPLv3 would do that; Apache 2.0 does not. Accepted: the adoption upside outweighs the loss of forced reciprocity.
 - **GPLv2 incompatibility.** Apache 2.0 is compatible with GPLv3 (one-way: GPLv3 code can absorb Apache 2.0 code) but not with GPLv2. The project does not currently plan to import GPLv2 dependencies; if that changes, a superseding ADR re-evaluates.
 
 ### Source-file headers
 
 Source files do **not** need to carry the long Apache boilerplate header. Apache 2.0 itself recommends but does not require per-file headers; many large Apache-licensed projects (Kubernetes, many gRPC files) include them, others (parts of Tailscale's open components, swift-server projects) elide them.
 
-Nightwatch's convention:
+Owlwatch's convention:
 
 - `LICENSE` at repo root is authoritative.
 - New source files do not require a per-file boilerplate header.
@@ -65,6 +65,6 @@ Treat this decision as effectively permanent.
 ## Alternatives considered
 
 - **MIT** — Same effective permissions for users but lacks the patent grant. For a security tool that may invent or codify defensive primitives, the absence of an explicit patent clause is a real (if usually theoretical) gap. Rejected.
-- **GPLv3** — Strong copyleft. Forces derivative works to release source. Trade-off is reduced enterprise adoption — many enterprises will not use GPLv3 code in their stacks, which constrains who pilots Nightwatch or contributes back. The project's strategic goal (broad macOS security adoption) outweighs the contribute-back guarantee. Rejected.
+- **GPLv3** — Strong copyleft. Forces derivative works to release source. Trade-off is reduced enterprise adoption — many enterprises will not use GPLv3 code in their stacks, which constrains who pilots Owlwatch or contributes back. The project's strategic goal (broad macOS security adoption) outweighs the contribute-back guarantee. Rejected.
 - **AGPLv3** — GPLv3 plus network-use clause; even SaaS use must release source. The strictest of the four. Same trade-off as GPLv3 amplified. Rejected for the same reason.
 - **BSD-3-Clause / ISC** — Simpler than MIT, still no patent grant. Rejected for the same reason as MIT.

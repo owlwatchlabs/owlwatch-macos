@@ -1,6 +1,6 @@
 # Apple Developer entitlement requests
 
-Single source of truth for every restricted-entitlement request Nightwatch has submitted to Apple. Records what was asked of Apple, when, the justification text submitted, and the current status.
+Single source of truth for every restricted-entitlement request Owlwatch has submitted to Apple. Records what was asked of Apple, when, the justification text submitted, and the current status.
 
 The submission text in this file is the **exact text sent to Apple**. Edit only to fix factual errors before submission, or to add a status update after submission. Do not retroactively rewrite a submitted justification — a frozen record of what was claimed at submission time is more valuable than a polished after-the-fact version.
 
@@ -8,15 +8,15 @@ The submission text in this file is the **exact text sent to Apple**. Edit only 
 
 - **Drafted** — Justification text is finalized but not yet submitted to Apple. Awaiting prerequisites (paid Developer Program membership, etc.).
 - **Submitted** — Submitted via [Apple's request form](https://developer.apple.com/contact/request/system-extension/) on the date noted. Apple case number recorded.
-- **Approved** — Apple has granted the entitlement on the Nightwatch Team ID. The entitlement key can be added to the relevant target's `.entitlements` file.
+- **Approved** — Apple has granted the entitlement on the Owlwatch Team ID. The entitlement key can be added to the relevant target's `.entitlements` file.
 - **Denied** — Apple has rejected. The denial reason and any re-submission plan are recorded in the section.
 
 ## Submission #1 — drafted 2026-05-19
 
-**Project name:** Nightwatch
-**Bundle ID prefix:** `dev.xorxorjmp.nightwatch.*`
+**Project name:** Owlwatch
+**Bundle ID prefix:** `com.owlwatchlabs.owlwatch.*`
 **Distribution model:** Direct (Developer ID), not Mac App Store
-**Source code:** https://github.com/xorxorjmp/nightwatch (Apache 2.0)
+**Source code:** https://github.com/xorxorjmp/owlwatch (Apache 2.0)
 **Team ID:** captured in Apple's case record; not committed to the repository (each contributor uses their own development team locally; the project's "production" team is the one that ships signed Developer ID builds at M15).
 
 Three entitlements requested in a single submission so the multi-week review clocks run in parallel.
@@ -25,17 +25,17 @@ Three entitlements requested in a single submission so the multi-week review clo
 
 **Status:** Drafted — awaiting Apple Developer Program enrollment, then submission.
 **Target milestones:** M8 (NOTIFY events), M9 (AUTH events), M10 (Background Task Management persistence events).
-**System extension target:** `NightwatchEndpoint` (bundle `dev.xorxorjmp.nightwatch.endpoint`).
+**System extension target:** `OwlwatchEndpoint` (bundle `com.owlwatchlabs.owlwatch.endpoint`).
 
 #### Justification submitted to Apple
 
 > **Product**
 >
-> Nightwatch is an open-source Endpoint Detection and Response (EDR) platform for macOS, with an iOS companion posture agent. The macOS product surfaces suspicious system behavior to the user via a menu-bar app: process executions from unsigned or revoked binaries, persistence installations, anomalous file events, and policy violations expressed as user-defined detection rules. Source code is public on GitHub under the Apache License 2.0; the project is in active development with a 15-milestone public roadmap.
+> Owlwatch is an open-source Endpoint Detection and Response (EDR) platform for macOS, with an iOS companion posture agent. The macOS product surfaces suspicious system behavior to the user via a menu-bar app: process executions from unsigned or revoked binaries, persistence installations, anomalous file events, and policy violations expressed as user-defined detection rules. Source code is public on GitHub under the Apache License 2.0; the project is in active development with a 15-milestone public roadmap.
 >
 > **Requested entitlement**
 >
-> `com.apple.developer.endpoint-security.client`, used by the `NightwatchEndpoint` system extension (bundle ID `dev.xorxorjmp.nightwatch.endpoint`).
+> `com.apple.developer.endpoint-security.client`, used by the `OwlwatchEndpoint` system extension (bundle ID `com.owlwatchlabs.owlwatch.endpoint`).
 >
 > **How it will be used**
 >
@@ -54,7 +54,7 @@ Three entitlements requested in a single submission so the multi-week review clo
 >
 > **User value**
 >
-> The macOS user gains visibility into the kinds of post-compromise activity that commercial EDRs surface (malware execution, persistence implants, lateral movement primitives) in a tool whose source code they can audit. Nightwatch complements but does not replace XProtect, Gatekeeper, or commercial EDR products.
+> The macOS user gains visibility into the kinds of post-compromise activity that commercial EDRs surface (malware execution, persistence implants, lateral movement primitives) in a tool whose source code they can audit. Owlwatch complements but does not replace XProtect, Gatekeeper, or commercial EDR products.
 
 ---
 
@@ -62,7 +62,7 @@ Three entitlements requested in a single submission so the multi-week review clo
 
 **Status:** Drafted — awaiting Apple Developer Program enrollment, then submission.
 **Target milestone:** M7 (Network Extension filter provider).
-**System extension target:** `NightwatchNetwork` (bundle `dev.xorxorjmp.nightwatch.network`).
+**System extension target:** `OwlwatchNetwork` (bundle `com.owlwatchlabs.owlwatch.network`).
 
 #### Justification submitted to Apple
 
@@ -72,11 +72,11 @@ Three entitlements requested in a single submission so the multi-week review clo
 >
 > **Requested entitlement**
 >
-> `com.apple.developer.networking.networkextension` with the `content-filter-provider` value, used by the `NightwatchNetwork` system extension (bundle ID `dev.xorxorjmp.nightwatch.network`).
+> `com.apple.developer.networking.networkextension` with the `content-filter-provider` value, used by the `OwlwatchNetwork` system extension (bundle ID `com.owlwatchlabs.owlwatch.network`).
 >
 > **How it will be used**
 >
-> The filter data provider subscribes to outbound and inbound flows for the host, attributes each flow to the originating process via `NEFilterFlow.sourceAppIdentifier` and `NEFilterFlow.sourceAppAuditToken`, and emits the flow records to the Nightwatch daemon for correlation with Endpoint Security process events. Flows are observed, not blocked, in initial releases; blocking by user-defined policy is introduced as a later milestone with an explicit decision UI.
+> The filter data provider subscribes to outbound and inbound flows for the host, attributes each flow to the originating process via `NEFilterFlow.sourceAppIdentifier` and `NEFilterFlow.sourceAppAuditToken`, and emits the flow records to the Owlwatch daemon for correlation with Endpoint Security process events. Flows are observed, not blocked, in initial releases; blocking by user-defined policy is introduced as a later milestone with an explicit decision UI.
 >
 > **Why Network Extension content filtering and not an alternative**
 >
@@ -96,7 +96,7 @@ Three entitlements requested in a single submission so the multi-week review clo
 
 **Status:** Drafted — awaiting Apple Developer Program enrollment, then submission.
 **Target milestone:** M12 (DNS proxy and heuristics).
-**System extension target:** `NightwatchDNS` (bundle `dev.xorxorjmp.nightwatch.dns`).
+**System extension target:** `OwlwatchDNS` (bundle `com.owlwatchlabs.owlwatch.dns`).
 
 #### Justification submitted to Apple
 
@@ -106,7 +106,7 @@ Three entitlements requested in a single submission so the multi-week review clo
 >
 > **Requested entitlement**
 >
-> `com.apple.developer.networking.networkextension` with the `dns-proxy` value, used by the `NightwatchDNS` system extension (bundle ID `dev.xorxorjmp.nightwatch.dns`).
+> `com.apple.developer.networking.networkextension` with the `dns-proxy` value, used by the `OwlwatchDNS` system extension (bundle ID `com.owlwatchlabs.owlwatch.dns`).
 >
 > **How it will be used**
 >

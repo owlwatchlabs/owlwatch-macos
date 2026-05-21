@@ -1,6 +1,6 @@
-# Contributing to Nightwatch
+# Contributing to Owlwatch
 
-Nightwatch accepts focused contributions that improve the macOS EDR, iOS posture agent, build system, documentation, or detection library.
+Owlwatch accepts focused contributions that improve the macOS EDR, iOS posture agent, build system, documentation, or detection library.
 
 ## Workflow
 
@@ -47,7 +47,7 @@ Keep PRs under 400 changed lines when practical. Split work before it becomes di
 
 Rules live under `rules/{category}/` and must include:
 
-- Nightwatch-native YAML schema version
+- Owlwatch-native YAML schema version
 - Immutable rule ID
 - Name, description, category, severity, and verdict
 - MITRE ATT&CK mapping when applicable

@@ -1,6 +1,6 @@
 # Security Policy
 
-Nightwatch is security software. Reports that could affect user safety, system integrity, signing, update delivery, IPC boundaries, rule loading, or data protection should be handled through coordinated disclosure.
+Owlwatch is security software. Reports that could affect user safety, system integrity, signing, update delivery, IPC boundaries, rule loading, or data protection should be handled through coordinated disclosure.
 
 ## Reporting a Vulnerability
 
@@ -16,7 +16,7 @@ Include:
 
 ## Disclosure Timeline
 
-Nightwatch follows a 90-day coordinated-disclosure policy by default. Shorter or longer timelines may be used when active exploitation, user risk, ecosystem coordination, or vendor dependencies require it.
+Owlwatch follows a 90-day coordinated-disclosure policy by default. Shorter or longer timelines may be used when active exploitation, user risk, ecosystem coordination, or vendor dependencies require it.
 
 ## Scope
 
@@ -39,5 +39,5 @@ Out of scope:
 
 ## Data Handling
 
-Nightwatch will not include outbound telemetry without explicit opt-in. Reports should avoid customer-identifying data and should not include live malware samples unless a private handling process has been agreed.
+Owlwatch will not include outbound telemetry without explicit opt-in. Reports should avoid customer-identifying data and should not include live malware samples unless a private handling process has been agreed.
 

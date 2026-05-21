@@ -1,6 +1,6 @@
 # Code of Conduct
 
-Nightwatch uses the Contributor Covenant Code of Conduct, version 2.1.
+Owlwatch uses the Contributor Covenant Code of Conduct, version 2.1.
 
 ## Standards
 
