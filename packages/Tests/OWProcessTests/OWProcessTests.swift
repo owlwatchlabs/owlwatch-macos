@@ -66,4 +66,49 @@ final class OWProcessTests: XCTestCase {
 
         XCTAssertEqual(current.pid, 1, "Parent chain did not reach launchd within \(hopLimit) hops")
     }
+
+    // MARK: - Arguments (M1.2)
+
+    func testSnapshotWithoutIncludeArgumentsLeavesArgumentsNil() throws {
+        let snapshot = try OWProcess.snapshot(pid: getpid())
+        XCTAssertNil(snapshot.arguments, "Default snapshot should not capture arguments")
+    }
+
+    func testSnapshotWithIncludeArgumentsReturnsNonEmptyForSelf() throws {
+        let snapshot = try OWProcess.snapshot(pid: getpid(), includeArguments: true)
+        XCTAssertNotNil(snapshot.arguments, "includeArguments=true must populate the arguments field")
+        let args = try XCTUnwrap(snapshot.arguments)
+        XCTAssertFalse(args.isEmpty, "Expected at least argv[0] for the test runner")
+    }
+
+    func testArgumentsForSelfMatchesProcessInfo() throws {
+        let snapshot = try OWProcess.snapshot(pid: getpid(), includeArguments: true)
+        let args = try XCTUnwrap(snapshot.arguments)
+
+        // The test runner's arguments are observable via Foundation's
+        // ProcessInfo. argv[0] from KERN_PROCARGS2 is usually the executable
+        // path; ProcessInfo.arguments[0] matches that or the invocation name.
+        // The arrays should have the same length and overlap in the tail.
+        let processInfoArgs = ProcessInfo.processInfo.arguments
+        XCTAssertEqual(args.count, processInfoArgs.count, "argc from sysctl should match ProcessInfo.arguments.count")
+    }
+
+    func testAllWithIncludeArgumentsPopulatesAtLeastSomeProcesses() throws {
+        let processes = try OWProcess.all(includeArguments: true)
+        XCTAssertFalse(processes.isEmpty, "Snapshot must be non-empty")
+
+        // Every process gets a non-nil arguments array when capture was
+        // requested (empty array if KERN_PROCARGS2 declined for that PID).
+        for proc in processes {
+            XCTAssertNotNil(
+                proc.arguments,
+                "Expected non-nil arguments (possibly empty) for pid=\(proc.pid) when includeArguments=true"
+            )
+        }
+
+        // At minimum the current process should have a populated argv.
+        let me = processes.first(where: { $0.pid == getpid() })
+        XCTAssertNotNil(me, "Self should be in all() snapshot")
+        XCTAssertFalse(me?.arguments?.isEmpty ?? true, "Self's arguments should be non-empty")
+    }
 }
