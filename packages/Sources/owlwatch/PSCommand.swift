@@ -20,7 +20,7 @@ struct PSCommand: ParsableCommand {
             """
     )
 
-    @Flag(name: .shortAndLong, help: "Include the executable path as a column (table mode only).")
+    @Flag(name: .shortAndLong, help: "Include the executable path (PATH column in table mode, inline in tree mode).")
     var paths: Bool = false
 
     @Flag(name: .shortAndLong, help: "Include each process's argv (argv[0] is the invocation name).")
@@ -41,6 +41,7 @@ struct PSCommand: ParsableCommand {
         let output = tree
             ? renderTree(
                 focused,
+                includePath: paths,
                 includeArgs: args,
                 includeFileCount: files,
                 // When `--pid` filtered the snapshot, the focused process's
@@ -158,6 +159,7 @@ private func joinArgsForTable(_ arguments: [String]?) -> String {
 /// the cap is cheap insurance).
 private func renderTree(
     _ processes: [RunningProcess],
+    includePath: Bool,
     includeArgs: Bool,
     includeFileCount: Bool,
     suppressSyntheticParentHeaders: Bool = false
@@ -167,6 +169,7 @@ private func renderTree(
 
     var renderer = TreeRenderer(
         childrenByParent: childrenByParent,
+        includePath: includePath,
         includeArgs: includeArgs,
         includeFileCount: includeFileCount,
         suppressSyntheticParentHeaders: suppressSyntheticParentHeaders
@@ -214,6 +217,7 @@ private let treeDepthLimit = 64
 /// node-rendering methods stay small and have few parameters.
 private struct TreeRenderer {
     let childrenByParent: [pid_t: [RunningProcess]]
+    let includePath: Bool
     let includeArgs: Bool
     let includeFileCount: Bool
     let suppressSyntheticParentHeaders: Bool
@@ -271,6 +275,12 @@ private struct TreeRenderer {
     ) -> String {
         let connector = isRoot ? "" : (isLast ? "└── " : "├── ")
         var line = "\(prefix)\(connector)\(proc.name)(\(proc.pid))"
+        // Path goes immediately after name(pid) so the identity columns
+        // (name, pid, path) cluster on the left and the metadata / argv
+        // (fds, args) trail on the right.
+        if includePath, let path = proc.path {
+            line += " \(path)"
+        }
         if includeFileCount, let openFiles = proc.openFiles {
             line += " [\(openFiles.count) fds]"
         }
