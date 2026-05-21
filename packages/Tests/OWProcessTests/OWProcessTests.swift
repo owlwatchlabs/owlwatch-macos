@@ -111,4 +111,60 @@ final class OWProcessTests: XCTestCase {
         XCTAssertNotNil(me, "Self should be in all() snapshot")
         XCTAssertFalse(me?.arguments?.isEmpty ?? true, "Self's arguments should be non-empty")
     }
+
+    // MARK: - Open files (M1.3)
+
+    func testSnapshotWithoutIncludeOpenFilesLeavesOpenFilesNil() throws {
+        let snapshot = try OWProcess.snapshot(pid: getpid())
+        XCTAssertNil(snapshot.openFiles, "Default snapshot should not capture openFiles")
+    }
+
+    func testSnapshotWithIncludeOpenFilesReturnsNonEmptyForSelf() throws {
+        let snapshot = try OWProcess.snapshot(pid: getpid(), includeOpenFiles: true)
+        XCTAssertNotNil(snapshot.openFiles, "includeOpenFiles=true must populate the openFiles field")
+        let files = try XCTUnwrap(snapshot.openFiles)
+        // Every process running under XCTest has at least stdin/stdout/stderr.
+        XCTAssertGreaterThanOrEqual(
+            files.count, 3,
+            "Expected at least three open FDs (stdin/stdout/stderr) for the test process"
+        )
+    }
+
+    func testOpenFilesIncludeStandardDescriptorsForSelf() throws {
+        let snapshot = try OWProcess.snapshot(pid: getpid(), includeOpenFiles: true)
+        let files = try XCTUnwrap(snapshot.openFiles)
+        let descriptorNumbers = Set(files.map(\.fd))
+        XCTAssertTrue(descriptorNumbers.contains(0), "Expected stdin (fd 0) to appear")
+        XCTAssertTrue(descriptorNumbers.contains(1), "Expected stdout (fd 1) to appear")
+        XCTAssertTrue(descriptorNumbers.contains(2), "Expected stderr (fd 2) to appear")
+    }
+
+    func testOpenFilesIncludeAtLeastOneRecognizedVariant() throws {
+        let snapshot = try OWProcess.snapshot(pid: getpid(), includeOpenFiles: true)
+        let files = try XCTUnwrap(snapshot.openFiles)
+        // The test runner's stdin/stdout/stderr resolve to some combination
+        // of file (e.g., /dev/null), socket (XCTest IPC), or pipe — the
+        // variants vary by how XCTest was invoked. The assertion here is
+        // that at least one FD lands in a recognized variant rather than
+        // every FD falling through to `.other` — which would indicate the
+        // proc_pidfdinfo bridging is broken.
+        let hasRecognizedVariant = files.contains { file in
+            switch file {
+            case .file, .socket, .pipe: return true
+            case .other: return false
+            }
+        }
+        XCTAssertTrue(hasRecognizedVariant, "Expected at least one .file/.socket/.pipe variant in self's open FDs")
+    }
+
+    func testAllWithIncludeOpenFilesAttachesNonNilFieldToEveryEntry() throws {
+        let processes = try OWProcess.all(includeOpenFiles: true)
+        XCTAssertFalse(processes.isEmpty, "Snapshot must be non-empty")
+        for proc in processes {
+            XCTAssertNotNil(
+                proc.openFiles,
+                "Expected non-nil openFiles (possibly empty) for pid=\(proc.pid) when includeOpenFiles=true"
+            )
+        }
+    }
 }

@@ -13,8 +13,10 @@ struct PSCommand: ParsableCommand {
 
             Default output is a fixed-width table with PID, PPID, USER, NAME.
             Use --tree to render a pstree-style hierarchy instead. Use --args
-            to include each process's `argv` (note: argv is unavailable for
-            other-user / SIP-protected processes when running unprivileged).
+            to include each process's `argv`. Use --files to include the
+            count of open file descriptors per process. argv and FD lists
+            are unavailable for other-user / SIP-protected processes when
+            running unprivileged.
             """
     )
 
@@ -27,11 +29,19 @@ struct PSCommand: ParsableCommand {
     @Flag(name: .shortAndLong, help: "Render as a pstree-style hierarchy.")
     var tree: Bool = false
 
+    @Flag(name: .shortAndLong, help: "Include the open-file-descriptor count per process.")
+    var files: Bool = false
+
     func run() throws {
-        let processes = try OWProcess.all(includeArguments: args)
+        let processes = try OWProcess.all(includeArguments: args, includeOpenFiles: files)
         let output = tree
-            ? renderTree(processes, includeArgs: args)
-            : renderTable(processes.sorted { $0.pid < $1.pid }, includePath: paths, includeArgs: args)
+            ? renderTree(processes, includeArgs: args, includeFileCount: files)
+            : renderTable(
+                processes.sorted { $0.pid < $1.pid },
+                includePath: paths,
+                includeArgs: args,
+                includeFileCount: files
+            )
         FileHandle.standardOutput.write(Data((output + "\n").utf8))
     }
 }
@@ -39,15 +49,22 @@ struct PSCommand: ParsableCommand {
 // MARK: - Table rendering
 
 @inline(__always)
-private func renderTable(_ processes: [RunningProcess], includePath: Bool, includeArgs: Bool) -> String {
+private func renderTable(
+    _ processes: [RunningProcess],
+    includePath: Bool,
+    includeArgs: Bool,
+    includeFileCount: Bool
+) -> String {
     var header = ["PID", "PPID", "USER", "NAME"]
     if includePath { header.append("PATH") }
+    if includeFileCount { header.append("FDS") }
     if includeArgs { header.append("ARGS") }
 
     var rows: [[String]] = [header]
     for proc in processes {
         var row = [String(proc.pid), String(proc.parentPid), String(proc.userId), proc.name]
         if includePath { row.append(proc.path ?? "") }
+        if includeFileCount { row.append(formatFileCount(proc.openFiles)) }
         if includeArgs { row.append(joinArgsForTable(proc.arguments)) }
         rows.append(row)
     }
@@ -64,6 +81,11 @@ private func renderTable(_ processes: [RunningProcess], includePath: Bool, inclu
                 : cell.padding(toLength: widths[idx], withPad: " ", startingAt: 0)
         }.joined(separator: "  ")
     }.joined(separator: "\n")
+}
+
+private func formatFileCount(_ openFiles: [OpenFile]?) -> String {
+    guard let openFiles else { return "" }
+    return openFiles.isEmpty ? "0" : String(openFiles.count)
 }
 
 private func joinArgsForTable(_ arguments: [String]?) -> String {
@@ -91,11 +113,19 @@ private func joinArgsForTable(_ arguments: [String]?) -> String {
 /// The tree walk has a hard depth cap of 64 to guard against pathological
 /// cycles (which should not occur with a consistent kernel snapshot, but
 /// the cap is cheap insurance).
-private func renderTree(_ processes: [RunningProcess], includeArgs: Bool) -> String {
+private func renderTree(
+    _ processes: [RunningProcess],
+    includeArgs: Bool,
+    includeFileCount: Bool
+) -> String {
     let childrenByParent = sortedChildren(by: \.parentPid, of: processes)
     let orphansByParent = sortedOrphans(of: processes)
 
-    var renderer = TreeRenderer(childrenByParent: childrenByParent, includeArgs: includeArgs)
+    var renderer = TreeRenderer(
+        childrenByParent: childrenByParent,
+        includeArgs: includeArgs,
+        includeFileCount: includeFileCount
+    )
     for parentPid in orphansByParent.keys.sorted() {
         renderer.appendGroup(parentPid: parentPid, group: orphansByParent[parentPid] ?? [])
     }
@@ -140,6 +170,7 @@ private let treeDepthLimit = 64
 private struct TreeRenderer {
     let childrenByParent: [pid_t: [RunningProcess]]
     let includeArgs: Bool
+    let includeFileCount: Bool
     var visited: Set<pid_t> = []
     var lines: [String] = []
 
@@ -191,6 +222,9 @@ private struct TreeRenderer {
     ) -> String {
         let connector = isRoot ? "" : (isLast ? "└── " : "├── ")
         var line = "\(prefix)\(connector)\(proc.name)(\(proc.pid))"
+        if includeFileCount, let openFiles = proc.openFiles {
+            line += " [\(openFiles.count) fds]"
+        }
         if includeArgs, let arguments = proc.arguments, arguments.count > 1 {
             let tail = arguments.dropFirst().joined(separator: " ")
             if !tail.isEmpty {

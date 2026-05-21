@@ -8,12 +8,13 @@ import Foundation
 /// that exit between snapshot and read time still appear in the value;
 /// values do not auto-invalidate.
 ///
-/// `arguments` is `nil` when the snapshot was captured without
-/// `includeArguments`, and an empty array when arguments were requested but
-/// could not be read (system-protected process, exited mid-snapshot, caller
-/// lacks permission). It is an array of strings when arguments were
-/// successfully captured; `arguments[0]` is the process's `argv[0]`, which
-/// is conventionally the executable path or invocation name.
+/// Optional fields (`arguments`, `openFiles`) follow the same three-state
+/// convention:
+///
+/// - `nil` — the snapshot was taken without the corresponding `include*` flag.
+/// - empty array — capture was requested but unavailable (system-protected
+///   process, exited mid-snapshot, caller lacks permission).
+/// - populated array — successful capture.
 public struct RunningProcess: Sendable, Equatable, Hashable {
     public let pid: pid_t
     public let parentPid: pid_t
@@ -21,6 +22,7 @@ public struct RunningProcess: Sendable, Equatable, Hashable {
     public let path: String?
     public let userId: uid_t
     public let arguments: [String]?
+    public let openFiles: [OpenFile]?
 
     public init(
         pid: pid_t,
@@ -28,7 +30,8 @@ public struct RunningProcess: Sendable, Equatable, Hashable {
         name: String,
         path: String?,
         userId: uid_t,
-        arguments: [String]? = nil
+        arguments: [String]? = nil,
+        openFiles: [OpenFile]? = nil
     ) {
         self.pid = pid
         self.parentPid = parentPid
@@ -36,6 +39,42 @@ public struct RunningProcess: Sendable, Equatable, Hashable {
         self.path = path
         self.userId = userId
         self.arguments = arguments
+        self.openFiles = openFiles
+    }
+}
+
+/// A single file descriptor held by a process.
+///
+/// The variant identifies the descriptor's underlying kernel object kind
+/// (vnode, socket, pipe, etc.). Variant-specific metadata is captured where
+/// it's cheap to obtain (path for vnodes, address family + socket type for
+/// sockets); richer per-variant detail (socket peer endpoints, kqueue
+/// registrations, etc.) is intentionally deferred to a later milestone.
+public enum OpenFile: Sendable, Equatable, Hashable {
+    /// A vnode-backed file descriptor (regular file, directory, symlink,
+    /// device node). `path` is `nil` for anonymous vnodes or when the kernel
+    /// declines to expose the path.
+    case file(fd: Int32, path: String?)
+
+    /// A socket. `family` is the address family (`AF_INET`, `AF_INET6`,
+    /// `AF_UNIX`, etc.); `type` is the socket type (`SOCK_STREAM`,
+    /// `SOCK_DGRAM`, ...). Peer endpoint details are deferred.
+    case socket(fd: Int32, family: Int32, type: Int32)
+
+    /// A pipe (one half of a pipe or fifo).
+    case pipe(fd: Int32)
+
+    /// Anything else — kqueue, POSIX shared memory, POSIX semaphore,
+    /// fsevents, netpolicy, etc. The raw libproc fdtype value is preserved
+    /// so callers that care can switch on it.
+    case other(fd: Int32, rawType: Int32)
+
+    /// The file descriptor number, regardless of variant.
+    public var fd: Int32 {
+        switch self {
+        case .file(let fd, _), .socket(let fd, _, _), .pipe(let fd), .other(let fd, _):
+            return fd
+        }
     }
 }
 
@@ -66,9 +105,23 @@ public enum OWProcess {
     ///   `arguments` field is set to an empty array in that case. Default is
     ///   `false`; capturing arguments adds one sysctl call per process and
     ///   roughly doubles the snapshot cost on typical hosts.
-    public static func all(includeArguments: Bool = false) throws -> [RunningProcess] {
+    /// - Parameter includeOpenFiles: when `true`, also capture each process's
+    ///   open file descriptors via `proc_pidinfo(PROC_PIDLISTFDS)` plus a
+    ///   variant-specific `proc_pidfdinfo` call per FD. Adds multiple
+    ///   syscalls per process; only enable when the caller actually needs
+    ///   the FD table.
+    public static func all(
+        includeArguments: Bool = false,
+        includeOpenFiles: Bool = false
+    ) throws -> [RunningProcess] {
         let pids = try listAllPids()
-        return pids.compactMap { try? snapshot(pid: $0, includeArguments: includeArguments) }
+        return pids.compactMap { pid in
+            try? snapshot(
+                pid: pid,
+                includeArguments: includeArguments,
+                includeOpenFiles: includeOpenFiles
+            )
+        }
     }
 
     /// Snapshot a single process by PID.
@@ -78,21 +131,28 @@ public enum OWProcess {
     /// site when iterating over PIDs returned by `all()` — process churn
     /// during enumeration is expected.
     ///
-    /// - Parameter includeArguments: see `all(includeArguments:)`.
-    public static func snapshot(pid: pid_t, includeArguments: Bool = false) throws -> RunningProcess {
+    /// - Parameter includeArguments: see `all(includeArguments:includeOpenFiles:)`.
+    /// - Parameter includeOpenFiles: see `all(includeArguments:includeOpenFiles:)`.
+    public static func snapshot(
+        pid: pid_t,
+        includeArguments: Bool = false,
+        includeOpenFiles: Bool = false
+    ) throws -> RunningProcess {
         let info = try fetchBSDInfo(pid: pid)
         let path = fetchPath(pid: pid)
         let name = readNullTerminated(bytes: info.pbi_name)
             ?? readNullTerminated(bytes: info.pbi_comm)
             ?? ""
         let arguments = includeArguments ? (fetchArguments(pid: pid) ?? []) : nil
+        let openFiles = includeOpenFiles ? (fetchOpenFiles(pid: pid) ?? []) : nil
         return RunningProcess(
             pid: pid,
             parentPid: pid_t(info.pbi_ppid),
             name: name,
             path: path,
             userId: info.pbi_uid,
-            arguments: arguments
+            arguments: arguments,
+            openFiles: openFiles
         )
     }
 }
@@ -230,4 +290,85 @@ private func queryArgMax() -> Int? {
     let result = sysctl(&mib, UInt32(mib.count), &argMax, &size, nil, 0)
     guard result == 0, argMax > 0 else { return nil }
     return Int(argMax)
+}
+
+// MARK: - libproc bridging (PROC_PIDLISTFDS → [OpenFile])
+
+// Constants from <sys/proc_info.h>. Inlined because Swift's C macro importer
+// can't always evaluate them; matched against the SDK header values.
+private let proxFdtypeVnode: Int32 = 1
+private let proxFdtypeSocket: Int32 = 2
+private let proxFdtypePipe: Int32 = 6
+
+/// Enumerates open file descriptors for a process.
+///
+/// First call: `proc_pidinfo(PROC_PIDLISTFDS)` returns the list of
+/// (fd, fdtype) pairs as packed `proc_fdinfo` structs. The second call set
+/// — one `proc_pidfdinfo` per FD with a variant-specific flavor — fills in
+/// path / family / type details.
+///
+/// Returns `nil` when the initial `proc_pidinfo` call fails (caller lacks
+/// permission, process exited). Returns an empty array when the process is
+/// alive but holds zero descriptors (rare but legal — e.g., kernel tasks).
+private func fetchOpenFiles(pid: pid_t) -> [OpenFile]? {
+    let stride = MemoryLayout<proc_fdinfo>.stride
+    let listSize = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, nil, 0)
+    guard listSize > 0 else { return nil }
+
+    let fdCount = Int(listSize) / stride
+    var fds = [proc_fdinfo](repeating: proc_fdinfo(), count: fdCount)
+    let actualSize = fds.withUnsafeMutableBufferPointer { buf in
+        proc_pidinfo(pid, PROC_PIDLISTFDS, 0, buf.baseAddress, Int32(buf.count * stride))
+    }
+    guard actualSize > 0 else { return nil }
+
+    let actualCount = Int(actualSize) / stride
+    var result: [OpenFile] = []
+    result.reserveCapacity(actualCount)
+    for entry in fds.prefix(actualCount) {
+        let fd = entry.proc_fd
+        let fdtype = Int32(bitPattern: entry.proc_fdtype)
+        result.append(openFile(pid: pid, fd: fd, fdtype: fdtype))
+    }
+    return result
+}
+
+private func openFile(pid: pid_t, fd: Int32, fdtype: Int32) -> OpenFile {
+    switch fdtype {
+    case proxFdtypeVnode:
+        return .file(fd: fd, path: fetchVnodePath(pid: pid, fd: fd))
+    case proxFdtypeSocket:
+        let info = fetchSocketInfo(pid: pid, fd: fd)
+        return .socket(fd: fd, family: info?.family ?? 0, type: info?.type ?? 0)
+    case proxFdtypePipe:
+        return .pipe(fd: fd)
+    default:
+        return .other(fd: fd, rawType: fdtype)
+    }
+}
+
+private func fetchVnodePath(pid: pid_t, fd: Int32) -> String? {
+    var info = vnode_fdinfowithpath()
+    let size = withUnsafeMutablePointer(to: &info) { ptr in
+        proc_pidfdinfo(pid, fd, PROC_PIDFDVNODEPATHINFO, ptr, Int32(MemoryLayout<vnode_fdinfowithpath>.size))
+    }
+    guard size == MemoryLayout<vnode_fdinfowithpath>.size else { return nil }
+    return readNullTerminated(bytes: info.pvip.vip_path)
+}
+
+private struct SocketBasics {
+    let family: Int32
+    let type: Int32
+}
+
+private func fetchSocketInfo(pid: pid_t, fd: Int32) -> SocketBasics? {
+    var info = socket_fdinfo()
+    let size = withUnsafeMutablePointer(to: &info) { ptr in
+        proc_pidfdinfo(pid, fd, PROC_PIDFDSOCKETINFO, ptr, Int32(MemoryLayout<socket_fdinfo>.size))
+    }
+    guard size == MemoryLayout<socket_fdinfo>.size else { return nil }
+    return SocketBasics(
+        family: info.psi.soi_family,
+        type: info.psi.soi_type
+    )
 }
