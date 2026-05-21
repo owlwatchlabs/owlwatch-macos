@@ -2,6 +2,14 @@
 # Until GHAS Secret Scanning is enabled (post-public, see docs/repo-config.md
 # "Private repo posture"), this workflow is the only secret scanner. Failure
 # is stop-the-line: never bypass.
+#
+# License: gitleaks-action@v2 is free for personal-account repos but requires
+# a paid GITLEAKS_LICENSE when running under a GitHub Organization. owlwatch-
+# macos lives under the owlwatchlabs org as of 2026-05-21, so the license is
+# required. The license key is stored as a repository secret named
+# GITLEAKS_LICENSE and is also mirrored as an environment secret (either
+# resolves the same value at workflow runtime; repository scope is sufficient
+# for this workflow).
 name: Gitleaks
 
 on:
@@ -30,3 +38,4 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
