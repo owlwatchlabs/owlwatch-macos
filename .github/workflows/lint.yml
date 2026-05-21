@@ -1,4 +1,9 @@
 # Required status check: `lint`. Spec: docs/repo-config.md
+#
+# Path-filter strategy: the workflow always runs (so its required-check
+# status reports green on every PR), but the SwiftLint install + run gate
+# on a `dorny/paths-filter@v3` detection of whether any .swift file
+# changed. Docs-only PRs skip the brew install + lint run.
 name: Lint
 
 on:
@@ -8,6 +13,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: lint-${{ github.ref }}
@@ -20,6 +26,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Detect Swift-relevant changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            swift:
+              - '**/*.swift'
+              - '.swiftlint.yml'
+              - '.github/workflows/lint.yml'
+
       - name: Detect Swift sources
         id: detect
         shell: bash
@@ -28,17 +44,21 @@ jobs:
             echo "has_swift=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_swift=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No Swift sources found; skipping SwiftLint (placeholder until M1)."
+            echo "::notice::No Swift sources found; skipping SwiftLint."
           fi
 
+      - name: Skip notice (no Swift changes)
+        if: steps.filter.outputs.swift != 'true'
+        run: echo "::notice::No .swift / .swiftlint.yml / lint.yml changes detected. Lint step skipped."
+
       - name: Install SwiftLint
-        if: steps.detect.outputs.has_swift == 'true'
+        if: steps.detect.outputs.has_swift == 'true' && steps.filter.outputs.swift == 'true'
         run: brew install swiftlint
 
       - name: SwiftLint version
-        if: steps.detect.outputs.has_swift == 'true'
+        if: steps.detect.outputs.has_swift == 'true' && steps.filter.outputs.swift == 'true'
         run: swiftlint version
 
       - name: Run SwiftLint
-        if: steps.detect.outputs.has_swift == 'true'
+        if: steps.detect.outputs.has_swift == 'true' && steps.filter.outputs.swift == 'true'
         run: swiftlint --strict --reporter github-actions-logging

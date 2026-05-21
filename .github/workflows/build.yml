@@ -1,4 +1,10 @@
 # Required status checks: `build`, `test`. Spec: docs/repo-config.md
+#
+# Path-filter strategy: the workflow always runs (so its required-check
+# status reports green on every PR, including docs-only ones), but the
+# expensive build/test steps gate on a `dorny/paths-filter@v3` detection
+# of whether any Swift-relevant file changed. Docs-only PRs run the runner
+# allocation + filter step (~30s on macOS) and skip the rest.
 name: Build & test
 
 on:
@@ -8,6 +14,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: build-${{ github.ref }}
@@ -20,6 +27,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Detect Swift-relevant changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            swift:
+              - '**/*.swift'
+              - 'packages/Package.swift'
+              - 'packages/Package.resolved'
+              - 'apps/*/project.yml'
+              - 'apps/*/Sources/*.plist'
+              - 'apps/*/Sources/*.entitlements'
+              - 'apps/*/*.xcodeproj/**'
+              - '.github/workflows/build.yml'
+
       - name: Detect Swift package
         id: detect
         shell: bash
@@ -31,8 +53,12 @@ jobs:
             echo "::notice::No packages/Package.swift; skipping swift build."
           fi
 
+      - name: Skip notice (no Swift changes)
+        if: steps.filter.outputs.swift != 'true'
+        run: echo "::notice::No Swift / Package.swift / project.yml / xcodeproj / build.yml changes detected. Build steps skipped."
+
       - name: Cache SwiftPM build artifacts
-        if: steps.detect.outputs.has_package == 'true'
+        if: steps.detect.outputs.has_package == 'true' && steps.filter.outputs.swift == 'true'
         uses: actions/cache@v4
         with:
           path: |
@@ -43,15 +69,15 @@ jobs:
             spm-${{ runner.os }}-
 
       - name: Toolchain version
-        if: steps.detect.outputs.has_package == 'true'
+        if: steps.detect.outputs.has_package == 'true' && steps.filter.outputs.swift == 'true'
         run: swift --version
 
       - name: swift build (packages)
-        if: steps.detect.outputs.has_package == 'true'
+        if: steps.detect.outputs.has_package == 'true' && steps.filter.outputs.swift == 'true'
         run: swift build --package-path packages --build-tests -c debug
 
       - name: Build macOS app (Owlwatch)
-        if: hashFiles('apps/Owlwatch/Owlwatch.xcodeproj/project.pbxproj') != ''
+        if: steps.filter.outputs.swift == 'true' && hashFiles('apps/Owlwatch/Owlwatch.xcodeproj/project.pbxproj') != ''
         run: |
           set -o pipefail
           xcodebuild build \
@@ -64,7 +90,7 @@ jobs:
             CODE_SIGN_IDENTITY=""
 
       - name: Build iOS app (OwlwatchMobile)
-        if: hashFiles('apps/OwlwatchMobile/OwlwatchMobile.xcodeproj/project.pbxproj') != ''
+        if: steps.filter.outputs.swift == 'true' && hashFiles('apps/OwlwatchMobile/OwlwatchMobile.xcodeproj/project.pbxproj') != ''
         run: |
           set -o pipefail
           xcodebuild build \
@@ -83,6 +109,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Detect Swift-relevant changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            swift:
+              - '**/*.swift'
+              - 'packages/Package.swift'
+              - 'packages/Package.resolved'
+              - 'apps/*/project.yml'
+              - 'apps/*/Sources/*.plist'
+              - 'apps/*/Sources/*.entitlements'
+              - 'apps/*/*.xcodeproj/**'
+              - '.github/workflows/build.yml'
+
       - name: Detect Swift package
         id: detect
         shell: bash
@@ -94,8 +135,12 @@ jobs:
             echo "::notice::No packages/Package.swift; skipping swift test."
           fi
 
+      - name: Skip notice (no Swift changes)
+        if: steps.filter.outputs.swift != 'true'
+        run: echo "::notice::No Swift / Package.swift / project.yml / xcodeproj / build.yml changes detected. Test step skipped."
+
       - name: Cache SwiftPM build artifacts
-        if: steps.detect.outputs.has_package == 'true'
+        if: steps.detect.outputs.has_package == 'true' && steps.filter.outputs.swift == 'true'
         uses: actions/cache@v4
         with:
           path: |
@@ -106,5 +151,5 @@ jobs:
             spm-${{ runner.os }}-
 
       - name: swift test (packages)
-        if: steps.detect.outputs.has_package == 'true'
+        if: steps.detect.outputs.has_package == 'true' && steps.filter.outputs.swift == 'true'
         run: swift test --package-path packages --parallel

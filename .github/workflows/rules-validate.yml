@@ -2,6 +2,14 @@
 # Stub until M13. Real validator (schema + MITRE + fixtures) lands when the
 # detection-rule pipeline goes live. Until then, the job exists so branch
 # protection can require it from M0 onward without a "never reports" trap.
+#
+# Path-filter strategy: the workflow always runs (so its required-check
+# status reports green on every PR), but the stub validator step gates on
+# a `dorny/paths-filter@v3` detection of whether anything under rules/ or
+# the workflow itself changed. PRs that touch neither skip the listing
+# step. (Today the stub is cheap enough that the savings are negligible;
+# the filter is forward-looking — once the M13 schema validator lands and
+# the rule library grows, the saving becomes meaningful.)
 name: Rules validate
 
 on:
@@ -11,6 +19,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: rules-validate-${{ github.ref }}
@@ -23,7 +32,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Detect rules-relevant changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            rules:
+              - 'rules/**'
+              - '.github/workflows/rules-validate.yml'
+
+      - name: Skip notice (no rules changes)
+        if: steps.filter.outputs.rules != 'true'
+        run: echo "::notice::No rules/ or rules-validate.yml changes detected. Validator skipped."
+
       - name: Stub validator
+        if: steps.filter.outputs.rules == 'true'
         shell: bash
         run: |
           if [ -d "rules" ] && [ -n "$(find rules -name '*.yml' -o -name '*.yaml' -print -quit)" ]; then
