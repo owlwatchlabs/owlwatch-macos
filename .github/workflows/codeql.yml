@@ -1,4 +1,14 @@
 # Required status check: `codeql`. Spec: docs/repo-config.md
+#
+# Path-filter strategy: the workflow always runs on pull_request and
+# push-to-main (so its required-check status reports green on every PR),
+# but the CodeQL init/build/analyze steps gate on a `dorny/paths-filter@v3`
+# detection of whether any Swift-relevant file changed. Docs-only PRs skip
+# the multi-minute CodeQL phase.
+#
+# The weekly cron schedule (Mondays 06:00 UTC) bypasses the filter — there
+# is no PR diff to compare against — and always runs the full analysis
+# against main with the broader security-extended query suite.
 name: CodeQL
 
 on:
@@ -11,6 +21,7 @@ on:
 permissions:
   actions: read
   contents: read
+  pull-requests: read
   security-events: write
 
 concurrency:
@@ -24,6 +35,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Detect Swift-relevant changes
+        id: filter
+        if: github.event_name != 'schedule'
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            swift:
+              - '**/*.swift'
+              - 'packages/Package.swift'
+              - 'packages/Package.resolved'
+              - 'apps/*/project.yml'
+              - 'apps/*/Sources/*.plist'
+              - 'apps/*/Sources/*.entitlements'
+              - 'apps/*/*.xcodeproj/**'
+              - '.github/workflows/codeql.yml'
+
       - name: Detect Swift package
         id: detect
         shell: bash
@@ -35,8 +62,12 @@ jobs:
             echo "::notice::No packages/Package.swift; skipping CodeQL analysis."
           fi
 
+      - name: Skip notice (no Swift changes, non-schedule event)
+        if: github.event_name != 'schedule' && steps.filter.outputs.swift != 'true'
+        run: echo "::notice::No Swift / Package.swift / project.yml / xcodeproj / codeql.yml changes detected. CodeQL analysis skipped."
+
       - name: Cache SwiftPM build artifacts
-        if: steps.detect.outputs.has_package == 'true'
+        if: steps.detect.outputs.has_package == 'true' && (github.event_name == 'schedule' || steps.filter.outputs.swift == 'true')
         uses: actions/cache@v4
         with:
           path: |
@@ -47,7 +78,7 @@ jobs:
             spm-${{ runner.os }}-
 
       - name: Initialize CodeQL
-        if: steps.detect.outputs.has_package == 'true'
+        if: steps.detect.outputs.has_package == 'true' && (github.event_name == 'schedule' || steps.filter.outputs.swift == 'true')
         uses: github/codeql-action/init@v3
         with:
           languages: swift
@@ -60,11 +91,11 @@ jobs:
           queries: ${{ github.event_name == 'schedule' && 'security-extended' || 'security-and-quality' }}
 
       - name: Manual build for CodeQL
-        if: steps.detect.outputs.has_package == 'true'
+        if: steps.detect.outputs.has_package == 'true' && (github.event_name == 'schedule' || steps.filter.outputs.swift == 'true')
         run: swift build --package-path packages -c debug
 
       - name: Analyze
-        if: steps.detect.outputs.has_package == 'true'
+        if: steps.detect.outputs.has_package == 'true' && (github.event_name == 'schedule' || steps.filter.outputs.swift == 'true')
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:swift"
