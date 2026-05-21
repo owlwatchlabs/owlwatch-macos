@@ -32,18 +32,61 @@ struct PSCommand: ParsableCommand {
     @Flag(name: .shortAndLong, help: "Include the open-file-descriptor count per process.")
     var files: Bool = false
 
+    @Option(name: .long, help: "Focus on a single PID. In tree mode, shows the subtree rooted at that PID.")
+    var pid: Int32?
+
     func run() throws {
-        let processes = try OWProcess.all(includeArguments: args, includeOpenFiles: files)
+        let allProcesses = try OWProcess.all(includeArguments: args, includeOpenFiles: files)
+        let focused = focus(allProcesses, pid: pid, tree: tree)
         let output = tree
-            ? renderTree(processes, includeArgs: args, includeFileCount: files)
+            ? renderTree(
+                focused,
+                includeArgs: args,
+                includeFileCount: files,
+                // When `--pid` filtered the snapshot, the focused process's
+                // real parent is *intentionally* not in the set. Don't wrap
+                // it in a `[unavailable]` synthetic header — the user asked
+                // for this subtree explicitly.
+                suppressSyntheticParentHeaders: pid != nil
+            )
             : renderTable(
-                processes.sorted { $0.pid < $1.pid },
+                focused.sorted { $0.pid < $1.pid },
                 includePath: paths,
                 includeArgs: args,
                 includeFileCount: files
             )
         FileHandle.standardOutput.write(Data((output + "\n").utf8))
     }
+}
+
+// MARK: - --pid focus
+
+/// Filters the snapshot to the focused PID.
+///
+/// In table mode, returns only the matching process (or empty if the PID is
+/// not visible). In tree mode, returns the matching process **plus** every
+/// descendant — so `owlwatch ps --tree --pid 1234` shows the subtree rooted
+/// at PID 1234. When `pid` is `nil`, the snapshot is returned unchanged.
+///
+/// `internal` (not `private`) so unit tests can drive it with synthetic
+/// snapshots without spawning the binary.
+func focus(_ processes: [RunningProcess], pid: Int32?, tree: Bool) -> [RunningProcess] {
+    guard let pid else { return processes }
+    if !tree {
+        return processes.filter { $0.pid == pid }
+    }
+    let childrenByParent = Dictionary(grouping: processes, by: \.parentPid)
+    var collected: [RunningProcess] = []
+    var queue: [pid_t] = [pid]
+    while let next = queue.popLast() {
+        if let proc = processes.first(where: { $0.pid == next }) {
+            collected.append(proc)
+        }
+        if let children = childrenByParent[next] {
+            queue.append(contentsOf: children.map(\.pid))
+        }
+    }
+    return collected
 }
 
 // MARK: - Table rendering
@@ -116,7 +159,8 @@ private func joinArgsForTable(_ arguments: [String]?) -> String {
 private func renderTree(
     _ processes: [RunningProcess],
     includeArgs: Bool,
-    includeFileCount: Bool
+    includeFileCount: Bool,
+    suppressSyntheticParentHeaders: Bool = false
 ) -> String {
     let childrenByParent = sortedChildren(by: \.parentPid, of: processes)
     let orphansByParent = sortedOrphans(of: processes)
@@ -124,7 +168,8 @@ private func renderTree(
     var renderer = TreeRenderer(
         childrenByParent: childrenByParent,
         includeArgs: includeArgs,
-        includeFileCount: includeFileCount
+        includeFileCount: includeFileCount,
+        suppressSyntheticParentHeaders: suppressSyntheticParentHeaders
     )
     for parentPid in orphansByParent.keys.sorted() {
         renderer.appendGroup(parentPid: parentPid, group: orphansByParent[parentPid] ?? [])
@@ -171,14 +216,18 @@ private struct TreeRenderer {
     let childrenByParent: [pid_t: [RunningProcess]]
     let includeArgs: Bool
     let includeFileCount: Bool
+    let suppressSyntheticParentHeaders: Bool
     var visited: Set<pid_t> = []
     var lines: [String] = []
 
     mutating func appendGroup(parentPid: pid_t, group: [RunningProcess]) {
-        if parentPid == 0 {
+        if parentPid == 0 || suppressSyntheticParentHeaders {
             // PID 0 is the kernel scheduler; processes whose parent is the
             // kernel itself (in practice only launchd, when visible) render
             // as plain roots.
+            // suppressSyntheticParentHeaders kicks in for --pid focused mode:
+            // the focused PID's "missing parent" is the user's filter, not
+            // a permission gap, so we skip the [unavailable] wrapper.
             for (index, proc) in group.enumerated() {
                 appendNode(proc, prefix: "", isLast: index == group.count - 1, isRoot: true, depth: 0)
             }

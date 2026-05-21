@@ -6,24 +6,40 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 
 ## [Unreleased]
 
-### Changed
+_No entries yet. M2 work (`OWBinary` — Mach-O / Universal parsing, linked-library enumeration) lands here._
 
-- **Project renamed from `Nightwatch` to `Owlwatch`** per [ADR-0003](docs/adr/0003-rename-to-owlwatch.md). Bundle ID namespace moved from `dev.xorxorjmp.nightwatch.*` to `com.owlwatchlabs.owlwatch.*`; Swift module prefix moved from `NW*` to `OW*`; CLI binary renamed from `nwctl` to `owlwatch`. The `OwlWatch Labs` publisher identity backs `owlwatchlabs.com` (registered). The `v0.1.0-m0` tag retains the old names as a historical artifact; everything after this PR lands under the new ones.
-- **Repository transferred to the `owlwatchlabs` GitHub organization** and renamed to `owlwatch-macos`. New URL: `https://github.com/owlwatchlabs/owlwatch-macos`. GitHub auto-redirects every prior URL (`xorxorjmp/nightwatch`, `xorxorjmp/owlwatch`, `owlwatchlabs/owlwatch`) to the current one. All in-repo references updated; external consumers do not need to act, the redirects are permanent.
+## [v0.2.0-m1] — 2026-05-21
+
+The process-inspector milestone. First runnable Owlwatch binary: `owlwatch ps` lists every process visible to the caller as a table or `pstree`-style hierarchy, with optional argv / executable-path / FD-count / per-PID-focus modifiers. The companion library `OWProcess` is the project's first non-stub `OW*` module and is the data foundation every later milestone builds on.
 
 ### Added
 
-- **`OWProcess` module** — first real implementation of an `OW*` library. Public surface: `RunningProcess` value type (pid, parentPid, name, path, userId) and `OWProcess.all()` / `OWProcess.snapshot(pid:)` static APIs. Backed by libproc (`proc_listpids`, `proc_pidinfo` PROC_PIDTBSDINFO, `proc_pidpath`). No entitlements required.
-- **`owlwatch` executable target** — first shipping binary. Built on Apple's `swift-argument-parser` (v1.5+).
-- **`owlwatch ps`** — first user-visible command. Prints the current process table as a fixed-width table (PID, PPID, USER, NAME columns; `--paths` / `-p` adds the executable path). Errors-on-individual-PID are silently skipped so the snapshot reflects the caller's view of the table rather than failing the whole command.
-- **`owlwatch --version`** — prints `0.1.0-m0`. Version string is currently a hardcoded literal; M1 milestone-close lands a build-time derivation.
-- **ADR-0003** at `docs/adr/0003-rename-to-owlwatch.md` documenting the rename, superseding the bundle-identifier subsection of ADR-0001.
-- **M1.2: `owlwatch ps --tree`** — `pstree`-style hierarchy rendering. Children grouped under their `parentPid`; processes whose parent is invisible to the caller (root-owned daemons that `proc_pidinfo` refuses on unprivileged runs) render under a synthetic `[unavailable](<ppid>)` placeholder so the tree's shape stays readable instead of collapsing to a flat list of roots.
-- **M1.2: `owlwatch ps --args`** — includes each process's `argv` in the output. Table mode appends an `ARGS` column (containing `argv[1..]`); tree mode appends the arguments inline on each node's line. Captured via `sysctl(KERN_PROCARGS2)`.
-- **M1.2: `OWProcess.RunningProcess.arguments: [String]?`** — public surface for the captured `argv`. `nil` when the snapshot was taken without `includeArguments`; empty array when capture was requested but the process is unreachable (other-user / SIP-protected). `OWProcess.all(includeArguments:)` and `OWProcess.snapshot(pid:includeArguments:)` gain the optional parameter (default `false`).
-- **M1.3: `owlwatch ps --files`** — adds an `FDS` column (table mode) or `[N fds]` annotation per node (tree mode) showing the open-file-descriptor count per process. Captured via `proc_pidinfo(PROC_PIDLISTFDS)` plus a variant-specific `proc_pidfdinfo` call per FD.
-- **M1.3: `OWProcess.OpenFile` enum + `RunningProcess.openFiles: [OpenFile]?`** — public surface for the captured file descriptors. Variants: `.file(fd:path:)`, `.socket(fd:family:type:)`, `.pipe(fd:)`, `.other(fd:rawType:)`. Three-state semantics match `arguments`: `nil` when not captured, `[]` when capture was requested but the process is unreachable, populated array otherwise. `OWProcess.all(includeOpenFiles:)` and `OWProcess.snapshot(pid:includeOpenFiles:)` gain the optional parameter (default `false`).
-- **M1.3 deferred: linked-library enumeration moves to M2.** Listing libraries loaded into another process at runtime requires either `task_for_pid` (privileged Mach API restricted on modern macOS) or `proc_pidinfo(PROC_PIDREGIONPATHINFO)` with extension-based filtering of memory-mapped regions. Static analysis of the process binary's `LC_LOAD_DYLIB` load commands is cleaner and lives naturally in the `OWBinary` module, which is M2's home. Rather than ship a partial / privilege-gated implementation in M1.3, the deliverable folds into M2 with a clear Mach-O backing.
+- **`OWProcess` module** — public surface: `RunningProcess` value type (`pid`, `parentPid`, `name`, `path`, `userId`, `arguments`, `openFiles`); `OpenFile` enum (`.file`/`.socket`/`.pipe`/`.other`); `OWProcess.all(includeArguments:includeOpenFiles:)` and `OWProcess.snapshot(pid:includeArguments:includeOpenFiles:)` static APIs. Backed by libproc (`proc_listpids`, `proc_pidinfo` PROC_PIDTBSDINFO / PROC_PIDLISTFDS / PROC_PIDFDVNODEPATHINFO / PROC_PIDFDSOCKETINFO, `proc_pidpath`) and `sysctl(KERN_PROCARGS2)`. No entitlements required.
+- **`owlwatch` executable target** — first shipping binary. Built on Apple's `swift-argument-parser`.
+- **`owlwatch ps`** — print the current process table.
+  - Default: fixed-width table with `PID`, `PPID`, `USER`, `NAME`.
+  - `-p` / `--paths`: append `PATH` column with the executable path.
+  - `-a` / `--args`: append `ARGS` column (or inline annotation in tree mode) with `argv[1..]`.
+  - `-f` / `--files`: append `FDS` column (or `[N fds]` annotation) with open-file-descriptor count.
+  - `-t` / `--tree`: render as a `pstree`-style hierarchy. Processes whose parent is invisible to the caller group under a synthetic `[unavailable](<ppid>)` header.
+  - `--pid <PID>`: focus on a single process. In table mode, returns just the matching process. In tree mode, returns the subtree rooted at that PID (without the synthetic-parent header).
+- **`owlwatch --version`** — prints `0.2.0-m1`.
+- **`Makefile`** — convenience entry points: `build`, `release`, `test`, `install` (places `owlwatch` at `$PREFIX/bin/owlwatch`, default `PREFIX=/usr/local`), `uninstall`, `clean`. Honors `DESTDIR` for packaging.
+- **ADR-0003** at `docs/adr/0003-rename-to-owlwatch.md` documenting the post-M0 project rename, superseding the bundle-identifier subsection of ADR-0001.
+
+### Changed
+
+- **Project renamed from `Nightwatch` to `Owlwatch`** per [ADR-0003](docs/adr/0003-rename-to-owlwatch.md). Bundle ID namespace moved from `dev.xorxorjmp.nightwatch.*` to `com.owlwatchlabs.owlwatch.*`; Swift module prefix moved from `NW*` to `OW*`; CLI binary renamed from `nwctl` to `owlwatch`. The `OwlWatch Labs` publisher identity backs `owlwatchlabs.com` (registered). The `v0.1.0-m0` tag retains the old names as a historical artifact; this release is the first under the new identity.
+- **Repository transferred to the `owlwatchlabs` GitHub organization** and renamed to `owlwatch-macos`. New URL: `https://github.com/owlwatchlabs/owlwatch-macos`. GitHub auto-redirects every prior URL (`xorxorjmp/nightwatch`, `xorxorjmp/owlwatch`, `owlwatchlabs/owlwatch`) to the current one. External consumers do not need to act; the redirects are permanent.
+
+### Deferred to M2
+
+- **Linked-library enumeration.** Originally listed under M1's "libraries" deliverable. Listing libraries loaded into another process at runtime requires either `task_for_pid` (privileged Mach API restricted on modern macOS) or `proc_pidinfo(PROC_PIDREGIONPATHINFO)` with extension-based filtering of memory-mapped regions. Static analysis of the process binary's `LC_LOAD_DYLIB` load commands is cleaner and lives naturally in the `OWBinary` module, which is M2's home. The deliverable folds into M2 with a real Mach-O backing.
+
+### Notes
+
+- **First runnable binary.** Build with `make release`; install with `sudo make install`. The release binary lands at `/usr/local/bin/owlwatch` by default.
+- **Visibility.** `owlwatch ps` from an unprivileged user shell sees ~370 of the host's ~540 processes — the gap is root-owned and SIP-protected processes that `proc_pidinfo` refuses to expose. Running with `sudo` collapses the gap. This is a macOS-level constraint; the tool is honest about what it can and can't see.
 
 ## [v0.1.0-m0] — 2026-05-20
 
@@ -59,5 +75,6 @@ The foundation milestone. Establishes the repository, build system, CI, governan
 - **No user-installable artifact ships with this tag.** The next runnable binary lands at M1 (`owlwatch ps`); the next visible app surface lands at M2/M3.
 - The four planned system extensions — Endpoint Security (M8), Network Extension filter (M7), DNS proxy (M12), Persistence monitor (M10) — exist as placeholder directories under `extensions/` but have no target shells yet. Each lands in its own milestone PR with the appropriate Apple-restricted entitlement (assuming Apple approval has landed by then).
 
-[Unreleased]: https://github.com/owlwatchlabs/owlwatch-macos/compare/v0.1.0-m0...HEAD
+[Unreleased]: https://github.com/owlwatchlabs/owlwatch-macos/compare/v0.2.0-m1...HEAD
+[v0.2.0-m1]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.2.0-m1
 [v0.1.0-m0]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.1.0-m0
