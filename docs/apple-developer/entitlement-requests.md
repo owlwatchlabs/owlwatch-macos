@@ -16,7 +16,7 @@ The submission text in this file is the **exact text sent to Apple**. Edit only 
 **Project name:** Owlwatch
 **Bundle ID prefix:** `com.owlwatchlabs.owlwatch.*`
 **Distribution model:** Direct (Developer ID), not Mac App Store
-**Source code:** https://github.com/xorxorjmp/owlwatch (Apache 2.0)
+**Source code:** https://github.com/owlwatchlabs/owlwatch-macos (Apache 2.0)
 **Team ID:** captured in Apple's case record; not committed to the repository (each contributor uses their own development team locally; the project's "production" team is the one that ships signed Developer ID builds at M15).
 
 Three entitlements requested in a single submission so the multi-week review clocks run in parallel.
