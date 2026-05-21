@@ -18,13 +18,13 @@ struct PSCommand: ParsableCommand {
             """
     )
 
-    @Flag(name: .shortAndLong, help: "Include the executable path as a trailing column (table mode only).")
+    @Flag(name: .shortAndLong, help: "Include the executable path as a column (table mode only).")
     var paths: Bool = false
 
-    @Flag(name: .shortAndLong, help: "Include each process's argv (argv[0] is the invocation name; argv[1..] are arguments).")
+    @Flag(name: .shortAndLong, help: "Include each process's argv (argv[0] is the invocation name).")
     var args: Bool = false
 
-    @Flag(name: .shortAndLong, help: "Render as a pstree-style hierarchy rooted at processes whose parent is not in the snapshot.")
+    @Flag(name: .shortAndLong, help: "Render as a pstree-style hierarchy.")
     var tree: Bool = false
 
     func run() throws {
@@ -92,110 +92,111 @@ private func joinArgsForTable(_ arguments: [String]?) -> String {
 /// cycles (which should not occur with a consistent kernel snapshot, but
 /// the cap is cheap insurance).
 private func renderTree(_ processes: [RunningProcess], includeArgs: Bool) -> String {
-    let pidSet = Set(processes.map { $0.pid })
-    var childrenByParent: [pid_t: [RunningProcess]] = [:]
+    let childrenByParent = sortedChildren(by: \.parentPid, of: processes)
+    let orphansByParent = sortedOrphans(of: processes)
+
+    var renderer = TreeRenderer(childrenByParent: childrenByParent, includeArgs: includeArgs)
+    for parentPid in orphansByParent.keys.sorted() {
+        renderer.appendGroup(parentPid: parentPid, group: orphansByParent[parentPid] ?? [])
+    }
+    return renderer.lines.joined(separator: "\n")
+}
+
+private func sortedChildren(
+    by parentKey: KeyPath<RunningProcess, pid_t>,
+    of processes: [RunningProcess]
+) -> [pid_t: [RunningProcess]] {
+    var map: [pid_t: [RunningProcess]] = [:]
     for proc in processes {
-        childrenByParent[proc.parentPid, default: []].append(proc)
+        map[proc[keyPath: parentKey], default: []].append(proc)
     }
-    for ppid in childrenByParent.keys {
-        childrenByParent[ppid]?.sort { $0.pid < $1.pid }
+    for ppid in map.keys {
+        map[ppid]?.sort { $0.pid < $1.pid }
     }
+    return map
+}
 
-    // Group processes whose parent is not in the snapshot by that parent's PID.
-    // Each group renders under a synthetic "[unavailable]" header so the user
-    // can see "these processes all descend from PID N which I can't inspect"
-    // rather than seeing N flat roots.
-    var orphansByParent: [pid_t: [RunningProcess]] = [:]
+/// Builds the `parentPid -> [child]` map *only* for processes whose parent is
+/// not represented in the snapshot. Each such group renders under a synthetic
+/// `[unavailable](<ppid>)` header so the tree stays readable even when many
+/// real parents are hidden by `proc_pidinfo` permissions.
+private func sortedOrphans(of processes: [RunningProcess]) -> [pid_t: [RunningProcess]] {
+    let pidSet = Set(processes.map { $0.pid })
+    var map: [pid_t: [RunningProcess]] = [:]
     for proc in processes where !pidSet.contains(proc.parentPid) {
-        orphansByParent[proc.parentPid, default: []].append(proc)
+        map[proc.parentPid, default: []].append(proc)
     }
-    for ppid in orphansByParent.keys {
-        orphansByParent[ppid]?.sort { $0.pid < $1.pid }
+    for ppid in map.keys {
+        map[ppid]?.sort { $0.pid < $1.pid }
     }
-
-    var lines: [String] = []
-    var visited = Set<pid_t>()
-
-    let parentPids = orphansByParent.keys.sorted()
-    for parentPid in parentPids {
-        let group = orphansByParent[parentPid] ?? []
-        if parentPid == 0 {
-            // PID 0 = scheduler / kernel; processes whose parent is the kernel
-            // itself (in practice only launchd, when visible) render as plain roots.
-            for (i, proc) in group.enumerated() {
-                renderTreeNode(
-                    proc,
-                    childrenByParent: childrenByParent,
-                    prefix: "",
-                    isLast: i == group.count - 1,
-                    isRoot: true,
-                    depth: 0,
-                    includeArgs: includeArgs,
-                    visited: &visited,
-                    into: &lines
-                )
-            }
-        } else {
-            lines.append("[unavailable](\(parentPid))")
-            for (i, child) in group.enumerated() {
-                renderTreeNode(
-                    child,
-                    childrenByParent: childrenByParent,
-                    prefix: "",
-                    isLast: i == group.count - 1,
-                    isRoot: false,
-                    depth: 1,
-                    includeArgs: includeArgs,
-                    visited: &visited,
-                    into: &lines
-                )
-            }
-        }
-    }
-    return lines.joined(separator: "\n")
+    return map
 }
 
 private let treeDepthLimit = 64
 
-private func renderTreeNode(
-    _ proc: RunningProcess,
-    childrenByParent: [pid_t: [RunningProcess]],
-    prefix: String,
-    isLast: Bool,
-    isRoot: Bool,
-    depth: Int,
-    includeArgs: Bool,
-    visited: inout Set<pid_t>,
-    into lines: inout [String]
-) {
-    if visited.contains(proc.pid) || depth > treeDepthLimit {
-        return
-    }
-    visited.insert(proc.pid)
+/// Stateful tree walker. The struct bundles the invariants (children map,
+/// `includeArgs`) and the walk state (`visited`, `lines`) so individual
+/// node-rendering methods stay small and have few parameters.
+private struct TreeRenderer {
+    let childrenByParent: [pid_t: [RunningProcess]]
+    let includeArgs: Bool
+    var visited: Set<pid_t> = []
+    var lines: [String] = []
 
-    let connector = isRoot ? "" : (isLast ? "└── " : "├── ")
-    var line = "\(prefix)\(connector)\(proc.name)(\(proc.pid))"
-    if includeArgs, let arguments = proc.arguments, arguments.count > 1 {
-        let tail = arguments.dropFirst().joined(separator: " ")
-        if !tail.isEmpty {
-            line += " \(tail)"
+    mutating func appendGroup(parentPid: pid_t, group: [RunningProcess]) {
+        if parentPid == 0 {
+            // PID 0 is the kernel scheduler; processes whose parent is the
+            // kernel itself (in practice only launchd, when visible) render
+            // as plain roots.
+            for (index, proc) in group.enumerated() {
+                appendNode(proc, prefix: "", isLast: index == group.count - 1, isRoot: true, depth: 0)
+            }
+        } else {
+            lines.append("[unavailable](\(parentPid))")
+            for (index, child) in group.enumerated() {
+                appendNode(child, prefix: "", isLast: index == group.count - 1, isRoot: false, depth: 1)
+            }
         }
     }
-    lines.append(line)
 
-    let children = childrenByParent[proc.pid] ?? []
-    let nextPrefix = isRoot ? "" : (prefix + (isLast ? "    " : "│   "))
-    for (i, child) in children.enumerated() {
-        renderTreeNode(
-            child,
-            childrenByParent: childrenByParent,
-            prefix: nextPrefix,
-            isLast: i == children.count - 1,
-            isRoot: false,
-            depth: depth + 1,
-            includeArgs: includeArgs,
-            visited: &visited,
-            into: &lines
-        )
+    mutating func appendNode(
+        _ proc: RunningProcess,
+        prefix: String,
+        isLast: Bool,
+        isRoot: Bool,
+        depth: Int
+    ) {
+        guard !visited.contains(proc.pid), depth <= treeDepthLimit else { return }
+        visited.insert(proc.pid)
+        lines.append(formatNodeLine(proc, prefix: prefix, isRoot: isRoot, isLast: isLast))
+
+        let children = childrenByParent[proc.pid] ?? []
+        let nextPrefix = isRoot ? "" : (prefix + (isLast ? "    " : "│   "))
+        for (index, child) in children.enumerated() {
+            appendNode(
+                child,
+                prefix: nextPrefix,
+                isLast: index == children.count - 1,
+                isRoot: false,
+                depth: depth + 1
+            )
+        }
+    }
+
+    private func formatNodeLine(
+        _ proc: RunningProcess,
+        prefix: String,
+        isRoot: Bool,
+        isLast: Bool
+    ) -> String {
+        let connector = isRoot ? "" : (isLast ? "└── " : "├── ")
+        var line = "\(prefix)\(connector)\(proc.name)(\(proc.pid))"
+        if includeArgs, let arguments = proc.arguments, arguments.count > 1 {
+            let tail = arguments.dropFirst().joined(separator: " ")
+            if !tail.isEmpty {
+                line += " \(tail)"
+            }
+        }
+        return line
     }
 }

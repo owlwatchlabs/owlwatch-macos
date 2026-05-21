@@ -1,4 +1,5 @@
 import Darwin
+import Foundation
 
 /// Read-only metadata snapshot for a single running process.
 ///
@@ -135,18 +136,20 @@ private func fetchPath(pid: pid_t) -> String? {
         proc_pidpath(pid, buf.baseAddress, UInt32(buf.count))
     }
     guard length > 0 else { return nil }
-    // `length` is the number of characters proc_pidpath wrote, not
-    // including the null terminator. Decode that slice as UTF-8.
+    // `length` is the number of bytes proc_pidpath wrote, not including the
+    // null terminator. macOS paths are UTF-8; the validating initializer
+    // returns nil if the kernel ever returned bytes that aren't a path.
     let bytes = buffer.prefix(Int(length)).map { UInt8(bitPattern: $0) }
-    return String(decoding: bytes, as: UTF8.self)
+    return String(bytes: bytes, encoding: .utf8)
 }
 
 private func readNullTerminated<T>(bytes tuple: T) -> String? {
-    let string = withUnsafeBytes(of: tuple) { rawBytes -> String in
-        let untilNull = rawBytes.prefix(while: { $0 != 0 })
-        return String(decoding: untilNull, as: UTF8.self)
+    let decoded = withUnsafeBytes(of: tuple) { rawBytes -> String? in
+        let untilNull: [UInt8] = rawBytes.prefix(while: { $0 != 0 }).map { $0 }
+        return String(bytes: untilNull, encoding: .utf8)
     }
-    return string.isEmpty ? nil : string
+    guard let decoded, !decoded.isEmpty else { return nil }
+    return decoded
 }
 
 // MARK: - sysctl bridging (KERN_PROCARGS2 → argv[])
@@ -208,11 +211,12 @@ private func fetchArguments(pid: pid_t) -> [String]? {
         while offset < bufferSize, buffer[offset] != 0 {
             offset += 1
         }
-        // String(decoding:as:) handles ArraySlice and substitutes U+FFFD for
-        // any non-UTF-8 bytes. argv occasionally carries binary payloads
-        // (rare, but a single garbled byte should not drop the whole arg).
-        let s = String(decoding: buffer[start..<offset], as: UTF8.self)
-        args.append(s)
+        // Lossy decode is intentional here: argv occasionally carries binary
+        // payloads (rare, but a single garbled byte should not drop the whole
+        // arg). The failable String(bytes:encoding:) form would discard the
+        // entire argument on any invalid UTF-8.
+        // swiftlint:disable:next optional_data_string_conversion
+        args.append(String(decoding: buffer[start..<offset], as: UTF8.self))
         offset += 1  // step past the null terminator
     }
 
