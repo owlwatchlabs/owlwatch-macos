@@ -11,35 +11,44 @@ struct PSCommand: ParsableCommand {
             the caller cannot inspect — other users' processes when running \
             unprivileged, system-protected processes — are silently omitted.
 
-            Columns:
-              PID   process id
-              PPID  parent process id
-              USER  numeric user id
-              NAME  process name from libproc's pbi_name (falls back to pbi_comm)
+            Default output is a fixed-width table with PID, PPID, USER, NAME.
+            Use --tree to render a pstree-style hierarchy instead. Use --args
+            to include each process's `argv` (note: argv is unavailable for
+            other-user / SIP-protected processes when running unprivileged).
             """
     )
 
-    @Flag(name: .shortAndLong, help: "Include the executable path as a trailing column.")
+    @Flag(name: .shortAndLong, help: "Include the executable path as a column (table mode only).")
     var paths: Bool = false
 
+    @Flag(name: .shortAndLong, help: "Include each process's argv (argv[0] is the invocation name).")
+    var args: Bool = false
+
+    @Flag(name: .shortAndLong, help: "Render as a pstree-style hierarchy.")
+    var tree: Bool = false
+
     func run() throws {
-        let processes = try OWProcess.all().sorted { $0.pid < $1.pid }
-        let table = renderTable(processes, includePath: paths)
-        FileHandle.standardOutput.write(Data((table + "\n").utf8))
+        let processes = try OWProcess.all(includeArguments: args)
+        let output = tree
+            ? renderTree(processes, includeArgs: args)
+            : renderTable(processes.sorted { $0.pid < $1.pid }, includePath: paths, includeArgs: args)
+        FileHandle.standardOutput.write(Data((output + "\n").utf8))
     }
 }
 
+// MARK: - Table rendering
+
 @inline(__always)
-private func renderTable(_ processes: [RunningProcess], includePath: Bool) -> String {
-    var rows: [[String]] = [["PID", "PPID", "USER", "NAME"]]
-    if includePath {
-        rows[0].append("PATH")
-    }
+private func renderTable(_ processes: [RunningProcess], includePath: Bool, includeArgs: Bool) -> String {
+    var header = ["PID", "PPID", "USER", "NAME"]
+    if includePath { header.append("PATH") }
+    if includeArgs { header.append("ARGS") }
+
+    var rows: [[String]] = [header]
     for proc in processes {
         var row = [String(proc.pid), String(proc.parentPid), String(proc.userId), proc.name]
-        if includePath {
-            row.append(proc.path ?? "")
-        }
+        if includePath { row.append(proc.path ?? "") }
+        if includeArgs { row.append(joinArgsForTable(proc.arguments)) }
         rows.append(row)
     }
 
@@ -55,4 +64,139 @@ private func renderTable(_ processes: [RunningProcess], includePath: Bool) -> St
                 : cell.padding(toLength: widths[idx], withPad: " ", startingAt: 0)
         }.joined(separator: "  ")
     }.joined(separator: "\n")
+}
+
+private func joinArgsForTable(_ arguments: [String]?) -> String {
+    guard let arguments, !arguments.isEmpty else { return "" }
+    // Drop argv[0] (usually the executable path or invocation name —
+    // already represented by NAME / PATH columns) for the table view.
+    let tail = arguments.dropFirst()
+    return tail.isEmpty ? "" : tail.joined(separator: " ")
+}
+
+// MARK: - Tree rendering
+
+/// Renders processes as a pstree-style hierarchy.
+///
+/// Children are grouped by `parentPid` and sorted by PID for stable output.
+/// Roots are processes whose `parentPid` is not represented in the snapshot.
+///
+/// On unprivileged macOS callers, `proc_pidinfo` refuses to return metadata
+/// for many system processes (launchd at PID 1, root-owned daemons). The
+/// renderer groups visible children of an invisible parent under a synthetic
+/// placeholder line so the tree's shape stays meaningful instead of degenerating
+/// into a flat list of "roots." Running with `sudo` collapses the placeholders
+/// because more parents become visible.
+///
+/// The tree walk has a hard depth cap of 64 to guard against pathological
+/// cycles (which should not occur with a consistent kernel snapshot, but
+/// the cap is cheap insurance).
+private func renderTree(_ processes: [RunningProcess], includeArgs: Bool) -> String {
+    let childrenByParent = sortedChildren(by: \.parentPid, of: processes)
+    let orphansByParent = sortedOrphans(of: processes)
+
+    var renderer = TreeRenderer(childrenByParent: childrenByParent, includeArgs: includeArgs)
+    for parentPid in orphansByParent.keys.sorted() {
+        renderer.appendGroup(parentPid: parentPid, group: orphansByParent[parentPid] ?? [])
+    }
+    return renderer.lines.joined(separator: "\n")
+}
+
+private func sortedChildren(
+    by parentKey: KeyPath<RunningProcess, pid_t>,
+    of processes: [RunningProcess]
+) -> [pid_t: [RunningProcess]] {
+    var map: [pid_t: [RunningProcess]] = [:]
+    for proc in processes {
+        map[proc[keyPath: parentKey], default: []].append(proc)
+    }
+    for ppid in map.keys {
+        map[ppid]?.sort { $0.pid < $1.pid }
+    }
+    return map
+}
+
+/// Builds the `parentPid -> [child]` map *only* for processes whose parent is
+/// not represented in the snapshot. Each such group renders under a synthetic
+/// `[unavailable](<ppid>)` header so the tree stays readable even when many
+/// real parents are hidden by `proc_pidinfo` permissions.
+private func sortedOrphans(of processes: [RunningProcess]) -> [pid_t: [RunningProcess]] {
+    let pidSet = Set(processes.map { $0.pid })
+    var map: [pid_t: [RunningProcess]] = [:]
+    for proc in processes where !pidSet.contains(proc.parentPid) {
+        map[proc.parentPid, default: []].append(proc)
+    }
+    for ppid in map.keys {
+        map[ppid]?.sort { $0.pid < $1.pid }
+    }
+    return map
+}
+
+private let treeDepthLimit = 64
+
+/// Stateful tree walker. The struct bundles the invariants (children map,
+/// `includeArgs`) and the walk state (`visited`, `lines`) so individual
+/// node-rendering methods stay small and have few parameters.
+private struct TreeRenderer {
+    let childrenByParent: [pid_t: [RunningProcess]]
+    let includeArgs: Bool
+    var visited: Set<pid_t> = []
+    var lines: [String] = []
+
+    mutating func appendGroup(parentPid: pid_t, group: [RunningProcess]) {
+        if parentPid == 0 {
+            // PID 0 is the kernel scheduler; processes whose parent is the
+            // kernel itself (in practice only launchd, when visible) render
+            // as plain roots.
+            for (index, proc) in group.enumerated() {
+                appendNode(proc, prefix: "", isLast: index == group.count - 1, isRoot: true, depth: 0)
+            }
+        } else {
+            lines.append("[unavailable](\(parentPid))")
+            for (index, child) in group.enumerated() {
+                appendNode(child, prefix: "", isLast: index == group.count - 1, isRoot: false, depth: 1)
+            }
+        }
+    }
+
+    mutating func appendNode(
+        _ proc: RunningProcess,
+        prefix: String,
+        isLast: Bool,
+        isRoot: Bool,
+        depth: Int
+    ) {
+        guard !visited.contains(proc.pid), depth <= treeDepthLimit else { return }
+        visited.insert(proc.pid)
+        lines.append(formatNodeLine(proc, prefix: prefix, isRoot: isRoot, isLast: isLast))
+
+        let children = childrenByParent[proc.pid] ?? []
+        let nextPrefix = isRoot ? "" : (prefix + (isLast ? "    " : "│   "))
+        for (index, child) in children.enumerated() {
+            appendNode(
+                child,
+                prefix: nextPrefix,
+                isLast: index == children.count - 1,
+                isRoot: false,
+                depth: depth + 1
+            )
+        }
+    }
+
+    private func formatNodeLine(
+        _ proc: RunningProcess,
+        prefix: String,
+        isRoot: Bool,
+        isLast: Bool
+    ) -> String {
+        let connector = isRoot ? "" : (isLast ? "└── " : "├── ")
+        var line = "\(prefix)\(connector)\(proc.name)(\(proc.pid))"
+        if includeArgs, let arguments = proc.arguments, arguments.count > 1 {
+            let tail = arguments.dropFirst().joined(separator: " ")
+            if !tail.isEmpty {
+                line += " \(tail)"
+            }
+        }
+        return line
+    }
 }

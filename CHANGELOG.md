@@ -18,6 +18,9 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 - **`owlwatch ps`** — first user-visible command. Prints the current process table as a fixed-width table (PID, PPID, USER, NAME columns; `--paths` / `-p` adds the executable path). Errors-on-individual-PID are silently skipped so the snapshot reflects the caller's view of the table rather than failing the whole command.
 - **`owlwatch --version`** — prints `0.1.0-m0`. Version string is currently a hardcoded literal; M1 milestone-close lands a build-time derivation.
 - **ADR-0003** at `docs/adr/0003-rename-to-owlwatch.md` documenting the rename, superseding the bundle-identifier subsection of ADR-0001.
+- **M1.2: `owlwatch ps --tree`** — `pstree`-style hierarchy rendering. Children grouped under their `parentPid`; processes whose parent is invisible to the caller (root-owned daemons that `proc_pidinfo` refuses on unprivileged runs) render under a synthetic `[unavailable](<ppid>)` placeholder so the tree's shape stays readable instead of collapsing to a flat list of roots.
+- **M1.2: `owlwatch ps --args`** — includes each process's `argv` in the output. Table mode appends an `ARGS` column (containing `argv[1..]`); tree mode appends the arguments inline on each node's line. Captured via `sysctl(KERN_PROCARGS2)`.
+- **M1.2: `OWProcess.RunningProcess.arguments: [String]?`** — public surface for the captured `argv`. `nil` when the snapshot was taken without `includeArguments`; empty array when capture was requested but the process is unreachable (other-user / SIP-protected). `OWProcess.all(includeArguments:)` and `OWProcess.snapshot(pid:includeArguments:)` gain the optional parameter (default `false`).
 
 ## [v0.1.0-m0] — 2026-05-20
 
