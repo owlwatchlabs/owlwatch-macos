@@ -26,9 +26,17 @@ public enum OWBinary {
     /// more Mach-O slices (one for a thin binary, several for a Universal
     /// binary).
     ///
+    /// - Parameter includeSymbols: when `true`, also parse each slice's
+    ///   `LC_SYMTAB` symbol table and populate `Slice.symbols`. Defaults
+    ///   to `false`: symbol tables can run into the hundreds of thousands
+    ///   of entries on large binaries (Xcode, Chrome) and most callers
+    ///   only want load-command data. When the slice has no `LC_SYMTAB`
+    ///   (stripped binaries, some kernel extensions), `Slice.symbols` is
+    ///   `[]` rather than `nil`.
+    ///
     /// - Throws: `OWBinaryError` on read failure, unrecognized format, or
     ///   malformed header / load-command data.
-    public static func parse(at url: URL) throws -> BinaryFile {
+    public static func parse(at url: URL, includeSymbols: Bool = false) throws -> BinaryFile {
         let data: Data
         do {
             data = try Data(contentsOf: url, options: [.mappedIfSafe])
@@ -36,7 +44,7 @@ public enum OWBinary {
             throw OWBinaryError.unreadable(url: url, underlying: error.localizedDescription)
         }
         return try data.withUnsafeBytes { rawBytes -> BinaryFile in
-            var parser = Parser(bytes: rawBytes, url: url)
+            var parser = Parser(bytes: rawBytes, url: url, includeSymbols: includeSymbols)
             return try parser.parseTopLevel()
         }
     }

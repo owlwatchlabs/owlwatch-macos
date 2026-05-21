@@ -22,6 +22,20 @@ private let lcLoadUpwardDylib: UInt32 = 0x8000_0023
 private let lcRPath: UInt32 = 0x8000_001C
 private let lcUUID: UInt32 = 0x0000_001B
 private let lcMain: UInt32 = 0x8000_0028
+private let lcSymtab: UInt32 = 0x0000_0002
+
+// MARK: - nlist n_type bitfield (from <mach-o/nlist.h>)
+
+private let nStab: UInt8 = 0xE0   // debugging entry — bits 5..7 set
+private let nPExt: UInt8 = 0x10   // private external
+private let nType: UInt8 = 0x0E   // type-field mask
+private let nExt: UInt8 = 0x01    // external
+
+private let nUndef: UInt8 = 0x00
+private let nAbsolute: UInt8 = 0x02
+private let nIndirect: UInt8 = 0x0A
+private let nPrebound: UInt8 = 0x0C
+private let nSection: UInt8 = 0x0E
 
 private let dylibCommandKinds: Set<UInt32> = [
     lcLoadDylib, lcIDDylib, lcLoadWeakDylib, lcReexportDylib, lcLazyLoadDylib, lcLoadUpwardDylib
@@ -33,6 +47,7 @@ private let dylibCommandKinds: Set<UInt32> = [
 struct Parser {
     let bytes: UnsafeRawBufferPointer
     let url: URL
+    let includeSymbols: Bool
 
     mutating func parseTopLevel() throws -> BinaryFile {
         guard bytes.count >= 4 else {
@@ -127,19 +142,50 @@ struct Parser {
             )
         }
 
-        let loadCommands = try parseLoadCommands(
+        let (loadCommands, symtabInfo) = try parseLoadCommands(
             start: lcStart,
             end: lcEnd,
             count: Int(ncmds),
             littleEndian: isLittleEndian
         )
 
+        let symbols: [Symbol]?
+        if includeSymbols {
+            if let info = symtabInfo {
+                symbols = try parseSymbols(
+                    sliceBase: base,
+                    sliceSize: size,
+                    symtab: info,
+                    is64Bit: is64Bit,
+                    littleEndian: isLittleEndian
+                )
+            } else {
+                // includeSymbols requested but no LC_SYMTAB in this slice
+                // (stripped binary, kernel extension, etc.). Empty array
+                // distinguishes "requested but unavailable" from "not requested".
+                symbols = []
+            }
+        } else {
+            symbols = nil
+        }
+
         return Slice(
             architecture: architecture,
             fileType: fileType,
             flags: flags,
-            loadCommands: loadCommands
+            loadCommands: loadCommands,
+            symbols: symbols
         )
+    }
+
+    /// Compact record of an `LC_SYMTAB` load command's four offset/size fields.
+    /// Captured during load-command iteration so the slice parser can read the
+    /// actual symbol table after the iteration completes.
+    private struct SymtabInfo {
+        let symoff: UInt32
+        let nsyms: UInt32
+        let stroff: UInt32
+        let strsize: UInt32
     }
 
     private func classifyMachOMagic(_ magic: UInt32) throws -> (is64Bit: Bool, littleEndian: Bool) {
@@ -160,9 +206,10 @@ struct Parser {
         end: Int,
         count: Int,
         littleEndian: Bool
-    ) throws -> [LoadCommand] {
+    ) throws -> (commands: [LoadCommand], symtab: SymtabInfo?) {
         var cursor = start
         var result: [LoadCommand] = []
+        var symtab: SymtabInfo? = nil
         result.reserveCapacity(count)
 
         for index in 0..<count {
@@ -179,6 +226,18 @@ struct Parser {
                 )
             }
 
+            // LC_SYMTAB is captured for later symbol-table parsing but doesn't
+            // get a dedicated LoadCommand variant — the actual symbols are
+            // exposed via `Slice.symbols` instead.
+            if cmd == lcSymtab, Int(cmdsize) >= 24, symtab == nil {
+                symtab = SymtabInfo(
+                    symoff: readUInt32(at: cursor + 8, littleEndian: littleEndian),
+                    nsyms: readUInt32(at: cursor + 12, littleEndian: littleEndian),
+                    stroff: readUInt32(at: cursor + 16, littleEndian: littleEndian),
+                    strsize: readUInt32(at: cursor + 20, littleEndian: littleEndian)
+                )
+            }
+
             result.append(parseSingleLoadCommand(
                 cmd: cmd,
                 start: cursor,
@@ -187,7 +246,7 @@ struct Parser {
             ))
             cursor += Int(cmdsize)
         }
-        return result
+        return (result, symtab)
     }
 
     private func parseSingleLoadCommand(
@@ -285,7 +344,92 @@ struct Parser {
         return .main(entryOffset: entryOffset, stackSize: stackSize)
     }
 
+    // MARK: Symbol table (LC_SYMTAB → nlist[/_64] + string table)
+
+    private func parseSymbols(
+        sliceBase: Int,
+        sliceSize: Int,
+        symtab: SymtabInfo,
+        is64Bit: Bool,
+        littleEndian: Bool
+    ) throws -> [Symbol] {
+        // symoff and stroff in LC_SYMTAB are file offsets RELATIVE TO THE
+        // START OF THE SLICE, not the start of the Universal binary.
+        let entryStride = is64Bit ? 16 : 12  // sizeof(nlist_64) vs sizeof(nlist)
+        let symStart = sliceBase + Int(symtab.symoff)
+        let symEnd = symStart + Int(symtab.nsyms) * entryStride
+        let strStart = sliceBase + Int(symtab.stroff)
+        let strEnd = strStart + Int(symtab.strsize)
+
+        guard symEnd <= sliceBase + sliceSize, strEnd <= sliceBase + sliceSize,
+              symEnd <= bytes.count, strEnd <= bytes.count else {
+            throw OWBinaryError.malformed(
+                reason: "LC_SYMTAB symoff+nsyms or stroff+strsize extends past slice"
+            )
+        }
+
+        var result: [Symbol] = []
+        result.reserveCapacity(Int(symtab.nsyms))
+        for index in 0..<Int(symtab.nsyms) {
+            let entryOffset = symStart + index * entryStride
+            let nstrx = readUInt32(at: entryOffset, littleEndian: littleEndian)
+            let typeByte = bytes[entryOffset + 4]
+            let sectionIndex = bytes[entryOffset + 5]
+            let descriptionBits: UInt16
+            let value: UInt64
+            if is64Bit {
+                descriptionBits = readUInt16(at: entryOffset + 6, littleEndian: littleEndian)
+                value = readUInt64(at: entryOffset + 8, littleEndian: littleEndian)
+            } else {
+                // 32-bit nlist: n_desc is int16, n_value is uint32.
+                descriptionBits = readUInt16(at: entryOffset + 6, littleEndian: littleEndian)
+                value = UInt64(readUInt32(at: entryOffset + 8, littleEndian: littleEndian))
+            }
+
+            let name = readSymbolName(strStart: strStart, strEnd: strEnd, offset: Int(nstrx))
+            let kind = classifySymbol(typeByte: typeByte)
+            let isExternal = (typeByte & nExt) != 0
+            let isPrivateExternal = (typeByte & nPExt) != 0
+
+            result.append(Symbol(
+                name: name,
+                kind: kind,
+                value: value,
+                isExternal: isExternal,
+                isPrivateExternal: isPrivateExternal,
+                sectionIndex: sectionIndex,
+                descriptionBits: descriptionBits
+            ))
+        }
+        return result
+    }
+
+    private func classifySymbol(typeByte: UInt8) -> Symbol.Kind {
+        if (typeByte & nStab) != 0 {
+            return .stab(rawType: typeByte)
+        }
+        switch typeByte & nType {
+        case nUndef: return .undefined
+        case nAbsolute: return .absolute
+        case nSection: return .defined
+        case nPrebound: return .prebound
+        case nIndirect: return .indirect
+        default: return .undefined
+        }
+    }
+
+    private func readSymbolName(strStart: Int, strEnd: Int, offset: Int) -> String {
+        guard offset >= 0, strStart + offset < strEnd else { return "" }
+        let nameStart = strStart + offset
+        return readNullTerminatedString(start: nameStart, limit: strEnd)
+    }
+
     // MARK: Byte readers
+
+    private func readUInt16(at offset: Int, littleEndian: Bool) -> UInt16 {
+        let raw = bytes.load(fromByteOffset: offset, as: UInt16.self)
+        return littleEndian ? raw : raw.byteSwapped
+    }
 
     private func readUInt32(at offset: Int, littleEndian: Bool) -> UInt32 {
         // `bytes.load(fromByteOffset:as:)` reads a UInt32 in native byte order.

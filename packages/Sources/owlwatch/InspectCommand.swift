@@ -30,9 +30,15 @@ struct InspectCommand: ParsableCommand {
     @Flag(name: .long, help: "Print the UUID and entry point per slice (LC_UUID + LC_MAIN).")
     var identity: Bool = false
 
+    @Flag(name: .shortAndLong, help: "List every symbol in nm-style format (LC_SYMTAB).")
+    var symbols: Bool = false
+
+    @Flag(name: .long, help: "With --symbols, restrict output to external symbols (imports + exports).")
+    var externalOnly: Bool = false
+
     func run() throws {
         let url = URL(fileURLWithPath: path)
-        let binary = try OWBinary.parse(at: url)
+        let binary = try OWBinary.parse(at: url, includeSymbols: symbols)
 
         var lines: [String] = []
         lines.append("File:   \(url.path)")
@@ -56,6 +62,9 @@ struct InspectCommand: ParsableCommand {
             }
             if libs {
                 appendDylibs(for: slice, into: &lines)
+            }
+            if symbols {
+                appendSymbols(for: slice, externalOnly: externalOnly, into: &lines)
             }
         }
 
@@ -85,6 +94,26 @@ private func appendRPaths(for slice: Slice, into lines: inout [String]) {
     lines.append("  RPATHs (\(entries.count)):")
     for entry in entries {
         lines.append("    \(entry)")
+    }
+}
+
+private func appendSymbols(for slice: Slice, externalOnly: Bool, into lines: inout [String]) {
+    guard let allSymbols = slice.symbols else { return }
+    let filtered = externalOnly ? allSymbols.filter { $0.isExternal } : allSymbols
+    let label = externalOnly ? "external symbols" : "symbols"
+    lines.append("  \(label.capitalized) (\(filtered.count) of \(allSymbols.count)):")
+    if filtered.isEmpty { return }
+    for symbol in filtered {
+        // nm-style: "<code> <value>  <name>"
+        // Undefined symbols have no address; render value as blanks.
+        let valueColumn: String
+        if case .undefined = symbol.kind {
+            valueColumn = "                "
+        } else {
+            valueColumn = String(format: "%016llx", symbol.value)
+        }
+        let displayName = symbol.name.isEmpty ? "(unnamed)" : symbol.name
+        lines.append("    \(symbol.nmCode) \(valueColumn)  \(displayName)")
     }
 }
 
