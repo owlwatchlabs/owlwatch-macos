@@ -6,7 +6,13 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 
 ## [Unreleased]
 
-_No entries yet. M6 work (`OWLog` — `os_log` ingestion and structured log event filters) lands here._
+### Added
+
+- **`OWLog` module (M6.1)** — public surface: `OWLog.query(_ query: LogQuery = LogQuery()) throws -> [LogEntry]`. Backed by `/usr/bin/log show --style ndjson` and parsing the NDJSON output, since the alternative (`OSLogStore`) requires the private `com.apple.logging.local-store` entitlement to read the system store. Value types: `LogEntry` (`timestamp`, `processName`, `processPath`, `processID`, `userID`, `threadID`, `subsystem`, `category`, `level`, `eventType`, `message`, `activityID`); `LogLevel` (`.default` / `.info` / `.debug` / `.error` / `.fault`); `LogEventType` (`.log` / `.state` / `.userAction` / `.signpost` / `.trace` / `.other(rawValue:)` for forward compat). The parser is intentionally tolerant: blank lines and non-JSON banner output from `log show` are skipped, records with unparseable timestamps are dropped, and `truncatingIfNeeded` is used on `processID` / `userID` so sentinel values like `4294967294` (UID -2 "nobody") don't crash the conversion.
+- **`LogQuery` value type** with shorthand filter fields (`subsystem`, `category`, `process`, `messageContains`) that compose via `AND` plus a free-form `predicate` field appended to the same chain. `since` / `until` map to `log show --start` / `--end`; `limit` maps to `--last <N>` (default 200) and is suppressed when an explicit time range is set. `includeInfo` / `includeDebug` opt into the corresponding levels (`Error` / `Fault` are always included regardless).
+- **`owlwatch logs` (M6.1)** — tenth subcommand. Prints `TIMESTAMP LEVEL PROCESS SUBSYSTEM CATEGORY MESSAGE` rows for each matching entry. Flags: `--subsystem`, `--category`, `--process`, `--message-contains`, `--predicate` (raw NSPredicate), `--since`, `--until`, `--lookback <seconds>` (shorthand for `--since (now - N)`), `--last <N>`, `--info`, `--debug`, `--errors-only`. Time-based filtering accepts ISO-8601 and the simpler `"YYYY-MM-DD HH:MM:SS"` form. `OWLogError.logShowFailed(exitCode:stderr:)` is the only error path — empty result is *not* an error.
+
+_M6.2 (typed event extraction for high-value subsystems like TCC / SecurityServer / LaunchServices), M6.3 (`--follow` mode via `log stream`), and M6-close follow before the v0.7.0-m6 tag._
 
 ## [v0.6.0-m5] — 2026-05-22
 
