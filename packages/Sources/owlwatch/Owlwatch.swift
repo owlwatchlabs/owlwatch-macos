@@ -9,7 +9,7 @@ struct Owlwatch: ParsableCommand {
             Inspect and interact with Owlwatch's endpoint security surfaces.
             See https://github.com/owlwatchlabs/owlwatch-macos for the full surface.
             """,
-        version: "0.4.0-m3",
+        version: "0.5.0-m4",
         subcommands: [PSCommand.self, InspectCommand.self, VerifyCommand.self, NetstatCommand.self]
     )
 }
