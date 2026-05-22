@@ -10,6 +10,6 @@ struct Owlwatch: ParsableCommand {
             See https://github.com/owlwatchlabs/owlwatch-macos for the full surface.
             """,
         version: "0.3.0-m2",
-        subcommands: [PSCommand.self, InspectCommand.self]
+        subcommands: [PSCommand.self, InspectCommand.self, VerifyCommand.self]
     )
 }

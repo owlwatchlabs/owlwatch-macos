@@ -6,7 +6,12 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 
 ## [Unreleased]
 
-_No entries yet. M3 work (`OWCodeSigning` — code-signing inspection: signature validity, Team ID, designated requirement, notarization status, hardened-runtime flags, entitlements) lands here._
+### Added
+
+- **`OWCodeSigning` module (M3.1)** — public surface: `OWCodeSigning.inspect(at: URL) throws -> CodeSignature`. Value types: `CodeSignature` (`url`, `isSigned`, `isValid`, `signatureType`, `identifier`, `teamIdentifier`, `cdHash` + `cdHashHex`, `authorities`, `flags`, `format`); `SignatureType` enum (`.unsigned` / `.adhoc` / `.developerID` / `.appleDeveloper` / `.appStore` / `.apple` / `.unknown`); `SignatureFlags` `OptionSet` over `SecCodeSignatureFlags` bits (`host`, `adhoc`, `forceHard`, `forceKill`, `forceExpiration`, `restrict`, `enforcement`, `libraryValidation`, `runtime`, `linkerSigned`) with stable `symbolicForm` rendering; `OWCodeSigningError` (`.unreadable` / `.malformedSignature`). Backed by `SecStaticCodeCreateWithPath` + `SecCodeCopySigningInformation` + `SecStaticCodeCheckValidity`. Unsigned inputs return a populated `CodeSignature` with `isSigned: false` rather than throwing.
+- **`owlwatch verify <path>` (M3.1)** — third subcommand. Prints signature presence, structural validity, signing-identity classification, signing identifier, Team ID, CDHash (hex), certificate-chain Common Names (leaf first), `SecCodeSignatureFlags` bits, and `kSecCodeInfoFormat`. Accepts Mach-O binaries, `.app` bundles, frameworks — anything `SecStaticCodeCreateWithPath` recognizes.
+
+_M3.2 (designated requirement + notarization status + hardened-runtime details) and M3.3 (entitlements parsing) follow under this Unreleased section before the M3-close cut._
 
 ## [v0.3.0-m2] — 2026-05-21
 
