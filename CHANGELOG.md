@@ -6,7 +6,12 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 
 ## [Unreleased]
 
-_No entries yet. M4 work (`OWNetwork` — host network state: socket and connection snapshots with process attribution) lands here._
+### Added
+
+- **`OWNetwork` module (M4.1)** — public surface: `OWNetwork.snapshot() throws -> [Connection]` and `OWNetwork.snapshot(pid:) throws -> [Connection]`. Backed by `proc_pidinfo(PROC_PIDLISTFDS)` + `proc_pidfdinfo(PROC_PIDFDSOCKETINFO)` — same data path as `lsof -i`, same posture as `owlwatch ps`. Value types: `Connection` (`pid`, `fd`, `family`, `protocol`, `localAddress`, `localPort`, `remoteAddress`, `remotePort`, `tcpState`, computed `isListener`); `AddressFamily` (`.ipv4` / `.ipv6`); `TransportProtocol` (`.tcp` / `.udp`); `TCPState` (11 cases mirroring `TCPS_*` from `<netinet/tcp_fsm.h>`, with `displayName` for human-readable forms like `"ESTABLISHED"` / `"FIN_WAIT_1"`); `OWNetworkError.unreachable(pid:errno:)`. Unprivileged callers see only their own processes' sockets; root sees everything. M4.1 covers TCP and UDP over IPv4 / IPv6; Unix-domain sockets land in M4.2.
+- **`owlwatch netstat` (M4.1)** — fourth subcommand after `ps` / `inspect` / `verify`. Prints `PROTO LOCAL REMOTE STATE PID PROCESS` rows for every open IP socket. Flags: `--listen` / `-l` (only TCP `LISTEN` and bound UDP), `--tcp` / `-t`, `--udp` / `-u`, `--ipv4`, `--ipv6`, `--port <PORT>` (matches local *or* remote), `--pid <PID>` (filter to one process). IPv6 addresses render with `[...]` brackets. Wildcard endpoints render as `*:*`.
+
+_M4.2 (Unix-domain sockets + protocol stats) follows under this Unreleased section before the M4-close cut._
 
 ## [v0.4.0-m3] — 2026-05-22
 

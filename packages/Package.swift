@@ -50,6 +50,7 @@ let package = Package(
                 dependencies: [
                     .byName(name: "OWBinary"),
                     .byName(name: "OWCodeSigning"),
+                    .byName(name: "OWNetwork"),
                     .byName(name: "OWProcess"),
                     .product(name: "ArgumentParser", package: "swift-argument-parser")
                 ]
