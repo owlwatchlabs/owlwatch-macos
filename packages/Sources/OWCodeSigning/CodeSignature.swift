@@ -64,6 +64,35 @@ public struct CodeSignature: Sendable, Equatable {
     /// (arm64)"`. `nil` if the Security framework didn't report one.
     public let format: String?
 
+    /// Text form of the designated requirement — the predicate code-signing
+    /// uses to identify "this" binary across versions and updates. Output
+    /// of `SecRequirementCopyString` against the requirement returned by
+    /// `SecCodeCopyDesignatedRequirement`. Example:
+    /// `identifier "com.apple.ls" and anchor apple`. `nil` for unsigned
+    /// inputs or when the binary has no embedded requirement.
+    public let designatedRequirement: String?
+
+    /// The embedded notarization ticket bytes (`stapled-ticket` from
+    /// `SecCodeCopySigningInformation` with `kSecCSContentInformation`),
+    /// `nil` when no ticket is stapled.
+    ///
+    /// **`nil` does NOT mean "not notarized."** A binary can be notarized
+    /// online (verified against Apple's ticket service by Gatekeeper) but
+    /// shipped without a stapled ticket — VS Code is the canonical
+    /// example. To distinguish "notarized but unstapled" from "actually
+    /// not notarized" requires an online check (e.g. `SecAssessment`,
+    /// which lands in a later M3.x or M9). For the offline static
+    /// inspection M3.2 ships, this field answers "does this bundle
+    /// carry its own proof?" — which is what `stapler validate` checks.
+    public let stapledNotarizationTicket: Data?
+
+    /// Hardened-runtime version "X.Y.Z" the binary opts into, decoded from
+    /// the `runtime-version` `SecCodeCopySigningInformation` key.
+    /// Populated only when ``SignatureFlags/runtime`` is set. The version
+    /// corresponds to the SDK the binary was built against — newer
+    /// versions enable stricter library-load restrictions.
+    public let hardenedRuntimeVersion: String?
+
     public init(
         url: URL,
         isSigned: Bool,
@@ -74,7 +103,10 @@ public struct CodeSignature: Sendable, Equatable {
         cdHash: Data?,
         authorities: [String],
         flags: SignatureFlags,
-        format: String?
+        format: String?,
+        designatedRequirement: String? = nil,
+        stapledNotarizationTicket: Data? = nil,
+        hardenedRuntimeVersion: String? = nil
     ) {
         self.url = url
         self.isSigned = isSigned
@@ -86,6 +118,9 @@ public struct CodeSignature: Sendable, Equatable {
         self.authorities = authorities
         self.flags = flags
         self.format = format
+        self.designatedRequirement = designatedRequirement
+        self.stapledNotarizationTicket = stapledNotarizationTicket
+        self.hardenedRuntimeVersion = hardenedRuntimeVersion
     }
 
     /// Lowercase hex form of ``cdHash`` (e.g. `"1205ca11b1c3..."`), or
@@ -93,6 +128,20 @@ public struct CodeSignature: Sendable, Equatable {
     public var cdHashHex: String? {
         guard let data = cdHash else { return nil }
         return data.map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// `true` when the binary has a stapled notarization ticket. Convenience
+    /// for `stapledNotarizationTicket != nil`. See
+    /// ``stapledNotarizationTicket`` for the "online-notarized but not
+    /// stapled" caveat.
+    public var isStapledForNotarization: Bool {
+        stapledNotarizationTicket != nil
+    }
+
+    /// `true` when the hardened-runtime flag is set. Convenience for
+    /// `flags.contains(.runtime)`.
+    public var hasHardenedRuntime: Bool {
+        flags.contains(.runtime)
     }
 }
 

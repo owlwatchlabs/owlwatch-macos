@@ -58,6 +58,18 @@ struct VerifyCommand: ParsableCommand {
         let flagText = sig.flags.symbolicForm
         lines.append("Flags:      \(flagText.isEmpty ? "(none)" : flagText)")
 
+        if let runtimeVersion = sig.hardenedRuntimeVersion {
+            lines.append("Runtime:    hardened, v\(runtimeVersion)")
+        } else if sig.hasHardenedRuntime {
+            lines.append("Runtime:    hardened (version unreported)")
+        }
+
+        lines.append("Notarized:  \(sig.isStapledForNotarization ? "stapled" : "no embedded ticket")")
+
+        if let designatedRequirement = sig.designatedRequirement {
+            lines.append("DR:         \(designatedRequirement)")
+        }
+
         print(lines.joined(separator: "\n"))
     }
 
