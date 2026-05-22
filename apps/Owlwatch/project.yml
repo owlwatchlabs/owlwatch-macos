@@ -37,10 +37,12 @@ targets:
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSHumanReadableCopyright: "Copyright © 2026 Owlwatch contributors."
+    # Entitlements are sourced verbatim from the file; project.yml is no
+    # longer responsible for setting them. The intentional configuration
+    # (no sandbox, no extra entitlements) is documented in the .entitlements
+    # XML.
     entitlements:
       path: Sources/Owlwatch.entitlements
-      properties:
-        com.apple.security.app-sandbox: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.owlwatchlabs.owlwatch
@@ -49,3 +51,5 @@ targets:
     dependencies:
       - package: Owlwatch
         product: OWCore
+      - package: Owlwatch
+        product: OWPersistence
