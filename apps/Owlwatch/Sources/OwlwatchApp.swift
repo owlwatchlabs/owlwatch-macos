@@ -32,6 +32,12 @@ private struct OwlwatchMenuBarContent: View {
             .font(.headline)
         Divider()
         Button("Open Persistence View…") {
+            // LSUIElement apps do not activate when a window is opened —
+            // the new window appears behind the currently-frontmost app
+            // unless we explicitly activate ourselves. NSApp.activate()
+            // (the no-arg form available on macOS 14+) is what
+            // SwiftUI's default Dock-icon apps do under the hood.
+            NSApp.activate()
             openWindow(id: OwlwatchApp.persistenceWindowID)
         }
         .keyboardShortcut("p", modifiers: [.command, .shift])
