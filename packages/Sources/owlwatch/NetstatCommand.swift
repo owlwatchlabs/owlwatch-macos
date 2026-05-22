@@ -39,6 +39,9 @@ struct NetstatCommand: ParsableCommand {
     @Flag(name: .long, help: "Only show IPv6 sockets.")
     var ipv6: Bool = false
 
+    @Flag(name: .long, help: "Only show Unix-domain sockets (SOCK_STREAM and SOCK_DGRAM).")
+    var unix: Bool = false
+
     @Option(name: .long, help: "Filter by local or remote port.")
     var port: UInt16?
 
@@ -66,6 +69,7 @@ struct NetstatCommand: ParsableCommand {
             if udp && connection.protocol != .udp { return false }
             if ipv4 && connection.family != .ipv4 { return false }
             if ipv6 && connection.family != .ipv6 { return false }
+            if unix && connection.family != .unix { return false }
             if let port {
                 if connection.localPort != port && connection.remotePort != port {
                     return false
@@ -101,14 +105,26 @@ struct NetstatCommand: ParsableCommand {
     }
 
     private func renderRow(_ connection: Connection, name: String) -> [String] {
-        let proto = "\(connection.protocol.rawValue)\(connection.family == .ipv4 ? "4" : "6")"
-        let localEndpoint = endpoint(address: connection.localAddress, port: connection.localPort)
-        let remoteEndpoint = endpoint(address: connection.remoteAddress, port: connection.remotePort)
+        let proto = renderProtocol(connection)
+        let localEndpoint = renderEndpoint(connection, address: connection.localAddress, port: connection.localPort)
+        let remoteEndpoint = renderEndpoint(connection, address: connection.remoteAddress, port: connection.remotePort)
         let state = connection.tcpState?.displayName ?? "-"
         return [proto, localEndpoint, remoteEndpoint, state, String(connection.pid), name]
     }
 
-    private func endpoint(address: String?, port: UInt16?) -> String {
+    private func renderProtocol(_ connection: Connection) -> String {
+        switch connection.family {
+        case .ipv4: return "\(connection.protocol.rawValue)4"
+        case .ipv6: return "\(connection.protocol.rawValue)6"
+        case .unix: return connection.protocol.rawValue  // "unix-stream" / "unix-dgram"
+        }
+    }
+
+    private func renderEndpoint(_ connection: Connection, address: String?, port: UInt16?) -> String {
+        if connection.family == .unix {
+            // For Unix sockets the "address" is a filesystem path; no port.
+            return address ?? "(anonymous)"
+        }
         let host: String
         if let address {
             host = address.contains(":") ? "[\(address)]" : address

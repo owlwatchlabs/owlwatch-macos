@@ -68,29 +68,47 @@ public struct Connection: Sendable, Equatable, Hashable {
         self.tcpState = tcpState
     }
 
-    /// `true` when this connection is listening for inbound traffic — i.e.
-    /// it's a TCP socket in the `LISTEN` state, or a UDP socket bound to a
-    /// local address without an active peer.
+    /// `true` when this connection is listening for inbound traffic.
+    ///
+    /// - TCP: socket is in the `LISTEN` state.
+    /// - UDP: socket is bound to a local address but has no active peer.
+    /// - Unix (stream or datagram): socket has a bound filesystem path but
+    ///   no connected peer. This matches the kernel's notion of a server
+    ///   socket for both stream (XPC service host) and datagram families.
     public var isListener: Bool {
         switch `protocol` {
         case .tcp:
             return tcpState == .listen
         case .udp:
             return localPort != nil && remoteAddress == nil
+        case .unixStream, .unixDatagram:
+            return localAddress != nil && remoteAddress == nil
         }
     }
 }
 
-/// Address family the socket uses. M4.1 surfaces IP families only.
+/// Address family the socket uses.
+///
+/// For ``unix`` sockets, ``Connection/localAddress`` carries the filesystem
+/// path the socket was bound to (e.g. `/var/run/com.apple.foo.sock`), not
+/// an IP. Anonymous Unix sockets (`socketpair(2)`-style) have `nil` for
+/// both `localAddress` and `remoteAddress`.
 public enum AddressFamily: String, Sendable, Equatable, Hashable, CaseIterable {
     case ipv4
     case ipv6
+    case unix
 }
 
-/// Transport protocol carried over the socket.
+/// Transport protocol / socket type carried over the socket.
+///
+/// IP sockets are ``tcp`` or ``udp``. Unix-domain sockets are
+/// ``unixStream`` (`SOCK_STREAM`, used by XPC and most system services) or
+/// ``unixDatagram`` (`SOCK_DGRAM`, rarer).
 public enum TransportProtocol: String, Sendable, Equatable, Hashable, CaseIterable {
     case tcp
     case udp
+    case unixStream = "unix-stream"
+    case unixDatagram = "unix-dgram"
 }
 
 /// TCP connection state.
