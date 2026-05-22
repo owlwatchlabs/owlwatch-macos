@@ -6,14 +6,46 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 
 ## [Unreleased]
 
+_No entries yet. M4 work (`OWNetwork` — host network state: socket and connection snapshots with process attribution) lands here._
+
+## [v0.4.0-m3] — 2026-05-22
+
+The code-signing milestone. Lands `OWCodeSigning` — the third non-stub `OW*` library — plus `owlwatch verify`, the third subcommand. Together they expose every static-inspectable property of a macOS code signature: signature presence and structural validity, signing-identity classification, Team ID and identifier, CDHash, certificate chain, `SecCodeSignatureFlags`, designated requirement, stapled notarization ticket, hardened-runtime version, and parsed entitlements. Wrapper over Apple's Security framework (`SecStaticCode*`) — Owlwatch inherits CMS / CDHash / authority extraction rather than re-implementing it, which gains correctness and forward-compatibility with new signing-format versions for free.
+
+This is the milestone every later detection rule branches on. M9's AUTH-event allow/block decisions, M10's persistence-monitor identity checks, and M13's detection rules all start from "what does the signature say?", which is exactly the question this milestone answers.
+
 ### Added
 
-- **`OWCodeSigning` module (M3.1)** — public surface: `OWCodeSigning.inspect(at: URL) throws -> CodeSignature`. Value types: `CodeSignature` (`url`, `isSigned`, `isValid`, `signatureType`, `identifier`, `teamIdentifier`, `cdHash` + `cdHashHex`, `authorities`, `flags`, `format`); `SignatureType` enum (`.unsigned` / `.adhoc` / `.developerID` / `.appleDeveloper` / `.appStore` / `.apple` / `.unknown`); `SignatureFlags` `OptionSet` over `SecCodeSignatureFlags` bits (`host`, `adhoc`, `forceHard`, `forceKill`, `forceExpiration`, `restrict`, `enforcement`, `libraryValidation`, `runtime`, `linkerSigned`) with stable `symbolicForm` rendering; `OWCodeSigningError` (`.unreadable` / `.malformedSignature`). Backed by `SecStaticCodeCreateWithPath` + `SecCodeCopySigningInformation` + `SecStaticCodeCheckValidity`. Unsigned inputs return a populated `CodeSignature` with `isSigned: false` rather than throwing.
-- **`owlwatch verify <path>` (M3.1)** — third subcommand. Prints signature presence, structural validity, signing-identity classification, signing identifier, Team ID, CDHash (hex), certificate-chain Common Names (leaf first), `SecCodeSignatureFlags` bits, and `kSecCodeInfoFormat`. Accepts Mach-O binaries, `.app` bundles, frameworks — anything `SecStaticCodeCreateWithPath` recognizes.
-- **Designated requirement, notarization, hardened-runtime version (M3.2)** — three new fields on `CodeSignature`. `designatedRequirement: String?` is the text form of the DR (output of `SecRequirementCopyString` against `SecCodeCopyDesignatedRequirement`, e.g. `identifier "com.apple.ls" and anchor apple`). `stapledNotarizationTicket: Data?` is the embedded notarization ticket bytes (`stapled-ticket` key from `SecCodeCopySigningInformation` with `kSecCSContentInformation`) — present only for stapled binaries; binaries that are notarized online but not stapled (e.g. VS Code) intentionally return `nil` here, since the offline static inspection has no way to distinguish them from never-notarized binaries. `hardenedRuntimeVersion: String?` is the decoded `runtime-version` field (encoded as packed major/minor/patch bytes; presented as `"X.Y.Z"`). Convenience computed properties: `isStapledForNotarization` and `hasHardenedRuntime`. `owlwatch verify` prints `Runtime:`, `Notarized:`, and `DR:` lines accordingly.
-- **Entitlements parsing (M3.3)** — new `entitlements: [String: Entitlement]?` field on `CodeSignature`, parsed from `entitlements-dict`. `Entitlement` is a `Sendable` enum with cases `.bool` / `.integer` / `.string` / `.data` / `.array` / `.dictionary` covering every plist value type entitlements can carry, plus `boolValue` / `stringValue` convenience accessors for the overwhelming-majority cases (most entitlements are booleans). `CFBoolean` and `NSNumber` integers are distinguished via `CFGetTypeID` so integer entitlements don't collapse into `.bool`. Three states matter: `nil` (no blob), `[:]` (blob present but empty — Rectangle.app behaves this way), populated. `owlwatch verify` prints an `Entitlements (N):` block with one `key = value` line per entry, sorted by key.
+- **`OWCodeSigning` module** — public surface: `OWCodeSigning.inspect(at: URL) throws -> CodeSignature`. Backed by `SecStaticCodeCreateWithPath` + `SecCodeCopySigningInformation` + `SecStaticCodeCheckValidity` + `SecCodeCopyDesignatedRequirement` + `SecRequirementCopyString`. Unsigned inputs return a populated `CodeSignature` with `isSigned: false` rather than throwing — matches `codesign -dvvv` posture so callers in M9 / M13 can branch on signature presence without `try`/`catch`.
+- **`CodeSignature` value type** with fields: `url`, `isSigned`, `isValid` (structural), `signatureType`, `identifier`, `teamIdentifier`, `cdHash` + `cdHashHex`, `authorities` (leaf-first CN chain), `flags`, `format`, `designatedRequirement`, `stapledNotarizationTicket`, `hardenedRuntimeVersion`, `entitlements`. Computed convenience: `isStapledForNotarization`, `hasHardenedRuntime`.
+- **`SignatureType` enum** — `.unsigned` / `.adhoc` / `.developerID` / `.appleDeveloper` / `.appStore` / `.apple` (first-party) / `.unknown`. Derived from the `kSecCodeSignatureAdhoc` flag and the leaf-certificate Common Name.
+- **`SignatureFlags` `OptionSet`** over `SecCodeSignatureFlags` bits: `host`, `adhoc`, `forceHard`, `forceKill`, `forceExpiration`, `restrict`, `enforcement`, `libraryValidation`, `runtime`, `linkerSigned`. Stable `symbolicForm` rendering (e.g. `"library-validation runtime"`).
+- **`Entitlement` enum** — `.bool` / `.integer` / `.string` / `.data` / `.array` / `.dictionary` covering every plist value type entitlements can carry. `CFBoolean` and `NSNumber(Int)` are distinguished via `CFGetTypeID` so integer entitlements don't collapse into `.bool`. Convenience: `boolValue`, `stringValue` for the overwhelming-majority cases.
+- **`OWCodeSigningError`** — `.unreadable(url:status:message:)` / `.malformedSignature(url:status:message:)`.
+- **`owlwatch verify <path>` subcommand** — third subcommand after `ps` and `inspect`. One-shot summary of every `CodeSignature` field. Accepts Mach-O binaries, `.app` bundles, frameworks — anything `SecStaticCodeCreateWithPath` recognizes.
+- **Three-state semantics** preserved across the new optional fields (`nil` = not present, `[:]` / `[]` = present but empty, populated = data available). Specifically called out: `stapledNotarizationTicket == nil` does **not** mean "not notarized" — VS Code is the canonical example of an online-notarized-but-unstapled app. `entitlements == [:]` (Rectangle.app) is distinct from `entitlements == nil` (`/bin/ls`).
+- **Owlwatch version bump** — `owlwatch --version` now prints `0.4.0-m3`.
 
-_M3 close (version bump → 0.4.0-m3, README tick, CHANGELOG promotion, tag) follows._
+### Notes
+
+- 76/76 unit tests pass (29 OWCodeSigning + 28 OWBinary + 15 OWProcess + others). Tested against `/bin/ls` (Apple first-party), `/usr/lib/dyld` (Apple first-party), `/Applications/Rectangle.app` (Developer ID + hardened runtime + stapled notarization, empty entitlements blob), `/Applications/Visual Studio Code.app` (Developer ID + hardened runtime + online-notarized-but-unstapled + populated entitlements), `/Applications/Xcode.app` (Apple first-party with Team ID + library-validation). Output matches `codesign -dvvv` and `codesign -d --entitlements -` for the data they share.
+- Deliberately did not implement LC_CODE_SIGNATURE blob parsing in-process. The Security framework already handles CMS / CDHash / authority extraction; re-implementing that surface would be net-negative.
+
+### Deferred
+
+- **Online notarization check** — distinguishing "no stapled ticket but online-notarized" from "never notarized" requires `SecAssessment` (network call). Lands as either a future M3.x or in M9 when AUTH-event decisions need a Gatekeeper-equivalent verdict.
+- **Designated-requirement evaluation** — i.e. "does this binary satisfy *this specific* requirement string?" — uses `SecStaticCodeCheckValidity(_, _, requirement)`. Detection rules in M13 will want this; M3 only ships the text-form extraction.
+
+### What's next
+
+M4 — `OWNetwork`. Host network state: open sockets and active connections with process attribution. The first M-numbered milestone to draw data from the kernel via `sysctl(CTL_NET, PF_INET, IPPROTO_TCP, TCPCTL_PCBLIST)` rather than the libproc / Mach-O / Security framework data sources M1 / M2 / M3 used.
+
+### PRs in this milestone
+
+#27 feat(OWCodeSigning, owlwatch): code-signature inspection + `owlwatch verify` (M3.1)
+#28 feat(OWCodeSigning, owlwatch): designated requirement + notarization + hardened-runtime version (M3.2)
+#29 feat(OWCodeSigning, owlwatch): entitlements parsing (M3.3)
+#30 feat(owlwatch): close M3 — version bump to 0.4.0-m3, CHANGELOG promotion, README tick
 
 ## [v0.3.0-m2] — 2026-05-21
 
@@ -101,7 +133,8 @@ The foundation milestone. Establishes the repository, build system, CI, governan
 - **No user-installable artifact ships with this tag.** The next runnable binary lands at M1 (`owlwatch ps`); the next visible app surface lands at M2/M3.
 - The four planned system extensions — Endpoint Security (M8), Network Extension filter (M7), DNS proxy (M12), Persistence monitor (M10) — exist as placeholder directories under `extensions/` but have no target shells yet. Each lands in its own milestone PR with the appropriate Apple-restricted entitlement (assuming Apple approval has landed by then).
 
-[Unreleased]: https://github.com/owlwatchlabs/owlwatch-macos/compare/v0.3.0-m2...HEAD
+[Unreleased]: https://github.com/owlwatchlabs/owlwatch-macos/compare/v0.4.0-m3...HEAD
+[v0.4.0-m3]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.4.0-m3
 [v0.3.0-m2]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.3.0-m2
 [v0.2.0-m1]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.2.0-m1
 [v0.1.0-m0]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.1.0-m0
