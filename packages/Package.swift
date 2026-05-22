@@ -49,6 +49,7 @@ let package = Package(
                 name: "owlwatch",
                 dependencies: [
                     .byName(name: "OWBinary"),
+                    .byName(name: "OWCodeSigning"),
                     .byName(name: "OWProcess"),
                     .product(name: "ArgumentParser", package: "swift-argument-parser")
                 ]
