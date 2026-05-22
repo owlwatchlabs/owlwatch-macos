@@ -6,18 +6,80 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 
 ## [Unreleased]
 
+_No entries yet. M6 work (`OWLog` — `os_log` ingestion and structured log event filters) lands here._
+
+## [v0.6.0-m5] — 2026-05-22
+
+The persistence-enumeration milestone. Lands `OWPersistence` — the fifth non-stub `OW*` library — plus five new `owlwatch` subcommands and **the first interactive UI surface in the macOS app**: a 3-column persistence viewer reachable from the existing MenuBarExtra.
+
+Together M5's slices cover every macOS persistence mechanism that's both worth surfacing and accessible without restricted entitlements: LaunchAgents and LaunchDaemons across all five standard scopes, the Background Task Management (BTM) database (apps, login items, helper agents, Spotlight importers, QuickLook extensions, legacy SMLoginItem-era persistence), modern System Extensions (DriverKit / Network Extension / Endpoint Security), legacy Kernel Extensions, and the deprecated-but-still-honored login/logout hooks. The malware studies of the last 5+ years (XCSSET, Silver Sparrow, AdLoad, KeRanger, WindTail, ChromeLoader, Atomic Stealer / AMOS) overwhelmingly use these surfaces — usually `~/Library/LaunchAgents` and `~/Library/Application Support/...` login items, which need no admin authentication.
+
+This is the milestone every later detection rule branches on for "what's set to auto-start on this box?". M10's persistence monitor (FSEvents-backed, real-time) and M13's rules engine both consume the value types `OWPersistence` exposes here.
+
 ### Added
 
-- **`OWPersistence` module (M5.1)** — public surface: `OWPersistence.launchServices() -> [LaunchService]` and `OWPersistence.launchServices(in: LaunchScope) -> [LaunchService]`. Enumerates `launchd`-managed Launch Daemons and Launch Agents across all five standard scopes (`/System/Library/LaunchDaemons`, `/System/Library/LaunchAgents`, `/Library/LaunchDaemons`, `/Library/LaunchAgents`, `~/Library/LaunchAgents`). Value types: `LaunchService` (`plistPath`, `scope`, `label`, `executablePath`, `arguments`, `runAtLoad`, `keepAlive`, `watchPaths`, `startInterval`, `startCalendarInterval`, `isDisabled`); `LaunchScope` (`.platformDaemon` / `.platformAgent` / `.systemDaemon` / `.systemAgent` / `.userAgent`, with `runsAsRoot` and `directoryPath` helpers); `KeepAlive` (`.always(Bool)` / `.conditional(KeepAliveConditions)` with `isActive` collapsing both forms to a single bool); `KeepAliveConditions` (`afterInitialDemand`, `successfulExit`, `networkState`, `crashed`, `pathState`, `otherJobEnabled`); `CalendarInterval`; `OWPersistenceError.scopeUnreadable(scope:errno:)`. Disabled status resolves both the in-plist `Disabled` key and the central `/var/db/com.apple.xpc.launchd/disabled*.plist` (the modern `launchctl enable/disable` storage) — either source marking the service disabled wins.
-- **`owlwatch persistence` (M5.1)** — fifth subcommand after `ps` / `inspect` / `verify` / `netstat`. Prints `SCOPE LABEL PROGRAM STATE TRIGGERS` rows for every visible launch service, sorted by scope then label. Flags: `--third-party-only` (skip Apple-shipped platform plists), `--user-only`, `--enabled-only`, `--scope <name>` (`platform-daemon` | `platform-agent` | `system-daemon` | `system-agent` | `user-agent`). The triggers column compactly summarizes `run-at-load`, `keep-alive`, `watch-paths(N)`, `interval`, `calendar(N)`.
-- **Login items / Background Task Management — `OWPersistence.loginItems()` (M5.2)** — new top-level API plus the `owlwatch login-items` subcommand. Sources from Apple's `/usr/bin/sfltool dumpbtm` (since the underlying BTM database under `/var/db/com.apple.backgroundtaskmanagementagent/` is system-protected and not readable by ordinary users). Value types: `LoginItem` (`uuid`, `userId`, `name`, `developerName`, `teamIdentifier`, `bundleIdentifier`, `parentIdentifier`, `identifier`, `url`, `kind`, `kindRawValue`, `disposition`, computed `isEnabled`); `LoginItemKind` enum (`.app` / `.loginItem` / `.launchAgent` / `.launchDaemon` / `.spotlightImporter` / `.fileProvider` / `.quicklook` / `.legacyAgent` / `.other(rawName:)` for forward-compatibility with future BTM types Apple may add); `LoginItemDisposition` `OptionSet` over the BTM bitfield (`enabled` `0x1`, `allowed` `0x2`, `notified` `0x8`) with `symbolicForm` matching `sfltool`'s textual rendering. The parser is intentionally tolerant: unrecognized lines are skipped, items missing `UUID` or `Name` are dropped, raw type text and bitfield value preserved alongside the classified enum so detection rules can still match on raw values even when the enum doesn't recognize a new BTM kind. CLI flags: `--enabled-only`, `--user-only`, `--kind <kind>`, `--team-id <TID>`.
-- **System Extensions — `OWPersistence.systemExtensions()` (M5.3)** — new top-level API plus the `owlwatch system-extensions` subcommand. Reads `/Library/SystemExtensions/db.plist` (world-readable, no entitlements required). Value types: `SystemExtension` (`bundleIdentifier`, `teamIdentifier`, `shortVersion`, `bundleVersion`, `bundlePath`, `uniqueID`, `categories`, `state`); `SystemExtensionCategory` (`.driver` / `.networkExtension` / `.endpointSecurity` / `.other(rawValue:)` — raw string preserved for forward compat with future Apple categories); `SystemExtensionState` (`.activatedEnabled` / `.activatedDisabled` / `.awaitingUserApproval` / `.staged` / `.terminatedWaitingToUninstall` / `.other(rawValue:)`, with `isRunning` collapsing to a single bool). Returns an empty array when the registry is absent (no extensions ever activated). CLI flags: `--running-only`, `--category <category>`.
-- **Kernel Extensions — `OWPersistence.kernelExtensions()` (M5.3)** — new top-level API plus the `owlwatch kernel-extensions` subcommand. Walks both `/System/Library/Extensions` and `/Library/Extensions`, parses each `.kext` bundle's `Contents/Info.plist`. Value types: `KernelExtension` (`bundlePath`, `bundleIdentifier`, `shortVersion`, `bundleVersion`, `executableName`, `executablePath`, `scope`); `KernelExtensionScope` (`.platform` for Apple's tree / `.system` for third-party tree, with `directoryPath` helper). Static inspection only — does NOT report runtime loaded-status (`kextstat` / `IOKit` territory), deferred to M10's persistence monitor. The `executablePath` is constructed to hand directly to `OWCodeSigning.inspect(at:)` for signature checks. CLI flags: `--third-party-only`, `--bundle-id <id>`.
+- **`OWPersistence` library.** Public surface across all five slices:
 
-- **Login / Logout hooks — `OWPersistence.loginLogoutHooks()` (M5.4)** — new top-level API plus the `owlwatch login-hooks` subcommand. Reads the `LoginHook` and `LogoutHook` keys from `/Library/Preferences/com.apple.loginwindow.plist` (system-wide) and `~/Library/Preferences/com.apple.loginwindow.plist` (per-user). Apple deprecated this mechanism long ago in favor of LaunchAgents, but the runtime still honors it and several historical macOS malware families used it specifically because it stopped being audited. Value types: `LoginLogoutHook` (`kind`, `scope`, `scriptPath`, `plistPath`); `HookKind` (`.login` / `.logout`, with `plistKey` helper); `HookScope` (`.system` / `.user`, with `plistPath` helper). On a clean modern system the API returns an empty array — any hook present is detection-worthy by default.
-- **macOS app persistence viewer (M5.5)** — first interactive UI surface in the macOS app. New `Window` scene with a 3-column `NavigationSplitView`: sidebar (one row per persistence kind with badge counts), center list (items in the selected kind with search-bar filtering), and detail pane (full per-kind field surface with "Reveal in Finder" affordance on path fields). Wired into the existing `MenuBarExtra` via an "Open Persistence View…" item (⌘⇧P). View model snapshot work runs off the main actor via `Task.detached` so the BTM read (which can take 5–60s) doesn't block the UI. `LaunchService` / `KeepAlive` / `KeepAliveConditions` gained `Hashable` conformance so SwiftUI's `NavigationSplitView` selection can address them by identity.
+  ```swift
+  OWPersistence.launchServices() -> [LaunchService]
+  OWPersistence.launchServices(in: LaunchScope) -> [LaunchService]
+  OWPersistence.loginItems() -> [LoginItem]
+  OWPersistence.systemExtensions() -> [SystemExtension]
+  OWPersistence.kernelExtensions() -> [KernelExtension]
+  OWPersistence.kernelExtensions(in: KernelExtensionScope) -> [KernelExtension]
+  OWPersistence.loginLogoutHooks() -> [LoginLogoutHook]
+  ```
 
-_M5.5 (macOS app UI) and M5-close follow before the v0.6.0-m5 tag. Configuration Profiles were originally planned for M5.3 but moved out — `/var/db/ConfigurationProfiles/Store/` requires Full Disk Access (TCC) and most of its surface is already covered by what System Extensions / Login Items / Launch Services already expose. cron / periodic / emond / at jobs were planned for M5.4 but dropped: `/etc/periodic/` no longer exists on macOS 26, `/var/at/tabs/` requires root for other users, emond is deprecated, and the realistic detection moments for cron persistence (write of a new crontab, exec of an unexpected command) are M10 (FSEvents) and M8 (Endpoint Security) territory. Reconsidered when a real detection rule asks for them._
+  Each kind is its own value type with the full per-kind field surface; `LoginItemKind` / `SystemExtensionCategory` / `SystemExtensionState` enums preserve raw values for forward-compatibility when Apple introduces new BTM types or extension categories.
+
+- **Five new `owlwatch` subcommands** (after `ps` / `inspect` / `verify` / `netstat`):
+
+  ```
+  owlwatch persistence            # LaunchAgents + LaunchDaemons
+  owlwatch login-items            # BTM records via sfltool dumpbtm
+  owlwatch system-extensions      # /Library/SystemExtensions/db.plist
+  owlwatch kernel-extensions      # /System/Library/Extensions + /Library/Extensions
+  owlwatch login-hooks            # LoginHook / LogoutHook keys
+  ```
+
+  Each takes scoped filter flags (`--user-only`, `--enabled-only`, `--scope`, `--kind`, `--running-only`, `--third-party-only`, `--bundle-id`, `--team-id`, etc.).
+
+- **First interactive UI surface in the macOS app.** New `Window` scene with a 3-column `NavigationSplitView`: sidebar with badge counts per kind, center list with live search-bar filtering, detail pane with per-kind field surface and "Reveal in Finder" affordance on path fields. Reached from the existing `MenuBarExtra` via "Open Persistence View…" (⌘⇧P). View-model refresh dispatches each kind via `Task.detached` so the slow BTM read (5–60s on first invocation) doesn't block the UI.
+
+- **App entitlements** updated to opt out of the App Sandbox (was `com.apple.security.app-sandbox = true` since M0). An EDR cannot operate inside the app sandbox — it needs to read `/Library/LaunchAgents`, `/Library/LaunchDaemons`, `/Library/SystemExtensions`, the loginwindow preference plists, and spawn `/usr/bin/sfltool`. Documented in `Owlwatch.entitlements` as an XML comment so future contributors don't accidentally re-enable sandbox.
+
+- **Drive-by `Hashable` conformance** on `LaunchService` / `KeepAlive` / `KeepAliveConditions` so SwiftUI's `NavigationSplitView` selection can address them by identity. Additive change; no behavior diff for existing callers.
+
+- **Owlwatch version bump** — `owlwatch --version` now prints `0.6.0-m5`.
+
+### Notes
+
+- 154/154 unit tests pass (47 OWPersistence + 29 OWCodeSigning + 28 OWBinary + 15 OWProcess + 15 OWNetwork + others). Tested against real Apple-shipped plists (`/System/Library/LaunchDaemons`), captured fixtures for `sfltool dumpbtm` output (15 BTM records spanning app / login-item / quicklook / spotlight / legacy-agent kinds), synthetic `db.plist` for System Extensions (3 records covering activated_enabled / awaiting_user_approval / activated_disabled states), live `/System/Library/Extensions` traversal, temp loginwindow plists.
+
+- **`sfltool dumpbtm` is non-deterministic under XCTest** (5–60s observed for the same input on the same machine, likely launchd back-pressure / subprocess sandboxing). A live-system smoke test for `OWPersistence.loginItems()` is intentionally NOT included in the test suite. The fixture coverage is deterministic; the live path is exercised via `owlwatch login-items` and the macOS app during manual smoke testing.
+
+- **The `sfltool` shell-out is a meaningful coupling.** The BTM database under `/var/db/com.apple.backgroundtaskmanagementagent/` is owned by root and not readable by ordinary users; Apple's `sfltool dumpbtm` is the canonical user-mode reader. Every macOS persistence tool worth using (KnockKnock, Objective-See's BlockBlock, etc.) takes the same approach. The parser preserves raw bitfield values + raw type names, so most format drift will degrade gracefully.
+
+### Deferred
+
+- **Configuration Profiles** — originally planned for M5.3. `/var/db/ConfigurationProfiles/Store/` requires Full Disk Access (TCC), and most of what we'd surface there is already covered by System Extensions + Login Items + Launch Services. Reconsidered when a real detection rule actually needs the raw profile payload data.
+- **cron / periodic / emond / at jobs** — originally planned for M5.4. `/etc/periodic/` no longer exists on macOS 26; `/var/at/tabs/` requires root for other users' crontabs; emond is deprecated. The realistic detection moments for cron-style persistence (write of a new crontab, exec of an unexpected command from a cron-launched shell) are M10 (FSEvents) and M8 (Endpoint Security) territory. Reconsidered when a real detection rule asks.
+- **Runtime kext loaded-status** — `kextstat` / `IOKit` territory. Static inspection from disk is enough for the M5 surface; live load state matters for M10's persistence monitor.
+- **Privileged-write actions on persistence items** — no revoke / disable buttons in the UI. Requires entitlements we don't have yet and is properly a Settings-action surface rather than a snapshot viewer.
+
+### What's next
+
+M6 — `OWLog`. `os_log` ingestion and structured log event filters. First milestone to draw data from Apple's unified logging system (via the `OSLog` framework / `log show` subprocess) rather than the libproc / Mach-O / Security framework / kernel-network / filesystem / sfltool sources M1–M5 used. Sets up the data path M8's Endpoint Security events will share.
+
+### PRs in this milestone
+
+#34 feat(OWPersistence, owlwatch): launch services enumeration + `owlwatch persistence` (M5.1)
+#35 feat(OWPersistence, owlwatch): login items + Background Task Management (M5.2)
+#36 feat(OWPersistence, owlwatch): System Extensions + Kernel Extensions (M5.3)
+#37 feat(OWPersistence, owlwatch): login/logout hooks (M5.4)
+#38 feat(Owlwatch, OWPersistence): macOS app persistence viewer (M5.5)
+#39 fix(Owlwatch): activate app when opening persistence window from menu bar
+#40 feat(owlwatch): close M5 — version bump to 0.6.0-m5, CHANGELOG promotion, README tick
 
 ## [v0.5.0-m4] — 2026-05-22
 
@@ -191,7 +253,8 @@ The foundation milestone. Establishes the repository, build system, CI, governan
 - **No user-installable artifact ships with this tag.** The next runnable binary lands at M1 (`owlwatch ps`); the next visible app surface lands at M2/M3.
 - The four planned system extensions — Endpoint Security (M8), Network Extension filter (M7), DNS proxy (M12), Persistence monitor (M10) — exist as placeholder directories under `extensions/` but have no target shells yet. Each lands in its own milestone PR with the appropriate Apple-restricted entitlement (assuming Apple approval has landed by then).
 
-[Unreleased]: https://github.com/owlwatchlabs/owlwatch-macos/compare/v0.5.0-m4...HEAD
+[Unreleased]: https://github.com/owlwatchlabs/owlwatch-macos/compare/v0.6.0-m5...HEAD
+[v0.6.0-m5]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.6.0-m5
 [v0.5.0-m4]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.5.0-m4
 [v0.4.0-m3]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.4.0-m3
 [v0.3.0-m2]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.3.0-m2
