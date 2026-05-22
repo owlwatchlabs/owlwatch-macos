@@ -93,6 +93,22 @@ public struct CodeSignature: Sendable, Equatable {
     /// versions enable stricter library-load restrictions.
     public let hardenedRuntimeVersion: String?
 
+    /// Entitlements granted by the signature, parsed from the
+    /// `entitlements-dict` `SecCodeCopySigningInformation` key.
+    ///
+    /// Three states matter:
+    /// - `nil` — no entitlements blob is embedded (most Apple system
+    ///   binaries, locally-built ad-hoc).
+    /// - `[:]` — blob is present but parses to an empty dictionary
+    ///   (Rectangle.app does this — a structural placeholder).
+    /// - populated — every entitlement the signature grants.
+    ///
+    /// Entitlement *names* are well-known strings like
+    /// `com.apple.security.app-sandbox` or
+    /// `com.apple.security.cs.allow-jit`. Values are typically `.bool`
+    /// but can be any plist scalar or collection — see ``Entitlement``.
+    public let entitlements: [String: Entitlement]?
+
     public init(
         url: URL,
         isSigned: Bool,
@@ -106,7 +122,8 @@ public struct CodeSignature: Sendable, Equatable {
         format: String?,
         designatedRequirement: String? = nil,
         stapledNotarizationTicket: Data? = nil,
-        hardenedRuntimeVersion: String? = nil
+        hardenedRuntimeVersion: String? = nil,
+        entitlements: [String: Entitlement]? = nil
     ) {
         self.url = url
         self.isSigned = isSigned
@@ -121,6 +138,7 @@ public struct CodeSignature: Sendable, Equatable {
         self.designatedRequirement = designatedRequirement
         self.stapledNotarizationTicket = stapledNotarizationTicket
         self.hardenedRuntimeVersion = hardenedRuntimeVersion
+        self.entitlements = entitlements
     }
 
     /// Lowercase hex form of ``cdHash`` (e.g. `"1205ca11b1c3..."`), or
