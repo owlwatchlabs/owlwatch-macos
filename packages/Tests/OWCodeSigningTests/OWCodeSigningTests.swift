@@ -153,4 +153,77 @@ final class OWCodeSigningTests: XCTestCase {
         XCTAssertEqual(SignatureFlags.libraryValidation.rawValue, 0x2000)
         XCTAssertEqual(SignatureFlags.runtime.rawValue, 0x10000)
     }
+
+    // MARK: - Designated requirement (M3.2)
+
+    func testInspectBinLsDesignatedRequirement() throws {
+        let sig = try OWCodeSigning.inspect(at: URL(fileURLWithPath: "/bin/ls"))
+        // The DR for /bin/ls is stable across macOS versions: identifier pin
+        // + anchor apple. The exact whitespace from SecRequirementCopyString
+        // is also stable, but match loosely to survive future formatting
+        // tweaks.
+        let dr = try XCTUnwrap(sig.designatedRequirement, "/bin/ls should expose a DR")
+        XCTAssertTrue(dr.contains("identifier \"com.apple.ls\""))
+        XCTAssertTrue(dr.contains("anchor apple"))
+    }
+
+    func testUnsignedFileHasNoDesignatedRequirement() throws {
+        let tmp = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("owlwatch-unsigned-dr-\(UUID().uuidString).bin")
+        try Data("plain bytes\n".utf8).write(to: tmp)
+        defer { try? FileManager.default.removeItem(at: tmp) }
+        let sig = try OWCodeSigning.inspect(at: tmp)
+        XCTAssertNil(sig.designatedRequirement)
+    }
+
+    // MARK: - Hardened runtime version (M3.2)
+
+    func testInspectBinLsHasNoHardenedRuntime() throws {
+        let sig = try OWCodeSigning.inspect(at: URL(fileURLWithPath: "/bin/ls"))
+        XCTAssertFalse(sig.hasHardenedRuntime,
+                       "/bin/ls is not built with the hardened runtime")
+        XCTAssertNil(sig.hardenedRuntimeVersion,
+                     "hardenedRuntimeVersion should only be populated when the runtime flag is set")
+    }
+
+    func testRectangleHasHardenedRuntimeAndStapledNotarization() throws {
+        // Rectangle is a small, open-source, Developer-ID-signed and
+        // stapled-notarized app. If the user has it installed, it's our
+        // canonical "full Developer ID release" fixture.
+        let path = "/Applications/Rectangle.app"
+        guard FileManager.default.fileExists(atPath: path) else {
+            throw XCTSkip("Rectangle.app not installed at \(path); skipping")
+        }
+        let sig = try OWCodeSigning.inspect(at: URL(fileURLWithPath: path))
+        XCTAssertEqual(sig.signatureType, .developerID)
+        XCTAssertTrue(sig.hasHardenedRuntime, "Rectangle ships with hardened runtime")
+        let version = try XCTUnwrap(sig.hardenedRuntimeVersion)
+        // Format must be exactly three dotted numeric segments.
+        let parts = version.split(separator: ".")
+        XCTAssertEqual(parts.count, 3, "Runtime version should be 'X.Y.Z'")
+        XCTAssertTrue(parts.allSatisfy { Int($0) != nil })
+        XCTAssertTrue(sig.isStapledForNotarization,
+                      "Rectangle.app ships a stapled notarization ticket")
+        XCTAssertNotNil(sig.stapledNotarizationTicket)
+        XCTAssertGreaterThan(sig.stapledNotarizationTicket?.count ?? 0, 100,
+                             "A real stapled ticket is at least a few hundred bytes")
+    }
+
+    // MARK: - Notarization detection (M3.2)
+
+    func testBinLsHasNoStapledTicket() throws {
+        // System binaries are not notarized — they ship with the OS.
+        let sig = try OWCodeSigning.inspect(at: URL(fileURLWithPath: "/bin/ls"))
+        XCTAssertFalse(sig.isStapledForNotarization)
+        XCTAssertNil(sig.stapledNotarizationTicket)
+    }
+
+    func testUnsignedFileHasNoStapledTicket() throws {
+        let tmp = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("owlwatch-unsigned-staple-\(UUID().uuidString).bin")
+        try Data("plain bytes\n".utf8).write(to: tmp)
+        defer { try? FileManager.default.removeItem(at: tmp) }
+        let sig = try OWCodeSigning.inspect(at: tmp)
+        XCTAssertFalse(sig.isStapledForNotarization)
+    }
 }

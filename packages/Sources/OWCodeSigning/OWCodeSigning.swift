@@ -49,6 +49,9 @@ public enum OWCodeSigning {
         let isSigned = !authorities.isEmpty || cdHash != nil || identifier != nil
         let isValid = isSigned && checkValidity(staticCode)
         let signatureType = classify(isSigned: isSigned, flags: flags, authorities: authorities)
+        let designatedRequirement = isSigned ? designatedRequirementText(staticCode) : nil
+        let stapledTicket = info["stapled-ticket"] as? Data
+        let runtimeVersion = decodeRuntimeVersion(info["runtime-version"] as? Int)
 
         return CodeSignature(
             url: url,
@@ -60,7 +63,10 @@ public enum OWCodeSigning {
             cdHash: cdHash,
             authorities: authorities,
             flags: flags,
-            format: format
+            format: format,
+            designatedRequirement: designatedRequirement,
+            stapledNotarizationTicket: stapledTicket,
+            hardenedRuntimeVersion: runtimeVersion
         )
     }
 }
@@ -76,9 +82,10 @@ private func makeStaticCode(at url: URL) throws -> SecStaticCode {
 
 private func copySigningInformation(_ code: SecStaticCode, url: URL) throws -> [String: Any] {
     var infoOpt: CFDictionary?
+    let infoFlags = UInt32(kSecCSSigningInformation | kSecCSContentInformation)
     let status = SecCodeCopySigningInformation(
         code,
-        SecCSFlags(rawValue: kSecCSSigningInformation),
+        SecCSFlags(rawValue: infoFlags),
         &infoOpt
     )
     switch status {
@@ -97,6 +104,28 @@ private func copySigningInformation(_ code: SecStaticCode, url: URL) throws -> [
 
 private func checkValidity(_ code: SecStaticCode) -> Bool {
     SecStaticCodeCheckValidity(code, SecCSFlags(rawValue: 0), nil) == errSecSuccess
+}
+
+private func designatedRequirementText(_ code: SecStaticCode) -> String? {
+    var requirement: SecRequirement?
+    guard SecCodeCopyDesignatedRequirement(code, SecCSFlags(rawValue: 0), &requirement) == errSecSuccess,
+          let req = requirement else {
+        return nil
+    }
+    var text: CFString?
+    guard SecRequirementCopyString(req, SecCSFlags(rawValue: 0), &text) == errSecSuccess,
+          let str = text as String? else {
+        return nil
+    }
+    return str
+}
+
+private func decodeRuntimeVersion(_ raw: Int?) -> String? {
+    guard let raw, raw > 0 else { return nil }
+    let major = (raw >> 16) & 0xff
+    let minor = (raw >> 8) & 0xff
+    let patch = raw & 0xff
+    return "\(major).\(minor).\(patch)"
 }
 
 private func extractAuthorities(from info: [String: Any]) -> [String] {
