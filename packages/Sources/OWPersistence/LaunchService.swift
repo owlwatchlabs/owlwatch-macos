@@ -17,7 +17,7 @@ import Foundation
 /// (``runAtLoad``, ``keepAlive``, ``watchPaths``, ``startInterval``),
 /// and *is it currently active* (``isDisabled``). Tampered plists
 /// pointing at unexpected binaries are tier-1 detection signal.
-public struct LaunchService: Sendable, Equatable {
+public struct LaunchService: Sendable, Equatable, Hashable {
     /// Path to the `.plist` file on disk.
     public let plistPath: String
 
@@ -151,7 +151,7 @@ public enum LaunchScope: String, Sendable, Equatable, Hashable, CaseIterable {
 
 /// `KeepAlive` value, which the plist can express as either a boolean
 /// or a dictionary of conditions.
-public enum KeepAlive: Sendable, Equatable {
+public enum KeepAlive: Sendable, Equatable, Hashable {
     /// Unconditional — `true` means "always keep alive", `false` means
     /// "never". `false` is also the default when the key is absent.
     case always(Bool)
@@ -173,7 +173,7 @@ public enum KeepAlive: Sendable, Equatable {
 /// Conditions under which a `KeepAlive` dict triggers a restart.
 /// Mirrors the documented `launchd.plist(5)` keys. Each field is
 /// `nil` when the corresponding key is absent.
-public struct KeepAliveConditions: Sendable, Equatable {
+public struct KeepAliveConditions: Sendable, Equatable, Hashable {
     /// `AfterInitialDemand` — wait until the service is requested
     /// once before applying keep-alive.
     public let afterInitialDemand: Bool?
