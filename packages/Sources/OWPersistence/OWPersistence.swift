@@ -49,6 +49,38 @@ public enum OWPersistence {
         parseSfltoolDumpbtm(runSfltoolDumpbtm())
     }
 
+    /// Capture every registered System Extension (DriverKit drivers,
+    /// Network Extensions, Endpoint Security clients) from
+    /// `/Library/SystemExtensions/db.plist`.
+    ///
+    /// The registry is world-readable; no entitlements required.
+    /// Returns an empty array when the file is absent (no extensions
+    /// have ever been activated on this system) or unparseable.
+    public static func systemExtensions() -> [SystemExtension] {
+        parseSystemExtensionDB(at: "/Library/SystemExtensions/db.plist")
+    }
+
+    /// Capture every Kernel Extension bundle on disk, across both
+    /// scopes (`/System/Library/Extensions` and `/Library/Extensions`).
+    ///
+    /// Static inspection of the bundles' `Info.plist`. Does NOT report
+    /// runtime loaded-status (`kextstat` territory) — that's deferred
+    /// to M10's persistence monitor where a runtime-aware view makes
+    /// sense.
+    public static func kernelExtensions() -> [KernelExtension] {
+        var extensions: [KernelExtension] = []
+        for scope in KernelExtensionScope.allCases {
+            extensions.append(contentsOf: kernelExtensions(in: scope))
+        }
+        return extensions
+    }
+
+    /// Capture kernel extensions from a single scope.
+    public static func kernelExtensions(in scope: KernelExtensionScope) -> [KernelExtension] {
+        let bundlePaths = enumerateKextBundles(in: scope.directoryPath)
+        return bundlePaths.compactMap { parseKernelExtension(at: $0, scope: scope) }
+    }
+
     /// Capture launch services from a single scope.
     public static func launchServices(in scope: LaunchScope) -> [LaunchService] {
         let directory = scope.directoryPath

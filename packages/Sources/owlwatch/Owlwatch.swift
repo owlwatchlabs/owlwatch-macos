@@ -16,7 +16,9 @@ struct Owlwatch: ParsableCommand {
             VerifyCommand.self,
             NetstatCommand.self,
             PersistenceCommand.self,
-            LoginItemsCommand.self
+            LoginItemsCommand.self,
+            SystemExtensionsCommand.self,
+            KernelExtensionsCommand.self
         ]
     )
 }
