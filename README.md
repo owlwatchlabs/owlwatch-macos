@@ -21,7 +21,7 @@ Demo recording scripts live in [`docs/demos/`](docs/demos/) and cover the **CLI 
 - [x] M0 signed empty macOS app and iOS app targets (System Extensions deferred to M7/M8/M10/M12)
 - [x] M0 initial ADRs and Apache 2.0 license
 - [x] M1 process inspection library (`OWProcess`) and `owlwatch ps` with `--tree`, `--args`, `--files`, `--pid`
-- [ ] M2 Mach-O and Universal binary parser
+- [x] M2 Mach-O and Universal binary parser (`OWBinary`) and `owlwatch inspect` with `--libs`, `--rpaths`, `--identity`, `--symbols`, `--segments`, `--entropy`
 - [ ] M3 code-signing and notarization inspection
 - [ ] M4 host network state inspection
 - [ ] M5 persistence enumeration
