@@ -30,6 +30,25 @@ public enum OWPersistence {
         return services
     }
 
+    /// Capture every Background Task Management (BTM) record visible
+    /// to the caller — apps with login behavior, SMAppService-registered
+    /// agents and daemons, Spotlight importers, QuickLook extensions,
+    /// legacy login items.
+    ///
+    /// Implementation note: the BTM database under
+    /// `/var/db/com.apple.backgroundtaskmanagementagent/` is not readable
+    /// by ordinary users, so this method shells to Apple's
+    /// `/usr/bin/sfltool dumpbtm` and parses its structured-text output.
+    /// The format is not contractually stable across macOS versions;
+    /// unrecognized types land in ``LoginItemKind/other(rawName:)`` with
+    /// the raw text preserved so detection rules can still match on them.
+    ///
+    /// Returns an empty array if `sfltool` is missing, fails to run,
+    /// or produces no parseable records.
+    public static func loginItems() -> [LoginItem] {
+        parseSfltoolDumpbtm(runSfltoolDumpbtm())
+    }
+
     /// Capture launch services from a single scope.
     public static func launchServices(in scope: LaunchScope) -> [LaunchService] {
         let directory = scope.directoryPath

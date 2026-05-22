@@ -1,0 +1,237 @@
+========================
+ Records for UID -2 : FFFFEEEE-DDDD-CCCC-BBBB-AAAAFFFFFFFE
+========================
+
+ ServiceManagement migrated: true
+ LaunchServices registered: false
+
+ Items:
+
+
+========================
+ Records for UID 0 : FFFFEEEE-DDDD-CCCC-BBBB-AAAA00000000
+========================
+
+ ServiceManagement migrated: false
+ LaunchServices registered: false
+
+ Items:
+
+
+========================
+ Records for UID 501 : A3384917-B211-4BCB-834D-63BE7A870C7B
+========================
+
+ ServiceManagement migrated: true
+ LaunchServices registered: true
+
+ Items:
+
+ #1:
+                 UUID: 1B7001B4-7D8B-4700-AE96-7639086ABD28
+                 Name: GarageBand
+       Developer Name: (null)
+      Team Identifier: F3LWYJ7GM7
+                 Type: app (0x2)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 2.com.apple.garageband10
+                  URL: file:///Applications/GarageBand.app/
+           Generation: 1
+    Bundle Identifier: com.apple.garageband10
+
+ #2:
+                 UUID: A94F3BC3-8831-416D-80CA-6FDA616B0510
+                 Name: GarageBandQuickLookExtension.appex
+       Developer Name: (null)
+      Team Identifier: F3LWYJ7GM7
+                 Type: quicklook (0x800)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [enabled, allowed, not notified] (0x3)
+           Identifier: 2048.com.apple.garageband10.GarageBandQuickLookExtension
+                  URL: Contents/PlugIns/GarageBandQuickLookExtension.appex
+           Generation: 0
+    Bundle Identifier: com.apple.garageband10.GarageBandQuickLookExtension
+    Parent Identifier: 2.com.apple.garageband10
+
+ #3:
+                 UUID: E6199E3C-6730-4148-A40B-217DF9FC14E4
+                 Name: GarageBandSpotlightImporter.mdimporter
+       Developer Name: (null)
+      Team Identifier: F3LWYJ7GM7
+                 Type: spotlight (0x40)
+                Flags: [  ] (0)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 64.com.apple.garageband.spotlightimporter
+                  URL: Contents/Library/Spotlight/GarageBandSpotlightImporter.mdimporter
+           Generation: 1
+    Bundle Identifier: com.apple.garageband.spotlightimporter
+    Parent Identifier: 2.com.apple.garageband10
+
+ #4:
+                 UUID: 0F6768EC-4E09-42C2-8A23-59AA4F0DA44D
+                 Name: GarageBandThumbnailExtension.appex
+       Developer Name: (null)
+      Team Identifier: F3LWYJ7GM7
+                 Type: quicklook (0x800)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [enabled, allowed, not notified] (0x3)
+           Identifier: 2048.com.apple.garageband10.GarageBandThumbnailExtension
+                  URL: Contents/PlugIns/GarageBandThumbnailExtension.appex
+           Generation: 0
+    Bundle Identifier: com.apple.garageband10.GarageBandThumbnailExtension
+    Parent Identifier: 2.com.apple.garageband10
+
+ #5:
+                 UUID: 67E3A753-8632-429D-BB3C-111CDC289AD8
+                 Name: LogicX_MDImport.mdimporter
+       Developer Name: (null)
+      Team Identifier: F3LWYJ7GM7
+                 Type: spotlight (0x40)
+                Flags: [  ] (0)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 64.com.apple.MDImporter.LogicX
+                  URL: Contents/Library/Spotlight/LogicX_MDImport.mdimporter
+           Generation: 1
+    Bundle Identifier: com.apple.MDImporter.LogicX
+    Parent Identifier: 2.com.apple.garageband10
+
+ #6:
+                 UUID: 5D79B33B-B0D5-4060-AC9D-BDDB783DD3EA
+                 Name: GoogleUpdater
+       Developer Name: (null)
+      Team Identifier: EQHXZ8M8AV
+                 Type: app (0x2)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: 2.com.google.GoogleUpdater
+                  URL: file:///Users/anon/Library/Application%20Support/Google/GoogleUpdater/149.0.7814.0/GoogleUpdater.app/
+           Generation: 2
+    Bundle Identifier: com.google.GoogleUpdater
+
+ #7:
+                 UUID: DFE9863A-8649-42BF-B904-0E9A00000419
+                 Name: GoogleUpdater
+       Developer Name: Google LLC
+      Team Identifier: EQHXZ8M8AV
+                 Type: legacy agent (0x10008)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 8.com.google.GoogleUpdater.wake
+                  URL: file:///Users/anon/Library/LaunchAgents/com.google.GoogleUpdater.wake.plist
+      Executable Path: /Users/anon/Library/Application Support/Google/GoogleUpdater/Current/GoogleUpdater.app/Contents/MacOS/GoogleUpdater
+           Generation: 2
+    Assoc. Bundle IDs: [ com.google.GoogleUpdater ]
+    Parent Identifier: 2.com.google.GoogleUpdater
+
+ #8:
+                 UUID: 70E0E0C0-48EA-4848-A093-2365B33D70B7
+                 Name: Icon Composer
+       Developer Name: (null)
+      Team Identifier: 59GAB85EFG
+                 Type: app (0x2)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 2.com.apple.IconComposer
+                  URL: file:///Applications/Xcode.app/Contents/Applications/Icon%20Composer.app/
+           Generation: 1
+    Bundle Identifier: com.apple.IconComposer
+
+ #9:
+                 UUID: 01FD76F3-6B3E-4610-8EA4-243CA238E375
+                 Name: Icon Composer QuickLook Preview.appex
+       Developer Name: (null)
+      Team Identifier: 59GAB85EFG
+                 Type: quicklook (0x800)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 2048.com.apple.IconComposerQuickLookPreviewAppExtension
+                  URL: Contents/PlugIns/Icon%20Composer%20QuickLook%20Preview.appex
+           Generation: 1
+    Bundle Identifier: com.apple.IconComposerQuickLookPreviewAppExtension
+    Parent Identifier: 2.com.apple.IconComposer
+
+ #10:
+                 UUID: EA257884-D465-4378-92DF-5A9843DD037B
+                 Name: Icon Composer Thumbnail.appex
+       Developer Name: (null)
+      Team Identifier: 59GAB85EFG
+                 Type: quicklook (0x800)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 2048.com.apple.IconComposerThumbnailExtension
+                  URL: Contents/PlugIns/Icon%20Composer%20Thumbnail.appex
+           Generation: 1
+    Bundle Identifier: com.apple.IconComposerThumbnailExtension
+    Parent Identifier: 2.com.apple.IconComposer
+
+ #11:
+                 UUID: 930F512C-D824-41E0-85A9-73FAFA8F1A57
+                 Name: Spotify
+       Developer Name: Spotify
+      Team Identifier: 2FNC3A47ZF
+                 Type: app (0x2)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: 2.com.spotify.client
+                  URL: file:///Applications/Spotify.app/
+           Generation: 0
+    Bundle Identifier: com.spotify.client
+
+ #12:
+                 UUID: 48C07EEF-B985-414F-B44E-E4A4076AA2BE
+                 Name: StartUpHelper
+       Developer Name: Spotify
+      Team Identifier: 2FNC3A47ZF
+                 Type: login item (0x4)
+                Flags: [  ] (0)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 4.com.spotify.client.startuphelper
+                  URL: Contents/Library/LoginItems/StartUpHelper.app
+           Generation: 1
+    Bundle Identifier: com.spotify.client.startuphelper
+    Parent Identifier: 2.com.spotify.client
+
+ #13:
+                 UUID: 8C7623F1-7456-4BFD-A17D-1CABC5E292A2
+                 Name: Xcode
+       Developer Name: (null)
+      Team Identifier: 59GAB85EFG
+                 Type: app (0x2)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 2.com.apple.dt.Xcode
+                  URL: file:///Applications/Xcode.app/
+           Generation: 1
+    Bundle Identifier: com.apple.dt.Xcode
+
+ #14:
+                 UUID: CB801262-45FA-46A3-A38F-B3A3D444C946
+                 Name: ProvisoningProfileQuicklookExtension.appex
+       Developer Name: (null)
+      Team Identifier: 59GAB85EFG
+                 Type: quicklook (0x800)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 2048.com.apple.dt.DVTProvisioningProfileQuicklookExtension
+                  URL: Contents/PlugIns/ProvisoningProfileQuicklookExtension.appex
+           Generation: 1
+    Bundle Identifier: com.apple.dt.DVTProvisioningProfileQuicklookExtension
+    Parent Identifier: 2.com.apple.dt.Xcode
+
+ #15:
+                 UUID: CD43EE18-5CAF-458D-9C79-FCA969955F9B
+                 Name: uuid.mdimporter
+       Developer Name: (null)
+      Team Identifier: 59GAB85EFG
+                 Type: spotlight (0x40)
+                Flags: [  ] (0)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 64.com.apple.dt.MDImporter.uuid-importer
+                  URL: Contents/Library/Spotlight/uuid.mdimporter
+           Generation: 1
+    Bundle Identifier: com.apple.dt.MDImporter.uuid-importer
+    Parent Identifier: 2.com.apple.dt.Xcode
+
+
+
