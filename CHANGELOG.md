@@ -6,13 +6,54 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 
 ## [Unreleased]
 
+_No entries yet. M5 work (`OWPersistence` — auto-start item enumeration: LaunchAgents, LaunchDaemons, login items, kernel extensions) lands here._
+
+## [v0.5.0-m4] — 2026-05-22
+
+The host-network-state milestone. Lands `OWNetwork` — the fourth non-stub `OW*` library — plus `owlwatch netstat`, the fourth subcommand. Together they enumerate every IP and Unix-domain socket held by a visible process, with the same posture as `lsof -i`: unprivileged callers see only their own processes; root sees everything.
+
+This is a snapshot library, not a stream. For real-time visibility of new connection attempts the M7 Network Extension filter is the right tool — `OWNetwork` answers point-in-time questions: "is this process connected to anything right now?", "who's listening on port 5432?", "which processes are talking to `com.apple.tccd`?". Detection rules in M13 will branch on its output, and M7's Network Extension will enrich live flows with the same shape of metadata.
+
 ### Added
 
-- **`OWNetwork` module (M4.1)** — public surface: `OWNetwork.snapshot() throws -> [Connection]` and `OWNetwork.snapshot(pid:) throws -> [Connection]`. Backed by `proc_pidinfo(PROC_PIDLISTFDS)` + `proc_pidfdinfo(PROC_PIDFDSOCKETINFO)` — same data path as `lsof -i`, same posture as `owlwatch ps`. Value types: `Connection` (`pid`, `fd`, `family`, `protocol`, `localAddress`, `localPort`, `remoteAddress`, `remotePort`, `tcpState`, computed `isListener`); `AddressFamily` (`.ipv4` / `.ipv6`); `TransportProtocol` (`.tcp` / `.udp`); `TCPState` (11 cases mirroring `TCPS_*` from `<netinet/tcp_fsm.h>`, with `displayName` for human-readable forms like `"ESTABLISHED"` / `"FIN_WAIT_1"`); `OWNetworkError.unreachable(pid:errno:)`. Unprivileged callers see only their own processes' sockets; root sees everything. M4.1 covers TCP and UDP over IPv4 / IPv6; Unix-domain sockets land in M4.2.
-- **`owlwatch netstat` (M4.1)** — fourth subcommand after `ps` / `inspect` / `verify`. Prints `PROTO LOCAL REMOTE STATE PID PROCESS` rows for every open IP socket. Flags: `--listen` / `-l` (only TCP `LISTEN` and bound UDP), `--tcp` / `-t`, `--udp` / `-u`, `--ipv4`, `--ipv6`, `--port <PORT>` (matches local *or* remote), `--pid <PID>` (filter to one process). IPv6 addresses render with `[...]` brackets. Wildcard endpoints render as `*:*`.
-- **Unix-domain socket support (M4.2)** — `AddressFamily` extended with `.unix`; `TransportProtocol` extended with `.unixStream` (`SOCK_STREAM`) and `.unixDatagram` (`SOCK_DGRAM`). For Unix sockets, `Connection.localAddress` carries the bound filesystem path (e.g. `/var/run/com.apple.foo.sock`) and `localPort` is always `nil`. Anonymous sockets (`socketpair`-style ends with no bound name) report `localAddress == nil` and `remoteAddress == nil`. `isListener` returns `true` for any Unix socket with a bound path and no peer — matches the kernel's notion of a server socket for both stream (XPC service host) and datagram families. `owlwatch netstat` gains `--unix` filter, renders the protocol column as `unix-stream` / `unix-dgram`, and shows the path in place of `host:port` for the endpoint columns (or `(anonymous)` when no path is set). Protocol stats (bytes / packets sent and received) are not exposed by `proc_pidfdinfo` and would require the separate `nstat` framework or an in-kernel Network Extension — deferred entirely from M4 and reconsidered when M7 lands.
+- **`OWNetwork` library**. Public surface:
 
-_M4 close (version bump → 0.5.0-m4, README tick, CHANGELOG promotion, tag) follows._
+  ```swift
+  OWNetwork.snapshot() throws -> [Connection]
+  OWNetwork.snapshot(pid: pid_t) throws -> [Connection]
+  ```
+
+  Backed by `proc_pidinfo(PROC_PIDLISTFDS)` + `proc_pidfdinfo(PROC_PIDFDSOCKETINFO)` — same data path as `lsof -i`. No entitlements required; no kernel-extension hooks.
+
+- **`Connection` value type** with fields: `pid`, `fd`, `family`, `protocol`, `localAddress`, `localPort`, `remoteAddress`, `remotePort`, `tcpState`. Computed convenience: `isListener` (TCP `LISTEN`, UDP bound without peer, Unix socket bound without peer).
+- **`AddressFamily` enum** — `.ipv4` / `.ipv6` / `.unix`. For Unix sockets, `Connection.localAddress` carries the bound filesystem path rather than an IP.
+- **`TransportProtocol` enum** — `.tcp` / `.udp` (over IP) / `.unixStream` (`SOCK_STREAM`) / `.unixDatagram` (`SOCK_DGRAM`). Raw values are `"tcp"` / `"udp"` / `"unix-stream"` / `"unix-dgram"` so the CLI can use them directly.
+- **`TCPState` enum** — 11 cases mirroring `TCPS_*` from `<netinet/tcp_fsm.h>`: `closed`, `listen`, `synSent`, `synReceived`, `established`, `closeWait`, `finWait1`, `closing`, `lastAck`, `finWait2`, `timeWait`. `displayName` renders the standard uppercase-underscored form (`"ESTABLISHED"`, `"FIN_WAIT_1"`, `"SYN_RCVD"`).
+- **`OWNetworkError`** — `.unreachable(pid:errno:)` when the caller lacks permission to enumerate a process's descriptors.
+- **`owlwatch netstat` subcommand** — fourth subcommand after `ps` / `inspect` / `verify`. Prints `PROTO LOCAL REMOTE STATE PID PROCESS` rows for every captured socket. Flags compose: `--listen` / `-l`, `--tcp` / `-t`, `--udp` / `-u`, `--unix`, `--ipv4`, `--ipv6`, `--port <PORT>` (matches local *or* remote), `--pid <PID>`. IPv6 addresses render with `[...]` brackets; wildcard IP endpoints render as `*:*`; anonymous Unix sockets render as `(anonymous)`.
+- **Port byte-order decode** documented and pinned: `insi_lport` is declared `int` but the kernel stores the port value in network byte order in the low 16 bits. Decode is `UInt16(rawPort & 0xFFFF).byteSwapped`. Live-socket round-trip test guards against a future "simplification" that would silently break.
+- **Owlwatch version bump** — `owlwatch --version` now prints `0.5.0-m4`.
+
+### Notes
+
+- 91/91 unit tests pass (15 OWNetwork + 29 OWCodeSigning + 28 OWBinary + 15 OWProcess + others). Tests open real TCP, UDP, and Unix sockets on loopback / temp paths in setup and round-trip them through `OWNetwork.snapshot(pid: getpid())`, asserting on every field.
+- Smoke-tested against the live system: detects rapportd / mDNSResponder / Spotify / Chrome / identityservicesd IP sockets correctly with ESTABLISHED states and full peer endpoints; detects ssh-agent listeners, VS Code's IPC sockets, Chrome's singleton socket, syslog and mDNSResponder client connections from system daemons for Unix sockets.
+- `SOCKINFO_UN = 3` on macOS (not 4 as the struct ordering inside `soi_proto` would suggest). Confirmed against `<sys/proc_info.h>` and runtime probe; the M4.2 PR refactored M4.1's magic-number kind constants to use Darwin's exported `SOCKINFO_*` values.
+
+### Deferred
+
+- **Protocol stats** (bytes / packets sent and received). Not exposed by `proc_pidfdinfo` — would require the separate `nstat` framework, which is a parallel data pipeline for an inferior result vs M7's Network Extension where flow stats are first-class. Reconsidered with M7 rather than added to M4.
+- **Online connection diffing** — i.e. "what's new since the last snapshot?". Snapshot library by design; M7 covers live observation.
+
+### What's next
+
+M5 — `OWPersistence`. Auto-start item enumeration: LaunchAgents, LaunchDaemons, login items, configuration profiles, kernel extensions. First milestone to draw data from the filesystem (`/Library/LaunchAgents`, `/Library/LaunchDaemons`, `~/Library/LaunchAgents`, `/Library/Application Support/com.apple.TCC/`) rather than the libproc / Mach-O / Security framework / kernel-network data sources M1 / M2 / M3 / M4 used. Also the first milestone to have a user-facing surface in the macOS app — a view of installed persistence items.
+
+### PRs in this milestone
+
+#31 feat(OWNetwork, owlwatch): host network state + `owlwatch netstat` (M4.1)
+#32 feat(OWNetwork, owlwatch): Unix-domain sockets (M4.2)
+#33 feat(owlwatch): close M4 — version bump to 0.5.0-m4, CHANGELOG promotion, README tick
 
 ## [v0.4.0-m3] — 2026-05-22
 
@@ -139,7 +180,8 @@ The foundation milestone. Establishes the repository, build system, CI, governan
 - **No user-installable artifact ships with this tag.** The next runnable binary lands at M1 (`owlwatch ps`); the next visible app surface lands at M2/M3.
 - The four planned system extensions — Endpoint Security (M8), Network Extension filter (M7), DNS proxy (M12), Persistence monitor (M10) — exist as placeholder directories under `extensions/` but have no target shells yet. Each lands in its own milestone PR with the appropriate Apple-restricted entitlement (assuming Apple approval has landed by then).
 
-[Unreleased]: https://github.com/owlwatchlabs/owlwatch-macos/compare/v0.4.0-m3...HEAD
+[Unreleased]: https://github.com/owlwatchlabs/owlwatch-macos/compare/v0.5.0-m4...HEAD
+[v0.5.0-m4]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.5.0-m4
 [v0.4.0-m3]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.4.0-m3
 [v0.3.0-m2]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.3.0-m2
 [v0.2.0-m1]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.2.0-m1
