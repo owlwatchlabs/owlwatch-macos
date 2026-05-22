@@ -70,7 +70,35 @@ struct VerifyCommand: ParsableCommand {
             lines.append("DR:         \(designatedRequirement)")
         }
 
+        if let entitlements = sig.entitlements {
+            if entitlements.isEmpty {
+                lines.append("Entitlements: (blob present, no entries)")
+            } else {
+                lines.append("Entitlements (\(entitlements.count)):")
+                for (key, value) in entitlements.sorted(by: { $0.key < $1.key }) {
+                    lines.append("  \(key) = \(render(value))")
+                }
+            }
+        }
+
         print(lines.joined(separator: "\n"))
+    }
+
+    private func render(_ entitlement: Entitlement) -> String {
+        switch entitlement {
+        case .bool(let value): return value ? "true" : "false"
+        case .integer(let value): return String(value)
+        case .string(let value): return "\"\(value)\""
+        case .data(let value): return "<\(value.count) bytes>"
+        case .array(let values):
+            return "[" + values.map { render($0) }.joined(separator: ", ") + "]"
+        case .dictionary(let pairs):
+            let body = pairs
+                .sorted(by: { $0.key < $1.key })
+                .map { "\($0.key)=\(render($0.value))" }
+                .joined(separator: ", ")
+            return "{" + body + "}"
+        }
     }
 
     private func formatSignatureType(_ type: SignatureType) -> String {

@@ -52,6 +52,7 @@ public enum OWCodeSigning {
         let designatedRequirement = isSigned ? designatedRequirementText(staticCode) : nil
         let stapledTicket = info["stapled-ticket"] as? Data
         let runtimeVersion = decodeRuntimeVersion(info["runtime-version"] as? Int)
+        let entitlements = extractEntitlements(from: info)
 
         return CodeSignature(
             url: url,
@@ -66,9 +67,21 @@ public enum OWCodeSigning {
             format: format,
             designatedRequirement: designatedRequirement,
             stapledNotarizationTicket: stapledTicket,
-            hardenedRuntimeVersion: runtimeVersion
+            hardenedRuntimeVersion: runtimeVersion,
+            entitlements: entitlements
         )
     }
+}
+
+private func extractEntitlements(from info: [String: Any]) -> [String: Entitlement]? {
+    guard let raw = info["entitlements-dict"] as? [String: Any] else { return nil }
+    var result: [String: Entitlement] = [:]
+    for (key, value) in raw {
+        if let entitlement = Entitlement.from(value) {
+            result[key] = entitlement
+        }
+    }
+    return result
 }
 
 private func makeStaticCode(at url: URL) throws -> SecStaticCode {
@@ -134,9 +147,9 @@ private func extractAuthorities(from info: [String: Any]) -> [String] {
     }
     var names: [String] = []
     for cert in certs {
-        var cn: CFString?
-        let status = SecCertificateCopyCommonName(cert, &cn)
-        if status == errSecSuccess, let name = cn as String? {
+        var commonName: CFString?
+        let status = SecCertificateCopyCommonName(cert, &commonName)
+        if status == errSecSuccess, let name = commonName as String? {
             names.append(name)
         }
     }

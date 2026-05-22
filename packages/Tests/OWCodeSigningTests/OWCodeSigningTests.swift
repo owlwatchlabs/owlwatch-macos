@@ -162,9 +162,9 @@ final class OWCodeSigningTests: XCTestCase {
         // + anchor apple. The exact whitespace from SecRequirementCopyString
         // is also stable, but match loosely to survive future formatting
         // tweaks.
-        let dr = try XCTUnwrap(sig.designatedRequirement, "/bin/ls should expose a DR")
-        XCTAssertTrue(dr.contains("identifier \"com.apple.ls\""))
-        XCTAssertTrue(dr.contains("anchor apple"))
+        let requirement = try XCTUnwrap(sig.designatedRequirement, "/bin/ls should expose a DR")
+        XCTAssertTrue(requirement.contains("identifier \"com.apple.ls\""))
+        XCTAssertTrue(requirement.contains("anchor apple"))
     }
 
     func testUnsignedFileHasNoDesignatedRequirement() throws {
@@ -225,5 +225,54 @@ final class OWCodeSigningTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: tmp) }
         let sig = try OWCodeSigning.inspect(at: tmp)
         XCTAssertFalse(sig.isStapledForNotarization)
+    }
+
+    // MARK: - Entitlements (M3.3)
+
+    func testBinLsHasNoEntitlementsBlob() throws {
+        // /bin/ls is a system tool without an entitlements blob at all —
+        // distinct from "blob present but empty" (Rectangle's case).
+        let sig = try OWCodeSigning.inspect(at: URL(fileURLWithPath: "/bin/ls"))
+        XCTAssertNil(sig.entitlements,
+                     "/bin/ls should have no entitlements blob (nil, not empty dict)")
+    }
+
+    func testRectangleHasEmptyEntitlementsBlob() throws {
+        // Rectangle.app embeds an entitlements blob that parses to an empty
+        // dict — confirmed via `codesign -d --entitlements -` which prints
+        // `[Dict]`. Tests the three-state distinction: nil vs [:] vs
+        // populated.
+        let path = "/Applications/Rectangle.app"
+        guard FileManager.default.fileExists(atPath: path) else {
+            throw XCTSkip("Rectangle.app not installed; skipping")
+        }
+        let sig = try OWCodeSigning.inspect(at: URL(fileURLWithPath: path))
+        let entitlements = try XCTUnwrap(sig.entitlements,
+                                         "Rectangle should expose an entitlements blob")
+        XCTAssertTrue(entitlements.isEmpty,
+                      "Rectangle's blob is structurally present but contains no entries")
+    }
+
+    func testVSCodeHasHardenedRuntimeEntitlements() throws {
+        // VS Code's entitlements are stable, named, and small enough to
+        // assert against. They're all booleans set to true.
+        let path = "/Applications/Visual Studio Code.app"
+        guard FileManager.default.fileExists(atPath: path) else {
+            throw XCTSkip("VS Code not installed; skipping")
+        }
+        let sig = try OWCodeSigning.inspect(at: URL(fileURLWithPath: path))
+        let entitlements = try XCTUnwrap(sig.entitlements)
+        XCTAssertFalse(entitlements.isEmpty)
+        XCTAssertEqual(entitlements["com.apple.security.cs.allow-jit"]?.boolValue, true,
+                       "VS Code requires JIT for Electron's V8")
+    }
+
+    func testUnsignedFileHasNoEntitlementsBlob() throws {
+        let tmp = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("owlwatch-unsigned-ents-\(UUID().uuidString).bin")
+        try Data("plain bytes\n".utf8).write(to: tmp)
+        defer { try? FileManager.default.removeItem(at: tmp) }
+        let sig = try OWCodeSigning.inspect(at: tmp)
+        XCTAssertNil(sig.entitlements)
     }
 }
