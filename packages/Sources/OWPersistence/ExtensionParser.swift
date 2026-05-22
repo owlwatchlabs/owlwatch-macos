@@ -88,6 +88,35 @@ internal func enumerateKextBundles(in directory: String) -> [String] {
         .sorted()
 }
 
+// MARK: - Login / Logout hook parser
+
+/// Parse `com.apple.loginwindow.plist` for `LoginHook` and `LogoutHook`
+/// keys. Missing keys → no hook for that kind. Missing file → empty
+/// array. Malformed plist → empty array (same posture as
+/// ``parseSystemExtensionDB(at:)``).
+internal func parseLoginLogoutHooks(at plistPath: String, scope: HookScope) -> [LoginLogoutHook] {
+    guard let data = try? Data(contentsOf: URL(fileURLWithPath: plistPath)) else {
+        return []
+    }
+    guard let root = try? PropertyListSerialization.propertyList(
+        from: data, options: [], format: nil
+    ) as? [String: Any] else {
+        return []
+    }
+    var hooks: [LoginLogoutHook] = []
+    for kind in HookKind.allCases {
+        if let scriptPath = root[kind.plistKey] as? String, !scriptPath.isEmpty {
+            hooks.append(LoginLogoutHook(
+                kind: kind,
+                scope: scope,
+                scriptPath: scriptPath,
+                plistPath: plistPath
+            ))
+        }
+    }
+    return hooks
+}
+
 internal func parseKernelExtension(at bundlePath: String, scope: KernelExtensionScope) -> KernelExtension? {
     let infoPath = (bundlePath as NSString).appendingPathComponent("Contents/Info.plist")
     guard let data = try? Data(contentsOf: URL(fileURLWithPath: infoPath)) else {
