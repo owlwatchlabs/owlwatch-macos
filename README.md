@@ -22,7 +22,7 @@ Demo recording scripts live in [`docs/demos/`](docs/demos/) and cover the **CLI 
 - [x] M0 initial ADRs and Apache 2.0 license
 - [x] M1 process inspection library (`OWProcess`) and `owlwatch ps` with `--tree`, `--args`, `--files`, `--pid`
 - [x] M2 Mach-O and Universal binary parser (`OWBinary`) and `owlwatch inspect` with `--libs`, `--rpaths`, `--identity`, `--symbols`, `--segments`, `--entropy`
-- [ ] M3 code-signing and notarization inspection
+- [x] M3 code-signing inspection (`OWCodeSigning`) and `owlwatch verify` — signature validity, signing type, Team ID, CDHash, authority chain, flags, designated requirement, stapled notarization ticket, hardened-runtime version, entitlements
 - [ ] M4 host network state inspection
 - [ ] M5 persistence enumeration
 - [ ] M7 Network Extension filter provider
