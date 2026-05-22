@@ -81,6 +81,25 @@ public enum OWPersistence {
         return bundlePaths.compactMap { parseKernelExtension(at: $0, scope: scope) }
     }
 
+    /// Capture every login / logout hook set in the system-wide or
+    /// per-user `com.apple.loginwindow` preference plist.
+    ///
+    /// Apple deprecated this mechanism a long time ago in favor of
+    /// LaunchAgents, but the runtime still honors the `LoginHook` and
+    /// `LogoutHook` keys. Several historical macOS malware families
+    /// used it specifically because it was no longer audited.
+    ///
+    /// On a clean modern system this returns an empty array. Any hook
+    /// present is detection-worthy by default — cross-reference the
+    /// `scriptPath` against ``OWCodeSigning`` to check signing.
+    public static func loginLogoutHooks() -> [LoginLogoutHook] {
+        var hooks: [LoginLogoutHook] = []
+        for scope in HookScope.allCases {
+            hooks.append(contentsOf: parseLoginLogoutHooks(at: scope.plistPath, scope: scope))
+        }
+        return hooks
+    }
+
     /// Capture launch services from a single scope.
     public static func launchServices(in scope: LaunchScope) -> [LaunchService] {
         let directory = scope.directoryPath
