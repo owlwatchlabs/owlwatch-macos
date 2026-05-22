@@ -98,15 +98,15 @@ private func connectionFor(pid: pid_t, fd: Int32) -> Connection? {
     }
     guard size == MemoryLayout<socket_fdinfo>.size else { return nil }
 
-    let kindTCP: Int32 = 2  // SOCKINFO_TCP
-    let kindIn: Int32 = 1   // SOCKINFO_IN
-    switch info.psi.soi_kind {
-    case kindTCP:
+    switch Int(info.psi.soi_kind) {
+    case SOCKINFO_TCP:
         return tcpConnection(pid: pid, fd: fd, info: info.psi.soi_proto.pri_tcp)
-    case kindIn:
+    case SOCKINFO_IN:
         return udpConnection(pid: pid, fd: fd, info: info.psi.soi_proto.pri_in)
+    case SOCKINFO_UN:
+        return unixConnection(pid: pid, fd: fd, info: info.psi.soi_proto.pri_un, soiType: info.psi.soi_type)
     default:
-        return nil  // Unix-domain (4), other kinds — deferred to M4.2
+        return nil  // ndrv / kern_event / kern_ctl / vsock — not exposed
     }
 }
 
@@ -156,6 +156,44 @@ private func udpConnection(pid: pid_t, fd: Int32, info: in_sockinfo) -> Connecti
     )
 }
 
+private func unixConnection(pid: pid_t, fd: Int32, info: un_sockinfo, soiType: Int32) -> Connection? {
+    let protocolValue: TransportProtocol
+    switch Int(soiType) {
+    case Int(SOCK_STREAM):
+        protocolValue = .unixStream
+    case Int(SOCK_DGRAM):
+        protocolValue = .unixDatagram
+    default:
+        return nil  // SOCK_SEQPACKET / SOCK_RAW — uncommon on macOS, skip
+    }
+    var local = info.unsi_addr.ua_sun
+    var peer = info.unsi_caddr.ua_sun
+    let localPath = unixPath(from: &local)
+    let peerPath = unixPath(from: &peer)
+    return Connection(
+        pid: pid,
+        fd: fd,
+        family: .unix,
+        protocol: protocolValue,
+        localAddress: localPath,
+        localPort: nil,
+        remoteAddress: peerPath,
+        remotePort: nil,
+        tcpState: nil
+    )
+}
+
+private func unixPath(from address: inout sockaddr_un) -> String? {
+    let path = withUnsafePointer(to: &address.sun_path) { ptr -> String in
+        ptr.withMemoryRebound(to: CChar.self, capacity: Int(SOCK_MAXADDRLEN)) { cstr in
+            let nullIndex = (0..<Int(SOCK_MAXADDRLEN)).first { cstr[$0] == 0 } ?? Int(SOCK_MAXADDRLEN)
+            let bytes = UnsafeBufferPointer(start: cstr, count: nullIndex).map { UInt8(bitPattern: $0) }
+            return String(bytes: bytes, encoding: .utf8) ?? ""
+        }
+    }
+    return path.isEmpty ? nil : path
+}
+
 private enum AddressSide { case local, remote }
 
 private func decodeFamily(vflag: UInt8) -> AddressFamily? {
@@ -189,6 +227,8 @@ private func decodeAddress(insi: in_sockinfo, side: AddressSide, family: Address
             var addr = insi.insi_faddr.ina_6
             return ipv6String(&addr)
         }
+    case .unix:
+        return nil  // unreachable: decodeAddress is only called from IP paths
     }
 }
 
@@ -224,5 +264,7 @@ private func isRemoteUnconnected(insi: in_sockinfo, family: AddressFamily) -> Bo
         return withUnsafeBytes(of: &addr) { bytes in
             bytes.allSatisfy { $0 == 0 }
         }
+    case .unix:
+        return true  // unreachable: isRemoteUnconnected is only called from IP paths
     }
 }
