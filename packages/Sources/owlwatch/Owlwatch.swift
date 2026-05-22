@@ -19,7 +19,8 @@ struct Owlwatch: ParsableCommand {
             LoginItemsCommand.self,
             SystemExtensionsCommand.self,
             KernelExtensionsCommand.self,
-            LoginHooksCommand.self
+            LoginHooksCommand.self,
+            LogsCommand.self
         ]
     )
 }
