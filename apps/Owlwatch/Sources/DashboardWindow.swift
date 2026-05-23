@@ -196,6 +196,12 @@ struct DashboardWindow: View {
                 ) {
                     openWindow(id: OwlwatchApp.devicesWindowID)
                 }
+                NavigationButton(
+                    title: "Logs",
+                    symbol: "doc.text"
+                ) {
+                    openWindow(id: OwlwatchApp.logsWindowID)
+                }
             }
         }
     }
