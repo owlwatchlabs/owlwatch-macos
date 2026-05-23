@@ -2,7 +2,7 @@ import ArgumentParser
 import Foundation
 import OWLog
 
-struct LogsCommand: ParsableCommand {
+struct LogsCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "logs",
         abstract: "Query macOS unified-log entries (os_log) with subsystem / process / message filters.",
@@ -71,7 +71,22 @@ struct LogsCommand: ParsableCommand {
     @Flag(name: .long, help: "Only show Error and Fault entries.")
     var errorsOnly: Bool = false
 
-    func run() throws {
+    @Flag(
+        name: .shortAndLong,
+        help: "Live-tail new log entries (runs until interrupted with Ctrl-C). Ignores --since/--until/--last."
+    )
+    var follow: Bool = false
+
+    func run() async throws {
+        let baseQuery = buildQuery()
+        if follow {
+            try await runFollowMode(query: baseQuery)
+        } else {
+            try runOneShot(query: baseQuery)
+        }
+    }
+
+    private func buildQuery() -> LogQuery {
         var query = LogQuery(
             subsystem: subsystem,
             category: category,
@@ -90,12 +105,34 @@ struct LogsCommand: ParsableCommand {
             query.until = parseISODate(until)
         }
         query.limit = last
+        return query
+    }
 
+    private func runOneShot(query: LogQuery) throws {
         var entries = try OWLog.query(query)
         if errorsOnly {
             entries = entries.filter { $0.level == .error || $0.level == .fault }
         }
         printTable(entries: entries)
+    }
+
+    private func runFollowMode(query: LogQuery) async throws {
+        // Print header once. Each yielded LogEntry becomes a row beneath
+        // it. The widths are fixed (we don't know the maximum row width
+        // upfront in stream mode), tuned to fit common Apple subsystems.
+        let header = ["TIMESTAMP", "LEVEL", "PROCESS", "SUBSYSTEM", "CATEGORY", "MESSAGE"]
+        let widths = [12, 8, 24, 32, 16, 80]
+        print(formatRow(header, widths: widths))
+        FileHandle.standardOutput.synchronizeFile()
+
+        for try await entry in OWLog.stream(query) {
+            if errorsOnly, entry.level != .error && entry.level != .fault {
+                continue
+            }
+            let row = renderRow(entry)
+            print(formatRow(row, widths: widths))
+            FileHandle.standardOutput.synchronizeFile()
+        }
     }
 
     private func parseISODate(_ string: String) -> Date? {
