@@ -6,7 +6,17 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 
 ## [Unreleased]
 
-_No entries yet. Next non-entitlement-gated milestone is M11 (mic and webcam monitor via existing user-mode APIs) or M13 (rules engine over the data sources already implemented); M7 / M8 / M9 / M12 stay blocked on Apple entitlement provisioning._
+### Added
+
+- **`OWDevices` module (M11.1)** — enumerates cameras and microphones attached to the system, with the current "in use right now?" state for each. Public surface: `OWDevices.cameras() -> [Camera]` and `OWDevices.microphones() -> [Microphone]`.
+- **Two data paths backing the snapshot:**
+  - **Cameras** — `AVCaptureDevice.DiscoverySession` over `.builtInWideAngleCamera`, `.continuityCamera`, `.deskViewCamera`, `.external` for friendly metadata (name, manufacturer, model, built-in vs external), then the underlying CMIO HAL (`CoreMediaIO` framework) for the `kCMIODevicePropertyDeviceIsRunningSomewhere` "in use" bit. Walks the system's CMIO device list and matches by UID.
+  - **Microphones** — CoreAudio HAL (`AudioObjectGetPropertyData` on `kAudioHardwarePropertyDevices`) as the source of truth, filtered to devices with at least one input channel (excludes speakers / headphones / AirPlay output devices). `kAudioDevicePropertyDeviceIsRunningSomewhere` for the in-use bit. Friendly names enriched from `AVCaptureDevice` when available.
+- **Value types:** `Camera` (`id`, `name`, `manufacturer`, `modelID`, `isInUse`, `isExternal`, `isVirtual`); `Microphone` (`id`, `name`, `manufacturer`, `isInUse`, `isExternal`); `DeviceKind` (`.camera` / `.microphone`). The `isVirtual` flag on `Camera` distinguishes Apple's own virtual cameras (Continuity Camera proxy, Desk View Camera) from hardware capture devices; third-party virtual cameras (OBS, etc.) aren't reliably detectable through public APIs and aren't flagged today.
+- **`owlwatch devices` subcommand** — twelfth subcommand. Prints `TYPE NAME MANUFACTURER IN USE EXTERNAL ID` rows for every visible camera and microphone. Flags: `--cameras`, `--microphones`, `--in-use-only`.
+- **Honest limit documented in the module docs:** macOS does not expose which *process* is using a device through any public API — Apple has closed that privacy boundary. Soft attribution via TCC events (M6.2) + `com.apple.cmio` / `coreaudiod` log entries (M6.1) lands in M11.3.
+
+_M11.2 (live device-state stream — AsyncThrowingStream of state-change events), M11.3 (soft process attribution via TCC / log correlation), M11.4 (macOS app Devices tab), and M11-close follow before the v0.9.0-m11 tag._
 
 ## [v0.8.0-m10] — 2026-05-23
 
