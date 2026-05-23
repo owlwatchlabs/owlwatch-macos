@@ -3,6 +3,10 @@ import SwiftUI
 
 @main
 struct OwlwatchApp: App {
+    /// Stable identifier for the M16.1 status dashboard — the new
+    /// app "home" reachable via "Open Dashboard…" (⌘⇧H).
+    static let dashboardWindowID = "dashboard"
+
     /// Stable identifier for the persistence-viewer window. Used by the
     /// MenuBarExtra's "Open Persistence View…" command via
     /// `openWindow(id:)`.
@@ -16,6 +20,12 @@ struct OwlwatchApp: App {
             OwlwatchMenuBarContent()
         }
         .menuBarExtraStyle(.menu)
+
+        Window("Dashboard — Owlwatch", id: Self.dashboardWindowID) {
+            DashboardWindow()
+        }
+        .defaultSize(width: 820, height: 620)
+        .windowResizability(.contentMinSize)
 
         Window("Persistence — Owlwatch", id: Self.persistenceWindowID) {
             PersistenceWindow()
@@ -39,6 +49,12 @@ private struct OwlwatchMenuBarContent: View {
     var body: some View {
         Text("Owlwatch")
             .font(.headline)
+        Divider()
+        Button("Open Dashboard…") {
+            NSApp.activate()
+            openWindow(id: OwlwatchApp.dashboardWindowID)
+        }
+        .keyboardShortcut("h", modifiers: [.command, .shift])
         Divider()
         Button("Open Persistence View…") {
             // LSUIElement apps do not activate when a window is opened —

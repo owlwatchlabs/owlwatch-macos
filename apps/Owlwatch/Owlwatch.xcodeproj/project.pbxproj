@@ -11,12 +11,19 @@
 		1FDE35E49D8D9BED4A9BA0DF /* OWDevices in Frameworks */ = {isa = PBXBuildFile; productRef = 97E7E4F808C63E3696874A03 /* OWDevices */; };
 		24B8E87A565AF3F88F031DF7 /* PersistenceItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54D13331E7067095DC0AEE17 /* PersistenceItem.swift */; };
 		28214F1134BCA66E9F356017 /* PersistenceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E760B0CBDF97D4038125F9E1 /* PersistenceViewModel.swift */; };
+		28F76C71030A320D8687D4BA /* OWBinary in Frameworks */ = {isa = PBXBuildFile; productRef = E31B549812719EBEA5DDF202 /* OWBinary */; };
+		2A3BCF1308BDB51C79776AD6 /* OWLog in Frameworks */ = {isa = PBXBuildFile; productRef = D46A48954D1E9FA3595270DF /* OWLog */; };
+		30086B3023C630861C97A4FF /* OWProcess in Frameworks */ = {isa = PBXBuildFile; productRef = 54DECE2B6767ACF115F976B3 /* OWProcess */; };
 		35B66968C3FAB0F2CAEB1EB6 /* PersistenceItemDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44039B583CCA48E977787553 /* PersistenceItemDetail.swift */; };
 		3D441249D8F77F5AF317954C /* DevicesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D127C31DA4EAA2B4917A6F3 /* DevicesViewModel.swift */; };
+		59CDB60D14F061605963AF2E /* OWNetwork in Frameworks */ = {isa = PBXBuildFile; productRef = 9AB02C19DDEC9E21BC9A5868 /* OWNetwork */; };
 		6148BF22CAA7095295B1568C /* PersistenceItemList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E5540D063BAC38169407A4 /* PersistenceItemList.swift */; };
 		69DB910D0201D6AF08099447 /* PersistenceWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8B3F7198CBC17EF7D1CB927 /* PersistenceWindow.swift */; };
 		88DA62341C83EA8F586DD97D /* OWCore in Frameworks */ = {isa = PBXBuildFile; productRef = 214AE25A461CC3BEF29D2677 /* OWCore */; };
 		8CEF095D32B246522938118C /* OWPersistence in Frameworks */ = {isa = PBXBuildFile; productRef = 372EF516759FEB18843357AD /* OWPersistence */; };
+		ABA81CF230328513F16720C6 /* OWCodeSigning in Frameworks */ = {isa = PBXBuildFile; productRef = 897C389B7082CAF5B986B27F /* OWCodeSigning */; };
+		EB814B23CB4A60E032E8ECA5 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCBA36F8CD7997ECFA944B3B /* DashboardViewModel.swift */; };
+		ECFB43109C56677BCCFDED37 /* DashboardWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5330345428645E330DF3E3 /* DashboardWindow.swift */; };
 		EE2AAB13EDDAC1431103125B /* OwlwatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EB594B8241926AF224E7A18 /* OwlwatchApp.swift */; };
 		FED04D77BA9E01AA84A37CC8 /* PersistenceSidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF3253B96EE22E3904329236 /* PersistenceSidebar.swift */; };
 /* End PBXBuildFile section */
@@ -30,7 +37,9 @@
 		54D13331E7067095DC0AEE17 /* PersistenceItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceItem.swift; sourceTree = "<group>"; };
 		5D127C31DA4EAA2B4917A6F3 /* DevicesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevicesViewModel.swift; sourceTree = "<group>"; };
 		65E5540D063BAC38169407A4 /* PersistenceItemList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceItemList.swift; sourceTree = "<group>"; };
+		7A5330345428645E330DF3E3 /* DashboardWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardWindow.swift; sourceTree = "<group>"; };
 		7E438A3EE40CC96C0081E55E /* Owlwatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Owlwatch.entitlements; sourceTree = "<group>"; };
+		BCBA36F8CD7997ECFA944B3B /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
 		C8B3F7198CBC17EF7D1CB927 /* PersistenceWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceWindow.swift; sourceTree = "<group>"; };
 		DF3253B96EE22E3904329236 /* PersistenceSidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceSidebar.swift; sourceTree = "<group>"; };
 		E760B0CBDF97D4038125F9E1 /* PersistenceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceViewModel.swift; sourceTree = "<group>"; };
@@ -45,6 +54,11 @@
 				88DA62341C83EA8F586DD97D /* OWCore in Frameworks */,
 				8CEF095D32B246522938118C /* OWPersistence in Frameworks */,
 				1FDE35E49D8D9BED4A9BA0DF /* OWDevices in Frameworks */,
+				30086B3023C630861C97A4FF /* OWProcess in Frameworks */,
+				59CDB60D14F061605963AF2E /* OWNetwork in Frameworks */,
+				2A3BCF1308BDB51C79776AD6 /* OWLog in Frameworks */,
+				28F76C71030A320D8687D4BA /* OWBinary in Frameworks */,
+				ABA81CF230328513F16720C6 /* OWCodeSigning in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -62,6 +76,8 @@
 		1B2F88CA86337676E681E7B1 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				BCBA36F8CD7997ECFA944B3B /* DashboardViewModel.swift */,
+				7A5330345428645E330DF3E3 /* DashboardWindow.swift */,
 				5D127C31DA4EAA2B4917A6F3 /* DevicesViewModel.swift */,
 				FBFAE1539794428E55548293 /* DevicesWindow.swift */,
 				4CC044269BD860867DB61139 /* Info.plist */,
@@ -113,6 +129,11 @@
 				214AE25A461CC3BEF29D2677 /* OWCore */,
 				372EF516759FEB18843357AD /* OWPersistence */,
 				97E7E4F808C63E3696874A03 /* OWDevices */,
+				54DECE2B6767ACF115F976B3 /* OWProcess */,
+				9AB02C19DDEC9E21BC9A5868 /* OWNetwork */,
+				D46A48954D1E9FA3595270DF /* OWLog */,
+				E31B549812719EBEA5DDF202 /* OWBinary */,
+				897C389B7082CAF5B986B27F /* OWCodeSigning */,
 			);
 			productName = Owlwatch;
 			productReference = 26AAF1F70F3C064DFC041B38 /* Owlwatch.app */;
@@ -160,6 +181,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				EB814B23CB4A60E032E8ECA5 /* DashboardViewModel.swift in Sources */,
+				ECFB43109C56677BCCFDED37 /* DashboardWindow.swift in Sources */,
 				3D441249D8F77F5AF317954C /* DevicesViewModel.swift in Sources */,
 				14694638226F39EA76BDB1BA /* DevicesWindow.swift in Sources */,
 				EE2AAB13EDDAC1431103125B /* OwlwatchApp.swift in Sources */,
@@ -383,9 +406,29 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = OWPersistence;
 		};
+		54DECE2B6767ACF115F976B3 /* OWProcess */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = OWProcess;
+		};
+		897C389B7082CAF5B986B27F /* OWCodeSigning */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = OWCodeSigning;
+		};
 		97E7E4F808C63E3696874A03 /* OWDevices */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = OWDevices;
+		};
+		9AB02C19DDEC9E21BC9A5868 /* OWNetwork */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = OWNetwork;
+		};
+		D46A48954D1E9FA3595270DF /* OWLog */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = OWLog;
+		};
+		E31B549812719EBEA5DDF202 /* OWBinary */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = OWBinary;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

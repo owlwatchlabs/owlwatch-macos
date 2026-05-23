@@ -6,7 +6,14 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 
 ## [Unreleased]
 
-_No entries yet. The next non-entitlement-gated milestone is M13 (rules engine over the data sources implemented across M1–M6, M10, M11). The four entitlement-gated milestones (M7 Network Extension, M8 Endpoint Security, M9 ES auth/muting, M12 DNS proxy) remain blocked on Apple's entitlement-provisioning queue._
+### Added
+
+- **M16 added to the ROADMAP** — macOS app UI integration. Status dashboard + per-source windows (Processes, Network, Logs, Binary Inspector) + menu-bar polish. Brings every CLI surface from M1–M11 into the GUI; doesn't add a new data source. Slips between the existing entitlement-gated milestones and v1.0 as a consolidation pass.
+- **Status Dashboard (M16.1)** — new top-level window reachable via the MenuBarExtra's "Open Dashboard…" item (⌘⇧H). Surfaces headline counts from every data source: processes (M1), launch services + login items (M5), network listeners + active connections (M4), cameras + microphones + in-use count (M11). Plus a "recent activity" panel showing TCC denials and Error/Fault log entries within the last 5 minutes (queries M6's `OWLog.tccEvents()` + `OWLog.query()` off the main actor). Pull-on-demand refresh — the dashboard isn't a live console; per-source live streams stay in their dedicated windows.
+- **`DashboardViewModel`** — `@MainActor @Observable` with parallel detached fetches per source via `async let`. A slow source (TCC query) doesn't gate the others.
+- **Owlwatch app target gained dependencies** on `OWProcess`, `OWNetwork`, `OWLog`, `OWBinary`, `OWCodeSigning` — every shipped data-source module is now reachable from the macOS app, in preparation for M16.2–M16.5 windows.
+
+_M16.2 (Processes window), M16.3 (Network window), M16.4 (Logs window), M16.5 (Binary Inspector window), M16.6 (menu-bar live indicator + polish), and M16-close follow before the v0.10.0-m16 tag._
 
 ## [v0.9.0-m11] — 2026-05-23
 
