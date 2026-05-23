@@ -25,7 +25,7 @@ Demo recording scripts live in [`docs/demos/`](docs/demos/) and cover the **CLI 
 - [x] M3 code-signing inspection (`OWCodeSigning`) and `owlwatch verify` — signature validity, signing type, Team ID, CDHash, authority chain, flags, designated requirement, stapled notarization ticket, hardened-runtime version, entitlements
 - [x] M4 host network state (`OWNetwork`) and `owlwatch netstat` — per-process IP sockets (TCP + UDP over IPv4/IPv6) and Unix-domain sockets with `--listen`, `--tcp`, `--udp`, `--unix`, `--ipv4`, `--ipv6`, `--port`, `--pid` filters
 - [x] M5 persistence enumeration (`OWPersistence`) — Launch Agents, Launch Daemons, Login Items (BTM), System Extensions, Kernel Extensions, Login/Logout hooks; CLI subcommands `persistence`, `login-items`, `system-extensions`, `kernel-extensions`, `login-hooks`; first interactive macOS app surface (persistence viewer window)
-- [ ] M6 unified-log ingestion (`OWLog`) and `owlwatch logs` — structured query over `os_log` archives via `log show`, with subsystem/category/predicate filters
+- [x] M6 unified-log ingestion (`OWLog`) — `owlwatch logs` for historical query, `owlwatch logs --follow` for live tail, `owlwatch tcc-events` for typed TCC privacy decisions; subsystem/category/predicate/process filters
 - [ ] M7 Network Extension filter provider
 - [ ] M8 Endpoint Security event ingestion
 - [ ] M10 persistence monitor (real-time)
