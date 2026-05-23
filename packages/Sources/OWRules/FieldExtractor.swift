@@ -1,4 +1,5 @@
 import Foundation
+import OWNetwork
 import OWPersistence
 import OWProcess
 
@@ -103,6 +104,61 @@ enum FieldExtractor {
         }
     }
 
+    // MARK: - Network connection
+
+    static let networkFields: Set<String> = [
+        "pid", "fd", "family", "protocol_name",
+        "local_address", "local_port",
+        "remote_address", "remote_port",
+        "tcp_state", "is_listener"
+    ]
+
+    static func extract(_ field: String, from connection: Connection) -> FieldValue {
+        switch field {
+        case "pid": return .integer(Int64(connection.pid))
+        case "fd": return .integer(Int64(connection.fd))
+        case "family": return .string(connection.family.rawValue)
+        case "protocol_name": return .string(connection.protocol.rawValue)
+        case "local_address":
+            return connection.localAddress.map(FieldValue.string) ?? .missing
+        case "local_port":
+            return connection.localPort.map { .integer(Int64($0)) } ?? .missing
+        case "remote_address":
+            return connection.remoteAddress.map(FieldValue.string) ?? .missing
+        case "remote_port":
+            return connection.remotePort.map { .integer(Int64($0)) } ?? .missing
+        case "tcp_state":
+            return connection.tcpState.map { .string($0.rawValue) } ?? .missing
+        case "is_listener": return .boolean(connection.isListener)
+        default: return .missing
+        }
+    }
+
+    // MARK: - Kernel extension
+
+    static let kernelExtensionFields: Set<String> = [
+        "bundle_path", "bundle_identifier", "short_version",
+        "bundle_version", "executable_name", "executable_path", "scope"
+    ]
+
+    static func extract(_ field: String, from kext: KernelExtension) -> FieldValue {
+        switch field {
+        case "bundle_path": return .string(kext.bundlePath)
+        case "bundle_identifier":
+            return kext.bundleIdentifier.map(FieldValue.string) ?? .missing
+        case "short_version":
+            return kext.shortVersion.map(FieldValue.string) ?? .missing
+        case "bundle_version":
+            return kext.bundleVersion.map(FieldValue.string) ?? .missing
+        case "executable_name":
+            return kext.executableName.map(FieldValue.string) ?? .missing
+        case "executable_path":
+            return kext.executablePath.map(FieldValue.string) ?? .missing
+        case "scope": return .string(kext.scope.rawValue)
+        default: return .missing
+        }
+    }
+
     // MARK: - Field validation
 
     /// Field names a rule may reference for the given source.
@@ -113,6 +169,8 @@ enum FieldExtractor {
         case .launchService: return launchServiceFields
         case .loginItem: return loginItemFields
         case .binary: return binaryFields
+        case .network: return networkFields
+        case .kernelExtension: return kernelExtensionFields
         }
     }
 }

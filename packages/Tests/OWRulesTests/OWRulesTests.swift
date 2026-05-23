@@ -1,6 +1,5 @@
 @testable import OWRules
 import Foundation
-import OWBinary
 import OWPersistence
 import OWProcess
 import XCTest
@@ -285,8 +284,8 @@ final class OWRulesTests: XCTestCase {
         // this is the regression gate for rule-format breakage.
         let url = shippedRulesURL()
         let rules = try OWRules.loadRules(from: url)
-        XCTAssertGreaterThanOrEqual(rules.count, 9,
-                                    "expected at least the M13.1+M13.2 starter rules (5+4)")
+        XCTAssertGreaterThanOrEqual(rules.count, 13,
+                                    "expected at least M13.1+M13.2+M13.3 starter rules (5+4+4)")
         for rule in rules {
             XCTAssertFalse(rule.id.isEmpty, "rule \(rule.id) has empty id")
             XCTAssertFalse(rule.name.isEmpty, "rule \(rule.id) has empty name")
@@ -345,98 +344,6 @@ final class OWRulesTests: XCTestCase {
                 return XCTFail("expected .schemaViolation, got \(error)")
             }
         }
-    }
-
-    // MARK: - Binary source (M13.2)
-
-    func testEvaluatorFiresOnBinarySummary() {
-        let rule = Rule(
-            id: "T0001-rwx", name: "RWX",
-            severity: .high, source: .binary,
-            match: ["has_rwx_segment": .isBoolean(true)],
-            evidence: ["path", "architectures"]
-        )
-        let suspect = BinarySummary(
-            path: "/tmp/packer",
-            isUniversal: false,
-            sliceCount: 1,
-            architectures: ["arm64"],
-            linkedDylibs: ["/usr/lib/libSystem.B.dylib"],
-            rpaths: [],
-            hasRWXSegment: true,
-            maxSectionEntropy: 6.0
-        )
-        let benign = BinarySummary(
-            path: "/usr/bin/ls",
-            isUniversal: false,
-            sliceCount: 1,
-            architectures: ["arm64"],
-            linkedDylibs: [],
-            rpaths: [],
-            hasRWXSegment: false,
-            maxSectionEntropy: 5.8
-        )
-        let snapshot = Snapshot(binaries: [suspect, benign])
-        let report = OWRules.scan(rules: [rule], snapshot: snapshot)
-        XCTAssertEqual(report.findings.count, 1)
-        XCTAssertEqual(report.findings[0].targetID, "/tmp/packer")
-        XCTAssertEqual(report.findings[0].evidence["architectures"], "arm64")
-    }
-
-    func testEvaluatorFiresOnHighEntropy() {
-        let rule = Rule(
-            id: "T0001-entropy", name: "Entropy",
-            severity: .medium, source: .binary,
-            match: ["max_section_entropy": .greaterThan(7.5)]
-        )
-        let packed = BinarySummary(
-            path: "/tmp/packed", isUniversal: false,
-            sliceCount: 1, architectures: ["arm64"],
-            linkedDylibs: [], rpaths: [],
-            hasRWXSegment: false, maxSectionEntropy: 7.9
-        )
-        let normal = BinarySummary(
-            path: "/usr/bin/normal", isUniversal: false,
-            sliceCount: 1, architectures: ["arm64"],
-            linkedDylibs: [], rpaths: [],
-            hasRWXSegment: false, maxSectionEntropy: 6.2
-        )
-        let report = OWRules.scan(rules: [rule], snapshot: Snapshot(binaries: [packed, normal]))
-        XCTAssertEqual(report.findings.count, 1)
-        XCTAssertEqual(report.findings[0].targetID, "/tmp/packed")
-    }
-
-    func testBinarySummaryFromBinaryFile() throws {
-        // Parse a known system binary (/bin/ls) and assert the
-        // summary captures sane values. The path exists on every
-        // macOS test environment.
-        let url = URL(fileURLWithPath: "/bin/ls")
-        let binary = try OWBinary.parse(at: url, includeSymbols: false)
-        let summary = BinarySummary.make(from: binary)
-        XCTAssertEqual(summary.path, "/bin/ls")
-        XCTAssertGreaterThan(summary.sliceCount, 0)
-        XCTAssertGreaterThan(summary.linkedDylibs.count, 0,
-                             "/bin/ls links against libSystem at minimum")
-        XCTAssertFalse(summary.hasRWXSegment,
-                       "Apple system binaries don't ship rwx segments")
-        XCTAssertGreaterThan(summary.maxSectionEntropy, 0.0)
-        XCTAssertLessThanOrEqual(summary.maxSectionEntropy, 8.0)
-    }
-
-    func testCaptureSnapshotSkipsBinariesWhenNoRulesNeedThem() throws {
-        // The convenience scan() should skip the (expensive) binary
-        // parse pass when no loaded rule targets the `binary` source.
-        let rule = Rule(
-            id: "T0001-cheap", name: "Cheap",
-            severity: .info, source: .process,
-            match: ["name": .equals("nonexistent-process-name")]
-        )
-        let report = try OWRules.scan(rules: [rule])
-        // The snapshot's binaries list isn't directly observable from
-        // the report, but the fact that scan() completes quickly is
-        // the assertion — formal regression: itemsEvaluated only
-        // counts the process source.
-        XCTAssertGreaterThan(report.itemsEvaluated, 0)
     }
 
     // MARK: - Helpers

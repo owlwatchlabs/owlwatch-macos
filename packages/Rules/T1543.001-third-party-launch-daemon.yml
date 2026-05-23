@@ -1,0 +1,35 @@
+id: T1543.001-third-party-launch-daemon
+name: Third-party launch daemon (runs as root)
+description: |
+  Launch daemons under `/Library/LaunchDaemons` are third-party
+  persistence items that run as root from boot. They are not
+  malware by themselves — most legitimate apps that need a
+  privileged background service (Docker, antivirus, VPN clients,
+  printer drivers) install one here. But the population is
+  small enough on most machines that surfacing every entry as an
+  inventory finding is operationally valuable: a new daemon
+  appearing after install should always be a known integration.
+
+  Severity is `info` deliberately — this is an inventory rule, not
+  an alert. Triage by comparing the plist's `label` and
+  `executable_path` against an installed-software list. Daemons
+  whose executable is in `/tmp`, `~/Downloads`, or any path the
+  user wouldn't expect get the higher-severity
+  `T1546.004-launchagent-in-*` treatment instead.
+
+  Apple-shipped daemons (under `/System/Library/LaunchDaemons`)
+  are excluded by `scope: equals: system_daemon` — that scope
+  represents `/Library/LaunchDaemons` specifically, not the
+  platform `/System` scope.
+mitre: T1543.001
+severity: info
+when:
+  source: launch_service
+  match:
+    scope:
+      equals: system_daemon
+evidence:
+  - plist_path
+  - label
+  - executable_path
+  - run_at_load

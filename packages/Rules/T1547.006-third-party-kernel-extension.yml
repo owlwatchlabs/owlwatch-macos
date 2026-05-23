@@ -1,0 +1,34 @@
+id: T1547.006-third-party-kernel-extension
+name: Third-party kernel extension installed
+description: |
+  Kernel extensions under `/Library/Extensions` (scope: `system`)
+  are third-party code running with kernel privilege. They are
+  exceptional on modern macOS — Apple deprecated third-party kexts
+  in favor of System Extensions (M9) starting with macOS Catalina,
+  and the System Integrity Protection / kext-loading flow requires
+  explicit user approval. Any kext outside `/System/Library/
+  Extensions` is operationally significant and worth a finding.
+
+  Severity is `high` because (a) the population should be small
+  to zero on modern systems, (b) the kext runs with kernel
+  privilege, and (c) the install requires user approval — so an
+  unexpected entry implies either an authorized but undocumented
+  install or a privilege-elevation chain that bypassed the
+  approval prompt.
+
+  Excludes Apple's own `/System/Library/Extensions` via the
+  `scope: equals: system` predicate (the OWPersistence
+  `KernelExtensionScope.system` enum value represents
+  `/Library/Extensions` specifically, not the platform scope).
+mitre: T1547.006
+severity: high
+when:
+  source: kernel_extension
+  match:
+    scope:
+      equals: system
+evidence:
+  - bundle_path
+  - bundle_identifier
+  - short_version
+  - executable_path

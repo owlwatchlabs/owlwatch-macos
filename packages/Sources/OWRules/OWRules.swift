@@ -1,5 +1,6 @@
 import Foundation
 import OWBinary
+import OWNetwork
 import OWPersistence
 import OWProcess
 
@@ -48,7 +49,9 @@ public enum OWRules {
     ///   based on whether any loaded rule needs the binary source.
     public static func captureSnapshot(
         includeArguments: Bool = true,
-        includeBinaries: Bool = true
+        includeBinaries: Bool = true,
+        includeNetwork: Bool = true,
+        includeKernelExtensions: Bool = true
     ) throws -> Snapshot {
         let processes = try OWProcess.all(
             includeArguments: includeArguments,
@@ -59,11 +62,19 @@ public enum OWRules {
         let binaries = includeBinaries
             ? captureBinaries(from: processes)
             : []
+        let connections = includeNetwork
+            ? ((try? OWNetwork.snapshot()) ?? [])
+            : []
+        let kexts = includeKernelExtensions
+            ? OWPersistence.kernelExtensions()
+            : []
         return Snapshot(
             processes: processes,
             launchServices: services,
             loginItems: items,
-            binaries: binaries
+            binaries: binaries,
+            connections: connections,
+            kernelExtensions: kexts
         )
     }
 
@@ -95,11 +106,14 @@ public enum OWRules {
     }
 
     /// Convenience: capture a fresh snapshot and evaluate `rules`
-    /// against it in one call. Skips binary parsing when no loaded
-    /// rule targets the `binary` source — keeps simple `process` /
-    /// `launch_service` / `login_item` scans cheap.
+    /// against it in one call. Skips each source's capture pass when
+    /// no loaded rule targets it — keeps minimal scans cheap (process
+    /// rules don't pay the binary-parse cost; cheap snapshot scans
+    /// don't pay the kext enumeration cost).
     public static func scan(rules: [Rule]) throws -> ScanReport {
         let needsBinaries = rules.contains { $0.source == .binary }
+        let needsNetwork = rules.contains { $0.source == .network }
+        let needsKexts = rules.contains { $0.source == .kernelExtension }
         let needsArguments = rules.contains { rule in
             rule.source == .process && (
                 rule.match.keys.contains("arguments") || rule.evidence.contains("arguments")
@@ -107,7 +121,9 @@ public enum OWRules {
         }
         let snapshot = try captureSnapshot(
             includeArguments: needsArguments,
-            includeBinaries: needsBinaries
+            includeBinaries: needsBinaries,
+            includeNetwork: needsNetwork,
+            includeKernelExtensions: needsKexts
         )
         return scan(rules: rules, snapshot: snapshot)
     }

@@ -40,7 +40,10 @@
       "properties": {
         "source": {
           "type": "string",
-          "enum": ["process", "launch_service", "login_item", "binary"],
+          "enum": [
+            "process", "launch_service", "login_item", "binary",
+            "network", "kernel_extension"
+          ],
           "description": "Data source the rule iterates over."
         },
         "match": {

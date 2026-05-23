@@ -24,6 +24,19 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 
 _M13.2 (process + binary library), M13.3 (network + persistence), M13.4 (signature + log correlation), M13.5 (schema hardening + golden fixtures), and M13-close follow before the v0.11.0-m13 tag._
 
+- **Network + persistence rule library (M13.3)** — extends `OWRules` with two new data sources (`network` and `kernel_extension`) and adds four new rules. `OWRules` gains a dependency on `OWNetwork` (M4) for the connection snapshot.
+  - **New data sources:**
+    - `network` — iterates `OWNetwork.snapshot()`. Fields: `pid`, `fd`, `family`, `protocol_name`, `local_address`, `local_port`, `remote_address`, `remote_port`, `tcp_state`, `is_listener`. Findings get a stable `pid:N:fd:M:proto:local→remote` target ID.
+    - `kernel_extension` — iterates `OWPersistence.kernelExtensions()`. Fields: `bundle_path`, `bundle_identifier`, `short_version`, `bundle_version`, `executable_name`, `executable_path`, `scope`. Findings target the bundle identifier (or path fallback).
+  - **Capture skip extended** — `OWRules.captureSnapshot(includeNetwork:includeKernelExtensions:)` lets callers skip the network and kext passes when no rule needs them. The convenience `scan(rules:)` auto-detects from the rule set.
+  - **Four new rules:**
+    - `T1543.001-third-party-launch-daemon` (info, `launch_service`) — every plist under `/Library/LaunchDaemons` (third-party root daemons). Inventory-style — surfaces every entry for the operator to confirm against installed-software lists.
+    - `T1547.011-launch-service-no-executable` (medium, `launch_service`) — launchd plist with no `Program` / `ProgramArguments` key. Either malformed or using XPC indirection; warrants inspection.
+    - `T1071-listener-on-all-interfaces` (medium, `network`) — TCP socket in `LISTEN` bound to `0.0.0.0` or `::`. Surfaces every wildcard-bound listener so the operator can triage which are intentional vs unauthorized.
+    - `T1547.006-third-party-kernel-extension` (high, `kernel_extension`) — kext under `/Library/Extensions`. Exceptional on modern macOS (Apple deprecated third-party kexts post-Catalina); high severity reflects kernel-privilege impact.
+  - **Evaluator refactor** — per-source iteration extracted from `evaluate()` into a private `evaluateSource(_:rules:snapshot:...)` helper, keeping cyclomatic complexity under SwiftLint's threshold as the source count grows.
+  - **Tests split** — per-source evaluator tests moved to a new `OWRulesSourceTests` class file. 31 tests total across both classes; shipped-rules regression gate now expects ≥ 13 rules (5 + 4 + 4).
+
 - **Process + binary rule library (M13.2)** — extends `OWRules` with a `binary` data source and adds four new rules. `OWRules` gains a dependency on `OWBinary` (M2) for Mach-O parsing.
   - **New data source** `binary` — iterates `BinarySummary`s built from every unique executable in the process snapshot. Each summary collapses across slices (any-slice semantics) and exposes `path`, `is_universal`, `slice_count`, `architectures`, `linked_dylibs`, `rpaths`, `has_rwx_segment`, `max_section_entropy`.
   - **Numeric predicates** `greater_than` / `less_than` — required for entropy thresholds. `FieldValue.double` added; integers widen to double for numeric comparison. The loader's `decodePredicate` was split into per-shape helpers (`decodeStringPredicate`, `decodeBooleanPredicate`, `decodeNumericPredicate`, `decodeInPredicate`) to keep cyclomatic complexity under SwiftLint's threshold as the vocabulary grows.

@@ -1,0 +1,27 @@
+id: T1547.011-launch-service-no-executable
+name: Launch service without an executable path
+description: |
+  A launchd plist that doesn't declare a `Program` or
+  `ProgramArguments` key has no executable path the loader can
+  invoke. Such a plist is either malformed (unlikely on a working
+  system — `launchctl load` rejects them) or is using a less-
+  common indirection (alias to another service, watch-only
+  trigger). Either way it warrants inspection.
+
+  Legitimate cases exist — some platform-managed services use
+  XPC indirection that doesn't surface as a Program key in the
+  on-disk plist. Severity is `medium` to reflect that the rule
+  trades some false positives for catching plist tampering where
+  an attacker removes the executable reference to evade naive
+  enumeration tools.
+mitre: T1547.011
+severity: medium
+when:
+  source: launch_service
+  match:
+    executable_path:
+      exists: false
+evidence:
+  - plist_path
+  - label
+  - scope
