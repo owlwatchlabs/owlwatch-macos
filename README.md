@@ -26,13 +26,17 @@ Demo recording scripts live in [`docs/demos/`](docs/demos/) and cover the **CLI 
 - [x] M4 host network state (`OWNetwork`) and `owlwatch netstat` — per-process IP sockets (TCP + UDP over IPv4/IPv6) and Unix-domain sockets with `--listen`, `--tcp`, `--udp`, `--unix`, `--ipv4`, `--ipv6`, `--port`, `--pid` filters
 - [x] M5 persistence enumeration (`OWPersistence`) — Launch Agents, Launch Daemons, Login Items (BTM), System Extensions, Kernel Extensions, Login/Logout hooks; CLI subcommands `persistence`, `login-items`, `system-extensions`, `kernel-extensions`, `login-hooks`; first interactive macOS app surface (persistence viewer window)
 - [x] M6 unified-log ingestion (`OWLog`) — `owlwatch logs` for historical query, `owlwatch logs --follow` for live tail, `owlwatch tcc-events` for typed TCC privacy decisions; subsystem/category/predicate/process filters
-- [ ] M7 Network Extension filter provider
-- [ ] M8 Endpoint Security event ingestion
+- [ ] M7 Network Extension filter provider 🔒
+- [ ] M8 Endpoint Security event ingestion 🔒
+- [ ] M9 ES auth and muting — synchronous AUTH-event decisions, allow/block UX 🔒
 - [ ] M10 persistence monitor (real-time)
-- [ ] M12 DNS proxy and heuristics
+- [ ] M11 mic and webcam monitor (`OWDevices`) with process attribution
+- [ ] M12 DNS proxy and heuristics 🔒
 - [ ] M13 detection rules engine and tested rule library
-- [ ] M14 iOS companion (posture, App Attest)
-- [ ] M15 v1.0 notarized release
+- [ ] M14 iOS companion (posture, App Attest) 🔒
+- [ ] M15 v1.0 notarized release 🔒
+
+**🔒 — gated on Apple entitlement provisioning.** Milestones marked above require Apple to approve restricted entitlements (Endpoint Security, Network Extension filter / DNS proxy, Developer ID / notarization). Submission status is tracked at [docs/apple-developer/entitlement-requests.md](docs/apple-developer/entitlement-requests.md). Until those land, development proceeds on the milestones that can ship without entitlement gating — currently M10 (persistence monitor, FSEvents-based), M11 (device-access attribution via existing user-mode APIs), and M13 (rules engine over already-implemented data sources).
 
 ## Architecture
 
