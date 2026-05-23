@@ -3,6 +3,11 @@ import SwiftUI
 
 @main
 struct OwlwatchApp: App {
+    /// Live status model that drives the M16.6 menu-bar indicator and
+    /// dropdown header. Started in the MenuBarExtra's content closure
+    /// the first time the menu is built.
+    @State private var status = MenuBarStatusModel()
+
     /// Stable identifier for the M16.1 status dashboard — the new
     /// app "home" reachable via "Open Dashboard…" (⌘⇧H).
     static let dashboardWindowID = "dashboard"
@@ -28,8 +33,11 @@ struct OwlwatchApp: App {
     static let binaryInspectorWindowID = "binary-inspector"
 
     var body: some Scene {
-        MenuBarExtra("Owlwatch", systemImage: "shield") {
-            OwlwatchMenuBarContent()
+        MenuBarExtra {
+            OwlwatchMenuBarContent(status: status)
+                .task { status.start() }
+        } label: {
+            MenuBarIcon(status: status)
         }
         .menuBarExtraStyle(.menu)
 
@@ -77,14 +85,49 @@ struct OwlwatchApp: App {
     }
 }
 
-/// Content of the menu-bar dropdown. Keeps the existing M0 placeholder
-/// shape but adds the entry point for the M5.5 persistence viewer.
+/// The menu-bar icon. Swaps between a neutral shield, an in-use shield
+/// (red), and an attention shield (orange, for recent TCC denials).
+/// Driven by `MenuBarStatusModel`.
+private struct MenuBarIcon: View {
+    @Bindable var status: MenuBarStatusModel
+
+    var body: some View {
+        if status.devicesInUseCount > 0 {
+            Image(systemName: "shield.lefthalf.filled")
+                .foregroundStyle(.red)
+        } else if status.recentTCCDenialCount > 0 {
+            Image(systemName: "shield.fill")
+                .foregroundStyle(.orange)
+        } else {
+            Image(systemName: "shield")
+        }
+    }
+}
+
+/// Content of the menu-bar dropdown. Carries the live status header
+/// (devices in use, recent TCC denials) plus jump links to every
+/// per-source window.
 private struct OwlwatchMenuBarContent: View {
+    @Bindable var status: MenuBarStatusModel
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
+        // The header surfaces the same signal the menu-bar icon shows.
+        // Buttons in a `.menu`-styled MenuBarExtra render as menu items,
+        // not full Views — so the header is implemented as Text nodes,
+        // not a custom HStack. macOS clips arbitrary layout in a menu
+        // and the result looks broken.
         Text("Owlwatch")
             .font(.headline)
+        if status.devicesInUseCount > 0 {
+            Text(devicesSummary)
+        }
+        if status.recentTCCDenialCount > 0 {
+            Text("\(status.recentTCCDenialCount) TCC denial(s) in last 5 min")
+        }
+        if status.devicesInUseCount == 0 && status.recentTCCDenialCount == 0 {
+            Text("All quiet")
+        }
         Divider()
         Button("Open Dashboard…") {
             NSApp.activate()
@@ -132,5 +175,16 @@ private struct OwlwatchMenuBarContent: View {
             NSApp.terminate(nil)
         }
         .keyboardShortcut("q", modifiers: .command)
+    }
+
+    private var devicesSummary: String {
+        var parts: [String] = []
+        if status.cameraInUseCount > 0 {
+            parts.append("\(status.cameraInUseCount) camera\(status.cameraInUseCount == 1 ? "" : "s")")
+        }
+        if status.microphoneInUseCount > 0 {
+            parts.append("\(status.microphoneInUseCount) mic\(status.microphoneInUseCount == 1 ? "" : "s")")
+        }
+        return parts.joined(separator: " + ") + " in use"
     }
 }

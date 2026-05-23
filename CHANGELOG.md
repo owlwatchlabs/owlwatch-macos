@@ -28,7 +28,9 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 
   Load Commands lists every `LC_LOAD_DYLIB`-family entry (required / weak / self) with current + compat versions, plus a separate RPATH block. Segments show each segment's r/w/x bits (with `rwx` highlighted red) and per-section size, file offset, and Shannon entropy (sections > 7.0 flagged red as a packing signal). Symbols are gated behind an explicit "Load symbols" button since stripping `LC_SYMTAB` parsing from the initial parse keeps Open instant on large binaries — once loaded, the Symbols pane filters by name and "external only". Signature pane renders the same surface as `owlwatch verify` — identity, certificate chain (leaf / intermediate / root labelled), `SecCodeSignatureFlags`, hardened-runtime version, notarization staple, designated requirement. Entitlements pane sorts the entitlements-dict alphabetically with `bool true` values highlighted green.
 
-_M16.6 (menu-bar live indicator + polish) and M16-close follow before the v0.10.0-m16 tag._
+- **Menu-bar live indicator (M16.6)** — the MenuBarExtra shield is no longer static. A new `MenuBarStatusModel` (`@MainActor @Observable`) streams `OWDevices.monitor()` and polls `OWLog.tccEvents()` once a minute; the icon switches between `shield` (idle), `shield.fill` in orange (recent TCC denials), and `shield.lefthalf.filled` in red (a camera or microphone is currently in use). The dropdown's header surfaces the same signal as text — "2 cameras + 1 mic in use", "3 TCC denial(s) in last 5 min", or "All quiet" — so the user can read the device-attention state without opening any window. Driven by a single long-running task per source; both clean up via `OWDevices.monitor()`'s `onTermination` callback when the app quits.
+
+_M16-close (version bump, CHANGELOG promotion, README tick, tag + Release) follows._
 
 ## [v0.9.0-m11] — 2026-05-23
 
