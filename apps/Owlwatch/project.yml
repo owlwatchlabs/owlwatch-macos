@@ -53,3 +53,5 @@ targets:
         product: OWCore
       - package: Owlwatch
         product: OWPersistence
+      - package: Owlwatch
+        product: OWDevices
