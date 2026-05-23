@@ -53,21 +53,58 @@ struct WatchPersistenceCommand: AsyncParsableCommand {
     )
     var latency: Double?
 
+    @Flag(
+        name: .long,
+        help: """
+            Skip parsing the changed plist; show only raw mutation \
+            fields (timestamp, kind, scope, path).
+            """
+    )
+    var raw: Bool = false
+
     func run() async throws {
         let allowedKinds = parseKindList(kind)
         let allowedScope = parseScope(scope)
         let latencyValue = latency ?? 0.5
 
+        if raw {
+            try await runRaw(allowedKinds: allowedKinds, allowedScope: allowedScope, latency: latencyValue)
+        } else {
+            try await runEnriched(allowedKinds: allowedKinds, allowedScope: allowedScope, latency: latencyValue)
+        }
+    }
+
+    private func runRaw(
+        allowedKinds: Set<MutationKind>?,
+        allowedScope: MutationScope?,
+        latency: TimeInterval
+    ) async throws {
         let header = ["TIMESTAMP", "KIND", "SCOPE", "PATH"]
         let widths = [12, 17, 25, 80]
         print(formatRow(header, widths: widths))
         fflush(stdout)
-
-        for try await mutation in OWPersistence.monitor(latency: latencyValue) {
+        for try await mutation in OWPersistence.monitor(latency: latency) {
             if let allowedKinds, !allowedKinds.contains(mutation.kind) { continue }
             if let allowedScope, mutation.scope != allowedScope { continue }
-            let row = renderRow(mutation)
-            print(formatRow(row, widths: widths))
+            print(formatRow(renderRawRow(mutation), widths: widths))
+            fflush(stdout)
+        }
+    }
+
+    private func runEnriched(
+        allowedKinds: Set<MutationKind>?,
+        allowedScope: MutationScope?,
+        latency: TimeInterval
+    ) async throws {
+        let header = ["TIMESTAMP", "KIND", "SCOPE", "LABEL / HOOK", "PROGRAM / SCRIPT", "PATH"]
+        let widths = [12, 17, 18, 40, 50, 60]
+        print(formatRow(header, widths: widths))
+        fflush(stdout)
+        for try await enriched in OWPersistence.monitorEnriched(latency: latency) {
+            let mutation = enriched.mutation
+            if let allowedKinds, !allowedKinds.contains(mutation.kind) { continue }
+            if let allowedScope, mutation.scope != allowedScope { continue }
+            print(formatRow(renderEnrichedRow(enriched), widths: widths))
             fflush(stdout)
         }
     }
@@ -111,16 +148,49 @@ struct WatchPersistenceCommand: AsyncParsableCommand {
 
     // MARK: - Rendering
 
-    private func renderRow(_ mutation: PersistenceMutation) -> [String] {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm:ss.SSS"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        return [
-            formatter.string(from: mutation.timestamp),
+    private func renderRawRow(_ mutation: PersistenceMutation) -> [String] {
+        [
+            renderTimestamp(mutation.timestamp),
             renderKind(mutation.kind),
             renderScope(mutation.scope),
             mutation.path
         ]
+    }
+
+    private func renderEnrichedRow(_ enriched: EnrichedMutation) -> [String] {
+        let mutation = enriched.mutation
+        let (label, program) = renderPayload(enriched)
+        return [
+            renderTimestamp(mutation.timestamp),
+            renderKind(mutation.kind),
+            renderScope(mutation.scope),
+            label,
+            program,
+            mutation.path
+        ]
+    }
+
+    /// Pull the two most-detection-relevant fields out of the
+    /// enriched payload — Label and Program for launchd services,
+    /// Kind and Script for login/logout hooks. `("-", "-")` when
+    /// nothing parsed (removal, parse failure, unsupported scope).
+    private func renderPayload(_ enriched: EnrichedMutation) -> (String, String) {
+        if let service = enriched.launchService {
+            return (service.label ?? "(no Label)", service.executablePath ?? "(no Program)")
+        }
+        if let hooks = enriched.hooks, !hooks.isEmpty {
+            let kinds = hooks.map(\.kind.rawValue).joined(separator: ",")
+            let scripts = hooks.map(\.scriptPath).joined(separator: " | ")
+            return (kinds, scripts)
+        }
+        return ("-", "-")
+    }
+
+    private func renderTimestamp(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss.SSS"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter.string(from: date)
     }
 
     private func renderKind(_ kind: MutationKind) -> String {
