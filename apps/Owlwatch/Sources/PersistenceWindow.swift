@@ -48,11 +48,19 @@ struct PersistenceWindow: View {
         .searchable(text: $viewModel.searchText, prompt: "Filter by name or path")
         .frame(minWidth: 880, minHeight: 480)
         .task {
-            // First-appearance refresh. Subsequent reloads go through the
-            // toolbar button — we don't auto-poll.
+            // Kick off the FSEvents-backed mutation monitor for the
+            // lifetime of the window. Cheap when idle (no events =
+            // no work); auto-cancelled by SwiftUI when the task
+            // surrounding view goes away.
+            viewModel.startLiveMonitor()
+            // First-appearance snapshot refresh. Subsequent reloads
+            // go through the toolbar button — we don't auto-poll.
             if viewModel.lastRefresh == nil {
                 await viewModel.refresh()
             }
+        }
+        .onDisappear {
+            viewModel.stopLiveMonitor()
         }
     }
 }
