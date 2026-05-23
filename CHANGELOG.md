@@ -6,18 +6,70 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 
 ## [Unreleased]
 
+_No entries yet. M7 work (`OwlwatchNetwork` — Network Extension filter provider) lands here once the Apple entitlement is provisioned._
+
+## [v0.7.0-m6] — 2026-05-22
+
+The unified-log milestone. Lands `OWLog` — the sixth non-stub `OW*` library — plus three new `owlwatch` subcommands: a generic historical query (`logs`), a live tail (`logs --follow`), and a typed TCC privacy-decision view (`tcc-events`).
+
+This is the first milestone to draw data from Apple's unified logging system (`os_log` archives under `/var/db/diagnostics/`). The detection value is large despite the indirect data path: every TCC privacy decision, Gatekeeper assessment, code-signing verification, Keychain unlock, and LaunchServices launch flows through `os_log`. M6 makes that surface queryable from Swift, and M6.2's TCC event reconstruction shows the pattern future M8 (Endpoint Security) integration will reuse.
+
+The library is also the first OW* module to expose an async API: `OWLog.stream(_:)` returns an `AsyncThrowingStream<LogEntry, Error>` for live tail. Wiring that into the CLI required upgrading the root `Owlwatch` command and `LogsCommand` to `AsyncParsableCommand`; the existing ten sync subcommands kept their sync `run()` unchanged.
+
 ### Added
 
-- **`OWLog` module (M6.1)** — public surface: `OWLog.query(_ query: LogQuery = LogQuery()) throws -> [LogEntry]`. Backed by `/usr/bin/log show --style ndjson` and parsing the NDJSON output, since the alternative (`OSLogStore`) requires the private `com.apple.logging.local-store` entitlement to read the system store. Value types: `LogEntry` (`timestamp`, `processName`, `processPath`, `processID`, `userID`, `threadID`, `subsystem`, `category`, `level`, `eventType`, `message`, `activityID`); `LogLevel` (`.default` / `.info` / `.debug` / `.error` / `.fault`); `LogEventType` (`.log` / `.state` / `.userAction` / `.signpost` / `.trace` / `.other(rawValue:)` for forward compat). The parser is intentionally tolerant: blank lines and non-JSON banner output from `log show` are skipped, records with unparseable timestamps are dropped, and `truncatingIfNeeded` is used on `processID` / `userID` so sentinel values like `4294967294` (UID -2 "nobody") don't crash the conversion.
-- **`LogQuery` value type** with shorthand filter fields (`subsystem`, `category`, `process`, `messageContains`) that compose via `AND` plus a free-form `predicate` field appended to the same chain. `since` / `until` map to `log show --start` / `--end`; `limit` maps to `--last <N>` (default 200) and is suppressed when an explicit time range is set. `includeInfo` / `includeDebug` opt into the corresponding levels (`Error` / `Fault` are always included regardless).
-- **`owlwatch logs` (M6.1)** — tenth subcommand. Prints `TIMESTAMP LEVEL PROCESS SUBSYSTEM CATEGORY MESSAGE` rows for each matching entry. Flags: `--subsystem`, `--category`, `--process`, `--message-contains`, `--predicate` (raw NSPredicate), `--since`, `--until`, `--lookback <seconds>` (shorthand for `--since (now - N)`), `--last <N>`, `--info`, `--debug`, `--errors-only`. Time-based filtering accepts ISO-8601 and the simpler `"YYYY-MM-DD HH:MM:SS"` form. `OWLogError.logShowFailed(exitCode:stderr:)` is the only error path — empty result is *not* an error.
+- **`OWLog` library.** Three public APIs across the slices:
 
-- **TCC event extraction — `OWLog.tccEvents(_:)` (M6.2)** — new top-level API plus the `owlwatch tcc-events` subcommand. Correlates the 6-line transactions `tccd` emits to `com.apple.TCC/access` per privacy-permission request (`REQUEST` + `AUTHREQ_CTX` + `AUTHREQ_ATTRIBUTION` + `AUTHREQ_SUBJECT` + `AUTHREQ_RESULT` + `REPLY`) into a single typed `TCCEvent`. Value types: `TCCEvent` (`timestamp`, `msgID`, `service`, `isPreflight`, `accessingProcess`, `requestingProcess`, `outcome`, `authValueRaw`, `authReasonRaw`, computed `isDirectRequest`); `TCCProcessRef` (`identifier`, `pid`, `auid`, `euid`, `binaryPath`); `TCCService` enum with 26 cases for the well-known `kTCCService*` strings (camera, microphone, FDA, screen capture, accessibility, Apple Events, contacts variants, calendar, reminders, photos, location, Bluetooth, the protected user folders, etc.) plus `.other(rawValue:)` for forward-compat with future Apple services; `TCCOutcome` (`.denied` (`authValue == 0`) / `.allowed` (`authValue == 2`) / `.allowedLimited` (`authValue == 3`) / `.unknown(rawValue:)`). CLI flags: `--denied-only`, `--hide-preflight`, `--service <kTCC...>`, `--process <substring>`, plus the standard `--lookback` / `--since` / `--until` time-window flags. Transactions whose `AUTHREQ_CTX` line is outside the snapshot window (no service captured → no detection value) are silently dropped.
+  ```swift
+  OWLog.query(_ query: LogQuery = LogQuery()) throws -> [LogEntry]
+  OWLog.stream(_ query: LogQuery = LogQuery()) -> AsyncThrowingStream<LogEntry, Error>
+  OWLog.tccEvents(_ query: LogQuery = .tccDefault) throws -> [TCCEvent]
+  ```
 
-- **Live-tail mode — `OWLog.stream(_:)` (M6.3)** — new top-level API returning `AsyncThrowingStream<LogEntry, Error>`. Wraps `/usr/bin/log stream --style ndjson` in a subprocess that runs until the AsyncStream is cancelled (caller breaks out of the `for await` loop, parent `Task` is cancelled, or the host process exits). Cancellation calls `process.terminate()`. Reuses the same NDJSON line-by-line parser as M6.1; `LineBuffer` accumulates chunk reads into complete lines before decoding. Same `LogQuery` shape as the historical query; `since` / `until` / `limit` are silently dropped because `log stream` doesn't accept them.
-- **`owlwatch logs --follow` (M6.3)** — adds live-tail mode to the existing subcommand. Prints the same column header once, then streams new entries as they arrive. `--errors-only` filter composes with `--follow`; the historical-only flags (`--since` / `--until` / `--last` / `--lookback`) are ignored when `--follow` is set. The root `Owlwatch` command and `LogsCommand` were upgraded to `AsyncParsableCommand` to support the async `run()`; sync subcommands continue to work unchanged.
+  Backed by `/usr/bin/log show --style ndjson` and `/usr/bin/log stream --style ndjson`. The `OSLogStore` Swift API would be cleaner but requires the private `com.apple.logging.local-store` entitlement to read the system store; `log show` / `log stream` have the entitlement built in. Same trade-off as M5.2's `sfltool dumpbtm` shell-out, same approach every off-the-shelf macOS log tool takes.
 
-_M6-close (version bump to `0.7.0-m6`, README tick, CHANGELOG promotion, tag) follows._
+- **`LogEntry` value type** with fields: `timestamp`, `processName`, `processPath`, `processID`, `userID`, `threadID`, `subsystem`, `category`, `level`, `eventType`, `message`, `activityID`. The verbose internal fields (backtrace frames, image UUIDs, trace IDs, format strings) are dropped — useful for kernel debugging but bloat the snapshot value type.
+
+- **`LogLevel`** (`.default` / `.info` / `.debug` / `.error` / `.fault`) and **`LogEventType`** (`.log` / `.state` / `.userAction` / `.signpost` / `.trace` / `.other(rawValue:)`).
+
+- **`LogQuery` filter struct** with shorthand fields (`subsystem`, `category`, `process`, `messageContains`) that compose via `AND` plus a free-form NSPredicate `predicate` appended to the same chain. `since` / `until` map to `--start` / `--end`; `limit` (default 200) maps to `--last`. `includeInfo` / `includeDebug` opt into the corresponding levels (Error / Fault are always included).
+
+- **`TCCEvent` typed extraction (M6.2)** — correlates the 6-line transactions `tccd` emits per privacy-permission request into a single value (`REQUEST` + `AUTHREQ_CTX` + `AUTHREQ_ATTRIBUTION` + `AUTHREQ_SUBJECT` + `AUTHREQ_RESULT` + `REPLY`). Records: `service`, `isPreflight`, `accessingProcess`, `requestingProcess`, `outcome`, `authValueRaw`, `authReasonRaw`, computed `isDirectRequest`. `TCCService` covers 26 well-known `kTCCService*` strings; `TCCOutcome` covers `.denied` (`authValue == 0`) / `.allowed` (`2`) / `.allowedLimited` (`3`) / `.unknown(rawValue:)`. Forward-compat via `.other(rawValue:)` so detection rules can still match new services Apple adds.
+
+- **`owlwatch logs`** — generic historical query subcommand. Flags: `--subsystem`, `--category`, `--process`, `--message-contains`, `--predicate` (raw NSPredicate), `--since`, `--until`, `--lookback <seconds>`, `--last <N>`, `--info`, `--debug`, `--errors-only`. Time-based filtering accepts ISO-8601 and the simpler `"YYYY-MM-DD HH:MM:SS"` form.
+
+- **`owlwatch logs --follow` (M6.3)** — live-tail mode wrapping `log stream`. Prints the header once, then streams new entries as they arrive; `--errors-only` composes with `--follow`; historical-only flags are ignored. Root `Owlwatch` + `LogsCommand` upgraded to `AsyncParsableCommand`; the other ten subcommands continue as sync `ParsableCommand` (swift-argument-parser supports mixed roots seamlessly).
+
+- **`owlwatch tcc-events`** — typed TCC-decision subcommand. Flags: `--denied-only`, `--hide-preflight`, `--service <kTCC...>`, `--process <substring>` (matches accessing *or* requesting identifier), plus the standard `--lookback` / `--since` / `--until`.
+
+- **Sentinel-value handling.** Some kernel-side log records carry sentinel `processID` / `userID` values like `4294967294` (UID `-2` = "nobody"). Plain `Int32(value)` casts crash with *"Not enough bits to represent the passed value"*. The parser uses `pid_t(truncatingIfNeeded:)` / `uid_t(truncatingIfNeeded:)` instead; regression test pins the behavior.
+
+- **`LineBuffer`** — accumulates chunked stdout reads into complete newline-terminated lines. Marked `@unchecked Sendable` because Foundation serializes `readabilityHandler` invocations onto one dispatch queue.
+
+- **Owlwatch version bump** — `owlwatch --version` now prints `0.7.0-m6`.
+
+### Notes
+
+- 195 / 195 unit tests pass (41 OWLog + 47 OWPersistence + 29 OWCodeSigning + 28 OWBinary + 15 OWProcess + 15 OWNetwork + others).
+- Captured fixture in `Tests/OWLogTests/Fixtures/log-show-sample.ndjson` happens to contain a real WhatsApp/camera-denial chain via `ContinuityCaptureAgent` — pinned as the canonical "preflight denial chain" detection shape.
+- The `log show` / `log stream` shell-out is again a meaningful coupling. The unified-log NDJSON format is not contractually stable across macOS versions; the parser is intentionally tolerant (blank lines + non-JSON banners skipped, unparseable-timestamp records dropped, raw enum values preserved via `.other(rawValue:)`) so format drift degrades gracefully.
+
+### Deferred
+
+- **Typed event extraction for other subsystems** — SecurityServer (code signing decisions, Keychain unlocks), LaunchServices (`LSOpen*` invocations), spctl / syspolicy (Gatekeeper verdicts), AMFI (load-time signature validation). M6.2's TCC infrastructure (regex helpers, msgID-style group correlation, `.other(rawValue:)` forward-compat) extends to these without re-design; lands as follow-up PRs when M13's rules engine actually needs them.
+- **`OSLogStore`-based reader** — would avoid the subprocess overhead but requires the private `com.apple.logging.local-store` entitlement. Re-examined when Apple's entitlement-provisioning yields anything.
+- **Live integration test for `log stream`** — the subprocess never self-terminates and any timing-sensitive Task kill depends on launchd. Argv builder + LineBuffer cover everything deterministic; live exercise is via `owlwatch logs --follow` manual smoke.
+
+### What's next
+
+**M7 — `OwlwatchNetwork`.** Network Extension filter provider — the first milestone to ship a System Extension target with real-time per-flow visibility. Gated on Apple's entitlement-provisioning queue (tracked at [docs/apple-developer/entitlement-requests.md](docs/apple-developer/entitlement-requests.md)). If the entitlement isn't ready, M8 (Endpoint Security) or M10 (FSEvents persistence monitor) may land first depending on which entitlement Apple approves.
+
+### PRs in this milestone
+
+#41 feat(OWLog, owlwatch): unified-log query + `owlwatch logs` (M6.1)
+#42 feat(OWLog, owlwatch): typed TCC events + `owlwatch tcc-events` (M6.2)
+#43 feat(OWLog, owlwatch): live-tail mode via `log stream` (M6.3)
+#44 feat(owlwatch): close M6 — version bump to 0.7.0-m6, CHANGELOG promotion, README tick
 
 ## [v0.6.0-m5] — 2026-05-22
 
@@ -264,7 +316,8 @@ The foundation milestone. Establishes the repository, build system, CI, governan
 - **No user-installable artifact ships with this tag.** The next runnable binary lands at M1 (`owlwatch ps`); the next visible app surface lands at M2/M3.
 - The four planned system extensions — Endpoint Security (M8), Network Extension filter (M7), DNS proxy (M12), Persistence monitor (M10) — exist as placeholder directories under `extensions/` but have no target shells yet. Each lands in its own milestone PR with the appropriate Apple-restricted entitlement (assuming Apple approval has landed by then).
 
-[Unreleased]: https://github.com/owlwatchlabs/owlwatch-macos/compare/v0.6.0-m5...HEAD
+[Unreleased]: https://github.com/owlwatchlabs/owlwatch-macos/compare/v0.7.0-m6...HEAD
+[v0.7.0-m6]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.7.0-m6
 [v0.6.0-m5]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.6.0-m5
 [v0.5.0-m4]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.5.0-m4
 [v0.4.0-m3]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.4.0-m3
