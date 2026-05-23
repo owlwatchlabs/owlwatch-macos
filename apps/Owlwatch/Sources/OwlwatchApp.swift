@@ -24,6 +24,9 @@ struct OwlwatchApp: App {
     /// Stable identifier for the M16.4 logs-viewer window.
     static let logsWindowID = "logs"
 
+    /// Stable identifier for the M16.5 binary-inspector window.
+    static let binaryInspectorWindowID = "binary-inspector"
+
     var body: some Scene {
         MenuBarExtra("Owlwatch", systemImage: "shield") {
             OwlwatchMenuBarContent()
@@ -64,6 +67,12 @@ struct OwlwatchApp: App {
             LogsWindow()
         }
         .defaultSize(width: 1180, height: 680)
+        .windowResizability(.contentMinSize)
+
+        Window("Binary Inspector — Owlwatch", id: Self.binaryInspectorWindowID) {
+            BinaryInspectorWindow()
+        }
+        .defaultSize(width: 1100, height: 680)
         .windowResizability(.contentMinSize)
     }
 }
@@ -113,6 +122,11 @@ private struct OwlwatchMenuBarContent: View {
             openWindow(id: OwlwatchApp.logsWindowID)
         }
         .keyboardShortcut("l", modifiers: [.command, .shift])
+        Button("Open Binary Inspector…") {
+            NSApp.activate()
+            openWindow(id: OwlwatchApp.binaryInspectorWindowID)
+        }
+        .keyboardShortcut("b", modifiers: [.command, .shift])
         Divider()
         Button("Quit Owlwatch") {
             NSApp.terminate(nil)

@@ -24,7 +24,11 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 
   Reachable from MenuBarExtra via "Open Logs View…" (⌘⇧L) and a Dashboard quick-action button. Apply button (⌘R) re-issues the query for snapshot tabs or restarts the stream for Live Tail. Filter UI sits in a custom toolbar above the list rather than in the search bar — log queries are slow enough (`log show` is seconds, not milliseconds) that explicit submission is the right interaction model.
 
-_M16.5 (Binary Inspector window), M16.6 (menu-bar live indicator + polish), and M16-close follow before the v0.10.0-m16 tag._
+- **Binary Inspector window (M16.5)** — seventh top-level window, surfacing M2's `OWBinary` parser and M3's `OWCodeSigning` over a user-chosen Mach-O binary or signed bundle. Reachable from MenuBarExtra via "Open Binary Inspector…" (⌘⇧B) and a Dashboard quick-action button. Path is supplied by ⌘O (NSOpenPanel) or drag-drop. Sidebar carries six sections — **Overview**, **Load Commands**, **Segments**, **Symbols**, **Signature**, **Entitlements** — each mirroring a flag of the `owlwatch inspect` / `verify` CLI. Universal binaries get a segmented architecture picker in the header bar; the per-slice panes follow the selection.
+
+  Load Commands lists every `LC_LOAD_DYLIB`-family entry (required / weak / self) with current + compat versions, plus a separate RPATH block. Segments show each segment's r/w/x bits (with `rwx` highlighted red) and per-section size, file offset, and Shannon entropy (sections > 7.0 flagged red as a packing signal). Symbols are gated behind an explicit "Load symbols" button since stripping `LC_SYMTAB` parsing from the initial parse keeps Open instant on large binaries — once loaded, the Symbols pane filters by name and "external only". Signature pane renders the same surface as `owlwatch verify` — identity, certificate chain (leaf / intermediate / root labelled), `SecCodeSignatureFlags`, hardened-runtime version, notarization staple, designated requirement. Entitlements pane sorts the entitlements-dict alphabetically with `bool true` values highlighted green.
+
+_M16.6 (menu-bar live indicator + polish) and M16-close follow before the v0.10.0-m16 tag._
 
 ## [v0.9.0-m11] — 2026-05-23
 

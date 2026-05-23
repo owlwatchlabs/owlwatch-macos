@@ -19,6 +19,7 @@
 		3D441249D8F77F5AF317954C /* DevicesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D127C31DA4EAA2B4917A6F3 /* DevicesViewModel.swift */; };
 		54413CA5546526C8EE245540 /* NetworkViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23046FF903F8FF662AC40E27 /* NetworkViewModel.swift */; };
 		59CDB60D14F061605963AF2E /* OWNetwork in Frameworks */ = {isa = PBXBuildFile; productRef = 9AB02C19DDEC9E21BC9A5868 /* OWNetwork */; };
+		5AD25AC8D1762145AEEF7504 /* BinaryInspectorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFE9B9AE86185CD172F8F8F /* BinaryInspectorViewModel.swift */; };
 		6148BF22CAA7095295B1568C /* PersistenceItemList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E5540D063BAC38169407A4 /* PersistenceItemList.swift */; };
 		669DC23441C1E293A41E553C /* LogsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A34451D50B9B2472FA4830A /* LogsViewModel.swift */; };
 		69DB910D0201D6AF08099447 /* PersistenceWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8B3F7198CBC17EF7D1CB927 /* PersistenceWindow.swift */; };
@@ -27,6 +28,7 @@
 		88DA62341C83EA8F586DD97D /* OWCore in Frameworks */ = {isa = PBXBuildFile; productRef = 214AE25A461CC3BEF29D2677 /* OWCore */; };
 		8CEF095D32B246522938118C /* OWPersistence in Frameworks */ = {isa = PBXBuildFile; productRef = 372EF516759FEB18843357AD /* OWPersistence */; };
 		ABA81CF230328513F16720C6 /* OWCodeSigning in Frameworks */ = {isa = PBXBuildFile; productRef = 897C389B7082CAF5B986B27F /* OWCodeSigning */; };
+		D17C383B441564C2535FF7A2 /* BinaryInspectorWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B751C692A03D7858B9818F5 /* BinaryInspectorWindow.swift */; };
 		EB814B23CB4A60E032E8ECA5 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCBA36F8CD7997ECFA944B3B /* DashboardViewModel.swift */; };
 		EC5F04BBBCE76B47784FE024 /* ProcessesWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C42A75643E000DAB3165252 /* ProcessesWindow.swift */; };
 		ECFB43109C56677BCCFDED37 /* DashboardWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5330345428645E330DF3E3 /* DashboardWindow.swift */; };
@@ -45,10 +47,12 @@
 		4DD68FADEAF355A53A580A23 /* packages */ = {isa = PBXFileReference; lastKnownFileType = folder; name = packages; path = ../../packages; sourceTree = SOURCE_ROOT; };
 		54D13331E7067095DC0AEE17 /* PersistenceItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceItem.swift; sourceTree = "<group>"; };
 		5D127C31DA4EAA2B4917A6F3 /* DevicesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevicesViewModel.swift; sourceTree = "<group>"; };
+		5EFE9B9AE86185CD172F8F8F /* BinaryInspectorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BinaryInspectorViewModel.swift; sourceTree = "<group>"; };
 		65E5540D063BAC38169407A4 /* PersistenceItemList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceItemList.swift; sourceTree = "<group>"; };
 		7A34451D50B9B2472FA4830A /* LogsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogsViewModel.swift; sourceTree = "<group>"; };
 		7A5330345428645E330DF3E3 /* DashboardWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardWindow.swift; sourceTree = "<group>"; };
 		7E438A3EE40CC96C0081E55E /* Owlwatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Owlwatch.entitlements; sourceTree = "<group>"; };
+		9B751C692A03D7858B9818F5 /* BinaryInspectorWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BinaryInspectorWindow.swift; sourceTree = "<group>"; };
 		B60FD47D6152FB295E78CF8E /* ProcessesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessesViewModel.swift; sourceTree = "<group>"; };
 		BCBA36F8CD7997ECFA944B3B /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
 		C0D41FF6BB650CB8E8A3ECE5 /* LogsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogsWindow.swift; sourceTree = "<group>"; };
@@ -88,6 +92,8 @@
 		1B2F88CA86337676E681E7B1 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				5EFE9B9AE86185CD172F8F8F /* BinaryInspectorViewModel.swift */,
+				9B751C692A03D7858B9818F5 /* BinaryInspectorWindow.swift */,
 				BCBA36F8CD7997ECFA944B3B /* DashboardViewModel.swift */,
 				7A5330345428645E330DF3E3 /* DashboardWindow.swift */,
 				5D127C31DA4EAA2B4917A6F3 /* DevicesViewModel.swift */,
@@ -199,6 +205,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5AD25AC8D1762145AEEF7504 /* BinaryInspectorViewModel.swift in Sources */,
+				D17C383B441564C2535FF7A2 /* BinaryInspectorWindow.swift in Sources */,
 				EB814B23CB4A60E032E8ECA5 /* DashboardViewModel.swift in Sources */,
 				ECFB43109C56677BCCFDED37 /* DashboardWindow.swift in Sources */,
 				3D441249D8F77F5AF317954C /* DevicesViewModel.swift in Sources */,
