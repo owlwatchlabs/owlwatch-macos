@@ -35,15 +35,29 @@ let package = Package(
             .executable(name: "owlwatch", targets: ["owlwatch"])
         ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.5.0")
+        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.5.0"),
+        .package(url: "https://github.com/jpsim/Yams.git", from: "5.1.0")
     ],
     targets:
-        modules.map { name in
-            // OWDevices's attribution layer (M11.3) reads TCC events
-            // via OWLog. Other modules stay dependency-free.
-            let deps: [Target.Dependency] = (name == "OWDevices")
-                ? [.byName(name: "OWLog")]
-                : []
+        modules.map { name -> Target in
+            // Per-module dependency edges:
+            // - OWDevices's attribution layer (M11.3) reads TCC events
+            //   via OWLog.
+            // - OWRules (M13.1) evaluates detection rules over process
+            //   + persistence snapshots, parsed from YAML via Yams.
+            let deps: [Target.Dependency]
+            switch name {
+            case "OWDevices":
+                deps = [.byName(name: "OWLog")]
+            case "OWRules":
+                deps = [
+                    .byName(name: "OWProcess"),
+                    .byName(name: "OWPersistence"),
+                    .product(name: "Yams", package: "Yams")
+                ]
+            default:
+                deps = []
+            }
             return .target(name: name, dependencies: deps)
         }
         + modules.map { name in
@@ -60,6 +74,7 @@ let package = Package(
                     .byName(name: "OWNetwork"),
                     .byName(name: "OWPersistence"),
                     .byName(name: "OWProcess"),
+                    .byName(name: "OWRules"),
                     .product(name: "ArgumentParser", package: "swift-argument-parser")
                 ]
             ),

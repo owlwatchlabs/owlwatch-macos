@@ -1,0 +1,26 @@
+id: T1547.001-login-item-no-developer
+name: Enabled login item with no developer attribution
+description: |
+  Login items registered via SMAppService or the legacy
+  LSSharedFileList API are normally expected to carry developer
+  attribution — a developer name, team identifier, or both. An
+  enabled login item with no developer name, no team identifier, and
+  no bundle identifier is anomalous: either it's an unsigned binary
+  the user added manually (rare in practice), or it's a persistence
+  mechanism that bypassed normal install paths.
+mitre: T1547.001
+severity: medium
+when:
+  source: login_item
+  match:
+    is_enabled:
+      is_true: true
+    developer_name:
+      exists: false
+    team_identifier:
+      exists: false
+    bundle_identifier:
+      exists: false
+evidence:
+  - identifier
+  - url

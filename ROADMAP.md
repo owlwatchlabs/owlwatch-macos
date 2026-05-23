@@ -19,7 +19,7 @@ Owlwatch is developed through short, reviewable milestones. `main` remains shipp
 | M10 | Persistence monitor | Real-time persistence detection feeding rules |
 | M11 | Mic and webcam monitor | `OWDevices` with process attribution for device access |
 | M12 | DNS monitor | `OwlwatchDNS` DNS proxy and suspicious-domain heuristics |
-| M13 | Detection engine and rules library | `OWRules`, ADR-0003, schema validation, fixtures, initial MITRE ATT&CK coverage |
+| M13 | Detection engine and rules library | `OWRules`, ADR-0004, schema validation, fixtures, initial MITRE ATT&CK coverage |
 | M14 | iOS companion | Posture agent, App Attest, paired-Mac alert dashboard |
 | M15 | v1.0 release | Notarized DMG, signed installer, release notes, demo video |
 | M16 | App UI integration | Status dashboard + per-source windows (Processes, Network, Logs, Binary Inspector) + menu-bar polish — every CLI surface from M1–M11 gets a GUI affordance |

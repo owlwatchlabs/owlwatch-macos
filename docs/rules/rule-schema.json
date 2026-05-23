@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://owlwatchlabs.com/schemas/rule-schema-v1.json",
+  "title": "Owlwatch detection rule (v1)",
+  "description": "A single Owlwatch detection rule. See ADR-0004 for format rationale and packages/Rules/ for examples.",
+  "type": "object",
+  "required": ["id", "name", "severity", "when"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Stable identifier. Convention: T<MITRE-ID>-<slug>.",
+      "pattern": "^[A-Za-z0-9._-]+$",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "name": {
+      "type": "string",
+      "description": "Short human-readable headline.",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "description": {
+      "type": "string",
+      "description": "Long-form explanation of what the rule detects and why."
+    },
+    "mitre": {
+      "type": "string",
+      "description": "MITRE ATT&CK technique ID (e.g. T1546.004).",
+      "pattern": "^T\\d{4}(\\.\\d{3})?$"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["info", "low", "medium", "high", "critical"]
+    },
+    "when": {
+      "type": "object",
+      "required": ["source"],
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": ["process", "launch_service", "login_item"],
+          "description": "Data source the rule iterates over."
+        },
+        "match": {
+          "type": "object",
+          "description": "Per-field predicates, ANDed together. Field names must be in the source's vocabulary.",
+          "additionalProperties": {
+            "$ref": "#/$defs/predicate"
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "description": "Field names to include in the finding's evidence dictionary. Must be valid for the rule's source.",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "predicate": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Shorthand: equivalent to { equals: <value> }."
+        },
+        {
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 1,
+          "additionalProperties": false,
+          "properties": {
+            "equals":      { "type": ["string", "integer", "boolean"] },
+            "not_equals":  { "type": ["string", "integer", "boolean"] },
+            "starts_with": { "type": "string" },
+            "ends_with":   { "type": "string" },
+            "contains":    { "type": "string" },
+            "matches":     { "type": "string", "description": "NSRegularExpression-compatible pattern." },
+            "in": {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 1
+            },
+            "exists":   { "type": "boolean" },
+            "is_true":  { "type": "boolean", "enum": [true] },
+            "is_false": { "type": "boolean", "enum": [true] }
+          }
+        }
+      ]
+    }
+  }
+}

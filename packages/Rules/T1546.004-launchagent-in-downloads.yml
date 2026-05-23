@@ -1,0 +1,22 @@
+id: T1546.004-launchagent-in-downloads
+name: Launch agent installed in ~/Downloads
+description: |
+  A LaunchAgent plist installed in a user-writable download path is a
+  common persistence technique. Legitimate installers drop agents to
+  ~/Library/LaunchAgents (the user scope) or /Library/LaunchAgents
+  (the system scope) via signed bundles. An agent loaded directly
+  from ~/Downloads strongly suggests a dropper or an attacker copying
+  a payload into the user's download folder.
+mitre: T1546.004
+severity: high
+when:
+  source: launch_service
+  match:
+    executable_path:
+      starts_with: /Users/
+    plist_path:
+      contains: /Downloads/
+evidence:
+  - plist_path
+  - executable_path
+  - label

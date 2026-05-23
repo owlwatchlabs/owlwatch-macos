@@ -6,7 +6,23 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 
 ## [Unreleased]
 
-_No entries yet — M17 hasn't been planned._
+### Added
+
+- **Rules engine + initial library (M13.1)** — Owlwatch ships its first detection rules engine. `OWRules` parses declarative YAML rules (one rule per file), validates them against [`docs/rules/rule-schema.json`](docs/rules/rule-schema.json) at load time, captures a snapshot of the data sources the rules reference (M1's processes + M5's launch services + M5's login items in this slice), and evaluates every rule against every item. Snapshot-based, synchronous, pure — streaming evaluation lands in M13.5+.
+  - New CLI subcommand **`owlwatch scan`** runs the loaded rules against the live system. Flags: `--rules <dir>` (defaults to `./packages/Rules` from a checkout or `$OWLWATCH_RULES`), `--severity {info|low|medium|high|critical}` (filter findings at or above the level), `--dry-run` (parse + schema-check without evaluating), `--json` (emit findings as JSON for piping into other tools). Exit code 0 = clean scan, 1 = at least one finding, 2 = rule-load error.
+  - **Predicate vocabulary**: `equals`, `not_equals`, `starts_with`, `ends_with`, `contains`, `matches` (NSRegularExpression with anchors + lookahead), `in: [...]`, `exists: bool`, `is_true`/`is_false`. Bare scalar values are shorthand for `equals`. Predicates in a single rule's `match:` block are ANDed; OR/NOT composition is deferred to a later slice.
+  - **Starter rule library** (5 rules across all three sources, every rule tagged with a MITRE ATT&CK technique ID):
+    - `T1546.004-launchagent-in-downloads` (high) — LaunchAgent referencing an executable in `~/Downloads`.
+    - `T1546.004-launchagent-in-tmp` (critical) — LaunchAgent / Daemon executing from `/tmp`, `/var/tmp`, or their `/private/` aliases.
+    - `T1059.004-process-from-tmp` (high) — running process whose executable lives under `/tmp` / `/var/tmp` (excludes Apple's `/tmp/com.apple.*` helpers).
+    - `T1547.001-login-item-no-developer` (medium) — enabled BTM login item with no developer name, no team identifier, and no bundle identifier.
+    - `T1059.004-curl-pipe-shell` (medium) — shell process whose argv contains a `curl|wget … | sh|bash` pipeline.
+  - **Yams** (5.1.0, MIT) added as a SPM dependency — Owlwatch's second non-Apple dependency after swift-argument-parser. Used exclusively by `OWRules` for YAML parsing.
+  - **[ADR-0004](docs/adr/0004-rules-engine-format.md)** documents the format choice — declarative YAML with JSON Schema validation over Swift-code rules or a custom DSL. Notes the engineering surface trade-offs (no embedded interpreter, no schema-versioning yet, AND-only predicates in v1) and the contributor benefits (YAML PRs, no Swift toolchain required).
+  - **Schema document** at [`docs/rules/rule-schema.json`](docs/rules/rule-schema.json) — JSON Schema (draft 2020-12) defining the rule format. Single source of truth; the in-Swift `Rule` decoder matches the schema field for field.
+  - **Tests**: 20 new unit tests in `OWRulesTests` covering predicate evaluation, YAML loader strictness (unknown fields, missing severity, invalid regex, duplicate IDs), evaluator firing on synthetic snapshots across all three sources, and a regression gate that every shipped rule in `packages/Rules/` parses + schema-validates.
+
+_M13.2 (process + binary library), M13.3 (network + persistence), M13.4 (signature + log correlation), M13.5 (schema hardening + golden fixtures), and M13-close follow before the v0.11.0-m13 tag._
 
 ## [v0.10.0-m16] — 2026-05-23
 

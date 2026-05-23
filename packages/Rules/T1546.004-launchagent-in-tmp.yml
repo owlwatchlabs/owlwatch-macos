@@ -1,0 +1,20 @@
+id: T1546.004-launchagent-in-tmp
+name: Launch agent or daemon executing from /tmp or /var/tmp
+description: |
+  Launch services with executables under /tmp or /var/tmp are
+  inherently suspicious — these are temporary directories that
+  legitimate installers do not target for persistence. A persistent
+  agent pointing at /tmp/* almost certainly indicates a dropper that
+  hasn't relocated its payload yet, or active malware staging.
+mitre: T1546.004
+severity: critical
+when:
+  source: launch_service
+  match:
+    executable_path:
+      matches: '^(/tmp/|/var/tmp/|/private/tmp/|/private/var/tmp/)'
+evidence:
+  - plist_path
+  - executable_path
+  - scope
+  - label
