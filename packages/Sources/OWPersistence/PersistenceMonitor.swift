@@ -63,6 +63,102 @@ extension OWPersistence {
             }
         }
     }
+
+    /// Same FSEvents subscription as ``monitor(paths:latency:)``, but
+    /// each yielded ``PersistenceMutation`` is wrapped in an
+    /// ``EnrichedMutation`` whose typed payload reflects the *contents*
+    /// of the changed file.
+    ///
+    /// For LaunchAgent / LaunchDaemon plist mutations (excluding
+    /// removals), the parsed ``LaunchService`` is attached. For
+    /// `com.apple.loginwindow.plist` mutations, the resulting
+    /// ``LoginLogoutHook`` entries are attached. Removed files have
+    /// no readable content; the enrichment fields stay `nil`.
+    ///
+    /// Enrichment runs synchronously on the same dispatch queue as the
+    /// raw event delivery — parsing a launchd plist is on the order of
+    /// hundreds of microseconds, well inside the FSEvents latency
+    /// window. If a watched directory ever sees enough write volume
+    /// for the parse cost to matter, drop back to the raw
+    /// ``monitor(paths:latency:)`` API.
+    public static func monitorEnriched(
+        paths: [String] = defaultMonitorPaths,
+        latency: TimeInterval = 0.5
+    ) -> AsyncThrowingStream<EnrichedMutation, Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    for try await mutation in monitor(paths: paths, latency: latency) {
+                        let enriched = enrich(mutation: mutation)
+                        continuation.yield(enriched)
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { _ in
+                task.cancel()
+            }
+        }
+    }
+}
+
+// MARK: - Enrichment
+
+/// Wrap a raw ``PersistenceMutation`` into an ``EnrichedMutation``.
+/// Reads the file at ``mutation.path`` when the event isn't a
+/// removal, parses it with the appropriate M5 parser based on the
+/// scope, and attaches the result. Failures fall through to a
+/// payload-less enriched record — never throws.
+internal func enrich(mutation: PersistenceMutation) -> EnrichedMutation {
+    // Removed files have no content to read; surface the raw event
+    // without payload.
+    guard mutation.kind != .removed else {
+        return EnrichedMutation(mutation: mutation)
+    }
+
+    switch mutation.scope {
+    case .platformLaunchd, .systemLaunchd, .userLaunchd:
+        let scope = mapToLaunchScope(mutation: mutation)
+        let service = parseLaunchService(
+            at: mutation.path,
+            scope: scope,
+            centralDisabledMap: [:]
+        )
+        return EnrichedMutation(mutation: mutation, launchService: service)
+
+    case .loginwindowPlist:
+        let scope: HookScope = mutation.path.hasPrefix("/Library/")
+            ? .system
+            : .user
+        let hooks = parseLoginLogoutHooks(at: mutation.path, scope: scope)
+        return EnrichedMutation(mutation: mutation, hooks: hooks)
+
+    case .systemExtensionsRegistry, .kernelExtensions, .other:
+        // System Extensions / kexts have richer payloads (db.plist
+        // structure, kext bundle structure) that don't map to a
+        // single value type per mutation event — surface the raw
+        // mutation and let the caller call OWPersistence.kernel/
+        // systemExtensions() if they need the current snapshot.
+        return EnrichedMutation(mutation: mutation)
+    }
+}
+
+/// Pick the M5 ``LaunchScope`` matching this mutation's path. We use
+/// the path prefix directly rather than the ``MutationScope`` enum
+/// because ``MutationScope`` collapses `LaunchDaemons` and
+/// `LaunchAgents` under one case (`.systemLaunchd`, etc.), but
+/// ``LaunchScope`` distinguishes daemon-vs-agent. Disabled-state
+/// resolution needs the distinction (daemon disabled-lists live at
+/// a different path than agent lists).
+private func mapToLaunchScope(mutation: PersistenceMutation) -> LaunchScope {
+    let path = mutation.path
+    if path.hasPrefix("/System/Library/LaunchDaemons") { return .platformDaemon }
+    if path.hasPrefix("/System/Library/LaunchAgents") { return .platformAgent }
+    if path.hasPrefix("/Library/LaunchDaemons") { return .systemDaemon }
+    if path.hasPrefix("/Library/LaunchAgents") { return .systemAgent }
+    return .userAgent
 }
 
 /// Reference-typed holder for the `FSEventStreamRef` and the

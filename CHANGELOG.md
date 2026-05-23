@@ -14,7 +14,11 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 - **`owlwatch watch-persistence` (M10.1)** — eleventh subcommand. Live-tails every mutation on the standard watch set; prints `TIMESTAMP KIND SCOPE PATH` rows as events arrive. Flags: `--kind <comma-list>` (filter by mutation kind), `--scope <scope>` (filter by scope), `--latency <seconds>` (FSEvents coalescing window, default 0.5).
 - **`fflush(stdout)` for streaming subcommands** — the M6.3 implementation called `FileHandle.standardOutput.synchronizeFile()` to flush between rows, which throws `NSFileHandleOperationException` ("Invalid argument") when stdout is a pipe or regular file. The exception only manifested intermittently in M6.3 because `log stream` emitted data faster than the exception could terminate the process. Replaced with the C-level `fflush(stdout)` in both `owlwatch logs --follow` and the new `owlwatch watch-persistence`.
 
-_M10.2 (mutation enrichment — parse changed plists and embed the resulting `LaunchService` in events), M10.3 (macOS app Live tab integration), and M10-close follow before the v0.8.0-m10 tag._
+- **`OWPersistence.monitorEnriched()` + `EnrichedMutation` (M10.2)** — enrichment layer over M10.1's raw `monitor()` stream. New top-level API returning `AsyncThrowingStream<EnrichedMutation, Error>`. Each yielded record carries the raw `PersistenceMutation` plus the *parsed payload* of the file that changed: for LaunchAgent / LaunchDaemon paths a `LaunchService`, for `com.apple.loginwindow.plist` paths the resulting `[LoginLogoutHook]`. Removed-file events have no readable content; the payload fields stay `nil`. The enrichment runs synchronously on the same dispatch queue as the raw event delivery — launchd plist parsing is on the order of hundreds of microseconds, well inside the FSEvents latency window.
+- **`EnrichedMutation` value type** with `mutation`, `launchService`, `hooks`, computed `hasPayload`.
+- **`owlwatch watch-persistence` enriched output (M10.2)** — by default the subcommand now prints `TIMESTAMP KIND SCOPE LABEL/HOOK PROGRAM/SCRIPT PATH`, surfacing the most-detection-relevant fields (the `Label` and `Program` of a newly-dropped LaunchAgent, the `Login`/`Logout` kind and `scriptPath` of a hook change). `--raw` flag falls back to the M10.1 four-column layout.
+
+_M10.3 (macOS app Live tab integration) and M10-close follow before the v0.8.0-m10 tag._
 
 ## [v0.7.0-m6] — 2026-05-22
 
