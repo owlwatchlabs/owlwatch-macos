@@ -29,3 +29,4 @@ The "Alternatives considered" section is load-bearing: an ADR without it is a pr
 - [0001 — Tech stack lock-in](0001-tech-stack-lock-in.md)
 - [0002 — License: Apache 2.0](0002-license.md)
 - [0003 — Rename project to Owlwatch and adopt `com.owlwatchlabs.owlwatch.*` bundle IDs](0003-rename-to-owlwatch.md)
+- [0004 — Rules engine format: declarative YAML with JSON Schema validation](0004-rules-engine-format.md)

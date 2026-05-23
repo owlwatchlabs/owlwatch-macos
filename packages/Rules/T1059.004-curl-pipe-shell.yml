@@ -1,0 +1,28 @@
+id: T1059.004-curl-pipe-shell
+name: curl/wget piped directly to a shell interpreter
+description: |
+  A process whose argument vector contains "curl ... | sh" or
+  "curl ... | bash" patterns is executing arbitrary remote code with
+  no inspection step. This is a common adversary technique for
+  initial payload delivery (T1059.004 → Unix Shell), often invoked
+  via "bash -c" or "sh -c" with the curl-pipe-sh string in the
+  argument list.
+
+  Many legitimate developer tooling installers print this pattern in
+  their installation docs, so this is a medium-severity finding —
+  expected to fire occasionally on developer workstations during
+  package installs. Production servers seeing this fire is far more
+  alarming.
+mitre: T1059.004
+severity: medium
+when:
+  source: process
+  match:
+    name:
+      in: [sh, bash, zsh, ksh, dash]
+    arguments:
+      matches: '(curl|wget).+\|\s*(sh|bash|zsh)'
+evidence:
+  - pid
+  - name
+  - arguments
