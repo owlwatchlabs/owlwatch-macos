@@ -33,11 +33,13 @@
 		EC5F04BBBCE76B47784FE024 /* ProcessesWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C42A75643E000DAB3165252 /* ProcessesWindow.swift */; };
 		ECFB43109C56677BCCFDED37 /* DashboardWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5330345428645E330DF3E3 /* DashboardWindow.swift */; };
 		EE2AAB13EDDAC1431103125B /* OwlwatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EB594B8241926AF224E7A18 /* OwlwatchApp.swift */; };
+		F995B56C2B64C1231C207C26 /* MenuBarStatusModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AF22C7562FD827B232506BC /* MenuBarStatusModel.swift */; };
 		FED04D77BA9E01AA84A37CC8 /* PersistenceSidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF3253B96EE22E3904329236 /* PersistenceSidebar.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		0C42A75643E000DAB3165252 /* ProcessesWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessesWindow.swift; sourceTree = "<group>"; };
+		1AF22C7562FD827B232506BC /* MenuBarStatusModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarStatusModel.swift; sourceTree = "<group>"; };
 		1EB594B8241926AF224E7A18 /* OwlwatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OwlwatchApp.swift; sourceTree = "<group>"; };
 		23046FF903F8FF662AC40E27 /* NetworkViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkViewModel.swift; sourceTree = "<group>"; };
 		26AAF1F70F3C064DFC041B38 /* Owlwatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Owlwatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -101,6 +103,7 @@
 				4CC044269BD860867DB61139 /* Info.plist */,
 				7A34451D50B9B2472FA4830A /* LogsViewModel.swift */,
 				C0D41FF6BB650CB8E8A3ECE5 /* LogsWindow.swift */,
+				1AF22C7562FD827B232506BC /* MenuBarStatusModel.swift */,
 				23046FF903F8FF662AC40E27 /* NetworkViewModel.swift */,
 				38431CD03A856A6CC12B6092 /* NetworkWindow.swift */,
 				7E438A3EE40CC96C0081E55E /* Owlwatch.entitlements */,
@@ -213,6 +216,7 @@
 				14694638226F39EA76BDB1BA /* DevicesWindow.swift in Sources */,
 				669DC23441C1E293A41E553C /* LogsViewModel.swift in Sources */,
 				235B0F18C54971EB3C5B1B66 /* LogsWindow.swift in Sources */,
+				F995B56C2B64C1231C207C26 /* MenuBarStatusModel.swift in Sources */,
 				54413CA5546526C8EE245540 /* NetworkViewModel.swift in Sources */,
 				6B3DC5081B1BABFDCBB5987D /* NetworkWindow.swift in Sources */,
 				EE2AAB13EDDAC1431103125B /* OwlwatchApp.swift in Sources */,
