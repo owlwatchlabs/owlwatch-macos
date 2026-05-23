@@ -202,6 +202,12 @@ struct DashboardWindow: View {
                 ) {
                     openWindow(id: OwlwatchApp.logsWindowID)
                 }
+                NavigationButton(
+                    title: "Inspector",
+                    symbol: "doc.text.magnifyingglass"
+                ) {
+                    openWindow(id: OwlwatchApp.binaryInspectorWindowID)
+                }
             }
         }
     }
