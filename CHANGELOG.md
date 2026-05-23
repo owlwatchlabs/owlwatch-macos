@@ -6,29 +6,64 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 
 ## [Unreleased]
 
+_No entries yet. The next non-entitlement-gated milestone is M13 (rules engine over the data sources implemented across M1–M6, M10, M11). The four entitlement-gated milestones (M7 Network Extension, M8 Endpoint Security, M9 ES auth/muting, M12 DNS proxy) remain blocked on Apple's entitlement-provisioning queue._
+
+## [v0.9.0-m11] — 2026-05-23
+
+The mic-and-webcam milestone. Lands `OWDevices` — the seventh non-stub `OW*` library — plus two CLI subcommands (`owlwatch devices`, `owlwatch watch-devices`) and a new standalone macOS app window dedicated to camera/microphone state and attribution.
+
+Two unblocked-by-Apple-entitlements milestones now ship complete: M10 (real-time persistence) and M11 (mic/webcam). With M11 in, every data source M1–M6, M10, M11 has both a snapshot reader and a live-event stream, plus a typed-event extraction layer where it makes sense. M13's rules engine has everything it needs from the static side.
+
 ### Added
 
-- **`OWDevices` module (M11.1)** — enumerates cameras and microphones attached to the system, with the current "in use right now?" state for each. Public surface: `OWDevices.cameras() -> [Camera]` and `OWDevices.microphones() -> [Microphone]`.
-- **Two data paths backing the snapshot:**
-  - **Cameras** — `AVCaptureDevice.DiscoverySession` over `.builtInWideAngleCamera`, `.continuityCamera`, `.deskViewCamera`, `.external` for friendly metadata (name, manufacturer, model, built-in vs external), then the underlying CMIO HAL (`CoreMediaIO` framework) for the `kCMIODevicePropertyDeviceIsRunningSomewhere` "in use" bit. Walks the system's CMIO device list and matches by UID.
-  - **Microphones** — CoreAudio HAL (`AudioObjectGetPropertyData` on `kAudioHardwarePropertyDevices`) as the source of truth, filtered to devices with at least one input channel (excludes speakers / headphones / AirPlay output devices). `kAudioDevicePropertyDeviceIsRunningSomewhere` for the in-use bit. Friendly names enriched from `AVCaptureDevice` when available.
-- **Value types:** `Camera` (`id`, `name`, `manufacturer`, `modelID`, `isInUse`, `isExternal`, `isVirtual`); `Microphone` (`id`, `name`, `manufacturer`, `isInUse`, `isExternal`); `DeviceKind` (`.camera` / `.microphone`). The `isVirtual` flag on `Camera` distinguishes Apple's own virtual cameras (Continuity Camera proxy, Desk View Camera) from hardware capture devices; third-party virtual cameras (OBS, etc.) aren't reliably detectable through public APIs and aren't flagged today.
-- **`owlwatch devices` subcommand** — twelfth subcommand. Prints `TYPE NAME MANUFACTURER IN USE EXTERNAL ID` rows for every visible camera and microphone. Flags: `--cameras`, `--microphones`, `--in-use-only`.
-- **Honest limit documented in the module docs:** macOS does not expose which *process* is using a device through any public API — Apple has closed that privacy boundary. Soft attribution via TCC events (M6.2) + `com.apple.cmio` / `coreaudiod` log entries (M6.1) lands in M11.3.
+- **`OWDevices` library.** Public surface across the M11.1–M11.3 slices:
 
-- **`OWDevices.monitor()` (M11.2)** — live counterpart to M11.1's snapshot. `AsyncThrowingStream<DeviceStateChange, Error>` that yields one record per `kCMIODevicePropertyDeviceIsRunningSomewhere` / `kAudioDevicePropertyDeviceIsRunningSomewhere` transition. The monitor snapshots the device set at startup, registers CMIO + CoreAudio property listeners on each (one per device per property), and removes them all on stream cancellation. Devices plugged in after the monitor starts are NOT picked up — recreate the stream to pick them up. A future M11.x can also subscribe to `kCMIOHardwarePropertyDevices` / `kAudioHardwarePropertyDevices` to detect new attachments.
-- **`DeviceStateChange` value type** (`kind`, `id`, `name`, `isInUse`, `timestamp`) — same `Sendable, Equatable, Hashable` shape as the rest of the OW* value types.
-- **`OWDevicesMonitorError.listenerRegistrationFailed(uid:status:)`** — surfaces non-zero OSStatus from `CMIOObjectAddPropertyListener` / `AudioObjectAddPropertyListener`, with the failing device's UID preserved for diagnostics.
-- **`owlwatch watch-devices` subcommand (M11.2)** — thirteenth subcommand. Live-tails state transitions; prints `TIMESTAMP KIND STATE NAME ID` rows. Flags: `--kind camera|microphone`, `--on-only` (ignore turns-off, show only activations).
+  ```swift
+  OWDevices.cameras() -> [Camera]
+  OWDevices.microphones() -> [Microphone]
+  OWDevices.monitor() -> AsyncThrowingStream<DeviceStateChange, Error>
+  OWDevices.attribute(_ change: DeviceStateChange,
+                      lookbackSeconds: TimeInterval = 10.0) -> [ProcessCandidate]
+  ```
 
-- **`OWDevices.attribute(_:lookbackSeconds:)` (M11.3)** — best-effort process attribution for a `DeviceStateChange`. Returns an ordered list of `ProcessCandidate`s by cross-referencing two independent signals: (a) **recent TCC requests** for `kTCCServiceCamera` / `kTCCServiceMicrophone` (queried via `OWLog.tccEvents(_:)` from M6.2 — the `accessingProcess` is the most likely consumer); (b) **the current foreground application** from `NSWorkspace.shared.frontmostApplication`. `confidence` reflects evidence strength: `.high` when TCC fired within the last second with `.allowed`, `.medium` for a single signal with reasonable timing, `.low` for foreground-app-only evidence.
-- **Honest about the limitation:** macOS deliberately doesn't expose which process is using a device through any public API. CMIO and `coreaudiod` log entries redact PIDs / bundle IDs as `<private>` — we cannot extract consumer PIDs from log messages even with full disk access. Recent-TCC and foreground-app are the realistic public-API signals. Background daemons that hold a long-standing TCC grant and open the device without becoming frontmost return no candidate.
-- **Value types:** `ProcessCandidate` (`identifier`, `pid`, `source`, `confidence`, `evidence`); `AttributionSource` (`.tccRecentRequest` / `.foregroundApplication`); `AttributionConfidence` (`.high` / `.medium` / `.low`).
-- **`owlwatch watch-devices --attribute` flag (M11.3)** — after each `ON` event, prints attribution candidates indented beneath the row. `--attribute-lookback <seconds>` tunes the TCC query window (default 10s).
+- **Device snapshot (M11.1).** `Camera` (`id`, `name`, `manufacturer`, `modelID`, `isInUse`, `isExternal`, `isVirtual`) and `Microphone` (`id`, `name`, `manufacturer`, `isInUse`, `isExternal`). Cameras enumerate via `AVCaptureDevice.DiscoverySession` for metadata + CMIO HAL (`CoreMediaIO` framework) for the `kCMIODevicePropertyDeviceIsRunningSomewhere` "in use" bit. Microphones enumerate via CoreAudio HAL filtered to devices with at least one input channel (excludes speakers / headphones / AirPlay outputs), `kAudioDevicePropertyDeviceIsRunningSomewhere` for the in-use bit. `isVirtual` flags Apple's own virtual cameras (Continuity Camera, Desk View); third-party virtual cameras (OBS) aren't reliably detectable through public APIs.
 
-- **macOS app Devices window (M11.4)** — new standalone window (separate from the Persistence viewer) reachable from the MenuBarExtra via "Open Devices View…" (⌘⇧D). Three-column `NavigationSplitView` mirroring the Persistence window's shape: sidebar with three tabs (Cameras, Microphones, Live Events) and per-tab badges, center list of items, right pane with per-item detail. The Cameras and Microphones tabs show snapshot data from `OWDevices.cameras()` / `microphones()` with an "in use" badge per row. The Live Events tab streams `DeviceStateChange` events from `OWDevices.monitor()` newest-first (history capped at 500). When a user selects a live event in the list, the detail pane runs `OWDevices.attribute(_:)` and shows the ranked process candidates inline with a color-coded confidence badge (green/yellow/gray for high/medium/low). The window refreshes its snapshot in-place when a `DeviceStateChange` arrives so the snapshot tabs reflect live in-use state without manual refresh. Live monitor task starts when the window appears and stops on dismissal. Owlwatch app target now depends on the `OWDevices` SPM product.
+- **Live state-change stream (M11.2).** `DeviceStateChange` (`kind`, `id`, `name`, `isInUse`, `timestamp`). The monitor snapshots the device set at startup and registers CMIO + CoreAudio property listeners on each — one per device per `IsRunningSomewhere` selector — with clean teardown on stream cancellation. Devices plugged in after the monitor starts are NOT picked up; recreate the stream to refresh the watch set.
 
-_M11-close (version bump to `0.9.0-m11`, README tick, CHANGELOG promotion, tag) follows._
+- **Best-effort attribution (M11.3).** `ProcessCandidate` (`identifier`, `pid`, `source`, `confidence`, `evidence`) with `AttributionSource` (`.tccRecentRequest` / `.foregroundApplication`) and `AttributionConfidence` (`.high` / `.medium` / `.low`). Cross-references M6.2's typed TCC events (`OWLog.tccEvents(_:)`) for the matching `kTCCServiceCamera` / `kTCCServiceMicrophone` request within a configurable lookback window, plus `NSWorkspace.shared.frontmostApplication` as a weaker signal. **macOS deliberately doesn't expose which process is holding a device** — CMIO and `coreaudiod` logs redact PIDs / bundle IDs as `<private>` regardless of TCC permissions. The TCC + foreground-app approach is the public-API ceiling; background daemons holding long-standing TCC grants return no candidate.
+
+- **Two new CLI subcommands.** `owlwatch devices` prints `TYPE NAME MANUFACTURER IN USE EXTERNAL ID` rows for every camera and microphone, with `--cameras`, `--microphones`, `--in-use-only` filters. `owlwatch watch-devices` live-tails state transitions, with `--kind camera|microphone`, `--on-only`, `--attribute` (run attribution on every ON event), and `--attribute-lookback <seconds>` flags.
+
+- **macOS app Devices window (M11.4).** New standalone window separate from the Persistence viewer, reachable from the MenuBarExtra via "Open Devices View…" (⌘⇧D). Three-column `NavigationSplitView` with Cameras / Microphones / Live Events sidebar tabs, per-tab badges (snapshot counts; unseen event count on Events while on snapshot tabs; total accumulated while on Events). When a user selects a live event, the detail pane runs `OWDevices.attribute(_:)` lazily and renders ranked candidates with color-coded confidence badges (green/yellow/gray). The snapshot tabs update in-place when live events arrive — no manual refresh needed for "in use" state. Live monitor task lifecycle bound to the window's appearance.
+
+- **`Package.swift` cross-module dep:** OWDevices declares an `OWLog` dependency because attribution calls `OWLog.tccEvents()`. The other modules in the package stay dependency-free; the closure-based dep mapping keeps the change surgical.
+
+- **Owlwatch version bump** — `owlwatch --version` now prints `0.9.0-m11`.
+
+### Notes
+
+- 238 / 238 unit tests pass (14 OWDevices + 47 OWPersistence + 41 OWLog + 29 OWCodeSigning + 28 OWBinary + 15 OWProcess + 15 OWNetwork + others).
+- End-to-end state-change firing and attribution accuracy aren't fully unit-testable — triggering mic/camera activity from a headless test process is silently denied by macOS TCC, and attribution depends on the test runner's foreground status. The argv-builder / value-type / lifecycle tests cover what's deterministic; the live paths are exercised through `owlwatch watch-devices` and the macOS app's Devices window during manual smoke.
+- The `DeviceMonitorRunner` uses `@unchecked Sendable` because CMIO and CoreAudio property-listener callbacks fire on internal serial dispatch queues — only one writer at a time. Documented inline, same pattern as M6.3 (`LineBuffer`), M10.1 (`MonitorRunner`).
+
+### Deferred
+
+- **Hot-plug device detection.** New devices plugged in after the monitor starts aren't picked up. A future addition would subscribe to `kCMIOHardwarePropertyDevices` / `kAudioHardwarePropertyDevices` on the system object to detect new attachments and dynamically extend the listener set.
+- **Third-party virtual-camera detection.** OBS Virtual Camera and similar register as `.external` with synthetic model IDs; the `isVirtual` flag only catches Apple's own virtual cameras today. A future heuristic could inspect the CMIO plug-in bundle backing each `.external` camera (`/Library/CoreMediaIO/Plug-Ins/DAL/`) and flag third-party plug-ins.
+- **Background-daemon attribution.** A daemon with a long-standing TCC grant that opens the device without becoming frontmost returns no attribution candidate today. A future heuristic could rank running processes by "has TCC permission for the matching service" + "has CoreMediaIO / AVFoundation in its load list".
+- **macOS app notifications when the Devices window is closed.** The monitor only runs while the window is open. `UserNotifications` integration for banner alerts on mic/camera transitions is a future addition.
+
+### What's next
+
+**M13 — Rules engine.** Detection rules in a Owlwatch-native YAML schema over the data sources implemented across M1–M11. First milestone whose work doesn't add a new data source — instead it composes the existing ones into matchable patterns ("alert if a new LaunchAgent appears in `~/Library/LaunchAgents` from an unsigned process", "alert if the camera turns on while no foreground app has TCC camera permission", etc.). The four entitlement-gated milestones (M7 / M8 / M9 / M12) remain blocked on Apple.
+
+### PRs in this milestone
+
+#50 feat(OWDevices, owlwatch): camera and microphone snapshot + in-use detection (M11.1)
+#51 feat(OWDevices, owlwatch): live device-state stream + watch-devices CLI (M11.2)
+#52 feat(OWDevices, owlwatch): best-effort process attribution for device events (M11.3)
+#53 feat(Owlwatch, OWDevices): macOS app Devices window (M11.4)
+#54 feat(owlwatch): close M11 — version bump to 0.9.0-m11, CHANGELOG promotion, README tick
 
 ## [v0.8.0-m10] — 2026-05-23
 
@@ -393,7 +428,8 @@ The foundation milestone. Establishes the repository, build system, CI, governan
 - **No user-installable artifact ships with this tag.** The next runnable binary lands at M1 (`owlwatch ps`); the next visible app surface lands at M2/M3.
 - The four planned system extensions — Endpoint Security (M8), Network Extension filter (M7), DNS proxy (M12), Persistence monitor (M10) — exist as placeholder directories under `extensions/` but have no target shells yet. Each lands in its own milestone PR with the appropriate Apple-restricted entitlement (assuming Apple approval has landed by then).
 
-[Unreleased]: https://github.com/owlwatchlabs/owlwatch-macos/compare/v0.8.0-m10...HEAD
+[Unreleased]: https://github.com/owlwatchlabs/owlwatch-macos/compare/v0.9.0-m11...HEAD
+[v0.9.0-m11]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.9.0-m11
 [v0.8.0-m10]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.8.0-m10
 [v0.7.0-m6]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.7.0-m6
 [v0.6.0-m5]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.6.0-m5

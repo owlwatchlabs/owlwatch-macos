@@ -30,7 +30,7 @@ Demo recording scripts live in [`docs/demos/`](docs/demos/) and cover the **CLI 
 - [ ] M8 Endpoint Security event ingestion 🔒
 - [ ] M9 ES auth and muting — synchronous AUTH-event decisions, allow/block UX 🔒
 - [x] M10 persistence monitor (real-time) — FSEvents-backed live mutation stream (`OWPersistence.monitor()` / `monitorEnriched()`), `owlwatch watch-persistence` CLI subcommand, Live tab in the macOS app's persistence viewer
-- [ ] M11 mic and webcam monitor (`OWDevices`) with process attribution
+- [x] M11 mic and webcam monitor (`OWDevices`) — device snapshot with in-use state via CMIO + CoreAudio HAL, live state-change stream, best-effort process attribution via TCC events + foreground app; `owlwatch devices` and `owlwatch watch-devices` CLI subcommands, Devices window in the macOS app
 - [ ] M12 DNS proxy and heuristics 🔒
 - [ ] M13 detection rules engine and tested rule library
 - [ ] M14 iOS companion (posture, App Attest) 🔒
