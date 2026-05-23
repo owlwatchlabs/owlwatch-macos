@@ -21,6 +21,9 @@ struct OwlwatchApp: App {
     /// Stable identifier for the M16.3 network-viewer window.
     static let networkWindowID = "network"
 
+    /// Stable identifier for the M16.4 logs-viewer window.
+    static let logsWindowID = "logs"
+
     var body: some Scene {
         MenuBarExtra("Owlwatch", systemImage: "shield") {
             OwlwatchMenuBarContent()
@@ -55,6 +58,12 @@ struct OwlwatchApp: App {
             NetworkWindow()
         }
         .defaultSize(width: 1080, height: 620)
+        .windowResizability(.contentMinSize)
+
+        Window("Logs — Owlwatch", id: Self.logsWindowID) {
+            LogsWindow()
+        }
+        .defaultSize(width: 1180, height: 680)
         .windowResizability(.contentMinSize)
     }
 }
@@ -99,6 +108,11 @@ private struct OwlwatchMenuBarContent: View {
             openWindow(id: OwlwatchApp.networkWindowID)
         }
         .keyboardShortcut("n", modifiers: [.command, .shift])
+        Button("Open Logs View…") {
+            NSApp.activate()
+            openWindow(id: OwlwatchApp.logsWindowID)
+        }
+        .keyboardShortcut("l", modifiers: [.command, .shift])
         Divider()
         Button("Quit Owlwatch") {
             NSApp.terminate(nil)

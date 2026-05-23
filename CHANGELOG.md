@@ -17,7 +17,14 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 
 - **Network window (M16.3)** — fifth top-level window in the macOS app, surfacing M4's `OWNetwork` data. Reachable from MenuBarExtra via "Open Network View…" (⌘⇧N) and a Dashboard quick-action button. Five sidebar tabs (All / Listeners / TCP / UDP / Unix-domain) with per-tab badges, filterable center list with `tcp4`/`tcp6`/`udp4`/`udp6`/`unix-s`/`unix-d` protocol labels and color-coded TCP state badges (green for `ESTABLISHED`, blue for `LISTEN`, orange for the WAIT states). At refresh time the view model fans out two parallel detached fetches — `OWNetwork.snapshot()` for the connection set and `OWProcess.all(includeArguments: false, includeOpenFiles: false)` for a PID-to-process-name lookup map — so every connection row renders with its owning process without per-row latency. Detail pane shows the parsed endpoints, TCP state, process name, PID, and file descriptor. Search filters on address / port / process name / TCP state.
 
-_M16.4 (Logs window), M16.5 (Binary Inspector window), M16.6 (menu-bar live indicator + polish), and M16-close follow before the v0.10.0-m16 tag._
+- **Logs window (M16.4)** — sixth top-level window, surfacing M6's `OWLog` data across three tabs:
+  - **All Logs** — generic `OWLog.query()` over a user-chosen lookback window (1 min / 5 min / 15 min / 1 hr / 6 hr / 24 hr), with subsystem / process / message-contains filters and Info/Debug/Errors-only toggles.
+  - **TCC Events** — typed `OWLog.tccEvents()` from M6.2, with denied-only filter and process scoping. Outcome rendered with `denied` in red and `allowed` in green; selecting a row shows the full accessing-process / requesting-process / brokered-or-direct attribution.
+  - **Live Tail** — `OWLog.stream()` AsyncThrowingStream backing a 2000-entry capped buffer, newest-first. Predicate filters (subsystem, process, message-contains) apply forward only — no lookback. Sidebar badge shows unseen-entry count while on snapshot tabs; selecting Live Tail clears it.
+
+  Reachable from MenuBarExtra via "Open Logs View…" (⌘⇧L) and a Dashboard quick-action button. Apply button (⌘R) re-issues the query for snapshot tabs or restarts the stream for Live Tail. Filter UI sits in a custom toolbar above the list rather than in the search bar — log queries are slow enough (`log show` is seconds, not milliseconds) that explicit submission is the right interaction model.
+
+_M16.5 (Binary Inspector window), M16.6 (menu-bar live indicator + polish), and M16-close follow before the v0.10.0-m16 tag._
 
 ## [v0.9.0-m11] — 2026-05-23
 
