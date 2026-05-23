@@ -18,6 +18,9 @@ struct OwlwatchApp: App {
     /// Stable identifier for the M16.2 processes-viewer window.
     static let processesWindowID = "processes"
 
+    /// Stable identifier for the M16.3 network-viewer window.
+    static let networkWindowID = "network"
+
     var body: some Scene {
         MenuBarExtra("Owlwatch", systemImage: "shield") {
             OwlwatchMenuBarContent()
@@ -46,6 +49,12 @@ struct OwlwatchApp: App {
             ProcessesWindow()
         }
         .defaultSize(width: 1040, height: 620)
+        .windowResizability(.contentMinSize)
+
+        Window("Network — Owlwatch", id: Self.networkWindowID) {
+            NetworkWindow()
+        }
+        .defaultSize(width: 1080, height: 620)
         .windowResizability(.contentMinSize)
     }
 }
@@ -85,6 +94,11 @@ private struct OwlwatchMenuBarContent: View {
             openWindow(id: OwlwatchApp.processesWindowID)
         }
         .keyboardShortcut("s", modifiers: [.command, .shift])
+        Button("Open Network View…") {
+            NSApp.activate()
+            openWindow(id: OwlwatchApp.networkWindowID)
+        }
+        .keyboardShortcut("n", modifiers: [.command, .shift])
         Divider()
         Button("Quit Owlwatch") {
             NSApp.terminate(nil)

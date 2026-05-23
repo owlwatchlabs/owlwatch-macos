@@ -179,6 +179,12 @@ struct DashboardWindow: View {
                     openWindow(id: OwlwatchApp.processesWindowID)
                 }
                 NavigationButton(
+                    title: "Network",
+                    symbol: "network"
+                ) {
+                    openWindow(id: OwlwatchApp.networkWindowID)
+                }
+                NavigationButton(
                     title: "Persistence",
                     symbol: "play.circle"
                 ) {
