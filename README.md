@@ -35,9 +35,9 @@ Demo recording scripts live in [`docs/demos/`](docs/demos/) and cover the **CLI 
 - [ ] M13 detection rules engine and tested rule library
 - [ ] M14 iOS companion (posture, App Attest) 🔒
 - [ ] M15 v1.0 notarized release 🔒
-- [ ] M16 macOS app UI integration — status dashboard + per-source windows (Processes, Network, Logs, Binary Inspector) + menu-bar polish, bringing every CLI surface from M1–M11 into the GUI
+- [x] M16 macOS app UI integration — status dashboard + per-source windows (Processes, Network, Logs, Binary Inspector) + live menu-bar indicator, bringing every CLI surface from M1–M11 into the GUI
 
-**🔒 — gated on Apple entitlement provisioning.** Milestones marked above require Apple to approve restricted entitlements (Endpoint Security, Network Extension filter / DNS proxy, Developer ID / notarization). Submission status is tracked at [docs/apple-developer/entitlement-requests.md](docs/apple-developer/entitlement-requests.md). Until those land, development proceeds on the milestones that can ship without entitlement gating — currently M13 (rules engine over already-implemented data sources) and M16 (UI integration of the existing data sources).
+**🔒 — gated on Apple entitlement provisioning.** Milestones marked above require Apple to approve restricted entitlements (Endpoint Security, Network Extension filter / DNS proxy, Developer ID / notarization). Submission status is tracked at [docs/apple-developer/entitlement-requests.md](docs/apple-developer/entitlement-requests.md). Until those land, development proceeds on the milestones that can ship without entitlement gating — currently M13 (rules engine over already-implemented data sources).
 
 ## Architecture
 
