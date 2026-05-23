@@ -1,7 +1,11 @@
 import ArgumentParser
 
+// Root is `AsyncParsableCommand` so async subcommands (`LogsCommand`'s
+// `--follow` mode) can dispatch into an async `run()`. Sync subcommands
+// continue to work — `ParsableCommand` and `AsyncParsableCommand` are
+// mix-and-match under one root.
 @main
-struct Owlwatch: ParsableCommand {
+struct Owlwatch: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "owlwatch",
         abstract: "Owlwatch command-line interface.",
