@@ -6,7 +6,15 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 
 ## [Unreleased]
 
-_No entries yet. M7 work (`OwlwatchNetwork` — Network Extension filter provider) lands here once the Apple entitlement is provisioned._
+### Added
+
+- **`OWPersistence.monitor()` (M10.1)** — live-tail FSEvents subscription across every persistence-relevant path on disk. New top-level API returning `AsyncThrowingStream<PersistenceMutation, Error>`. The complement to M5's snapshot reader: where `OWPersistence.launchServices()` answers *"what's installed right now?"*, the monitor answers *"what just changed?"*. Backed by `FSEventStreamCreate` with `kFSEventStreamCreateFlagFileEvents` for file-level granularity, dispatched on a private serial queue. Cancellation stops + invalidates the FSEvents stream cleanly via the `AsyncThrowingStream.onTermination` hook.
+- **Value types:** `PersistenceMutation` (`path`, `kind`, `scope`, `timestamp`, `eventID`); `MutationKind` (`.added` / `.modified` / `.removed` / `.renamed` / `.xattrChanged` / `.metadataChanged`); `MutationScope` (`.platformLaunchd` / `.systemLaunchd` / `.userLaunchd` / `.systemExtensionsRegistry` / `.kernelExtensions` / `.loginwindowPlist` / `.other`); `OWPersistenceMonitorError` (`.unableToCreateStream(paths:)` / `.streamFailedToStart`). `MutationKind` collapses one event's multi-flag bitfield into the single most-descriptive kind — `.removed` over `.modified` over `.metadataChanged` — so detection rules don't have to disambiguate. `xattrChanged` specifically surfaces `com.apple.quarantine` removal as a Gatekeeper-bypass signal.
+- **`OWPersistence.defaultMonitorPaths`** — pre-baked watch set covering `/System/Library/LaunchDaemons` + `/System/Library/LaunchAgents`, `/Library/LaunchDaemons` + `/Library/LaunchAgents`, `~/Library/LaunchAgents`, `/Library/SystemExtensions`, `/Library/Extensions`, and the system + user loginwindow preference plists. Callers can override with a custom path list for narrower or broader scopes.
+- **`owlwatch watch-persistence` (M10.1)** — eleventh subcommand. Live-tails every mutation on the standard watch set; prints `TIMESTAMP KIND SCOPE PATH` rows as events arrive. Flags: `--kind <comma-list>` (filter by mutation kind), `--scope <scope>` (filter by scope), `--latency <seconds>` (FSEvents coalescing window, default 0.5).
+- **`fflush(stdout)` for streaming subcommands** — the M6.3 implementation called `FileHandle.standardOutput.synchronizeFile()` to flush between rows, which throws `NSFileHandleOperationException` ("Invalid argument") when stdout is a pipe or regular file. The exception only manifested intermittently in M6.3 because `log stream` emitted data faster than the exception could terminate the process. Replaced with the C-level `fflush(stdout)` in both `owlwatch logs --follow` and the new `owlwatch watch-persistence`.
+
+_M10.2 (mutation enrichment — parse changed plists and embed the resulting `LaunchService` in events), M10.3 (macOS app Live tab integration), and M10-close follow before the v0.8.0-m10 tag._
 
 ## [v0.7.0-m6] — 2026-05-22
 

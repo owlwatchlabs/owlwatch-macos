@@ -1,4 +1,5 @@
 import ArgumentParser
+import Darwin
 import Foundation
 import OWLog
 
@@ -123,7 +124,7 @@ struct LogsCommand: AsyncParsableCommand {
         let header = ["TIMESTAMP", "LEVEL", "PROCESS", "SUBSYSTEM", "CATEGORY", "MESSAGE"]
         let widths = [12, 8, 24, 32, 16, 80]
         print(formatRow(header, widths: widths))
-        FileHandle.standardOutput.synchronizeFile()
+        fflush(stdout)
 
         for try await entry in OWLog.stream(query) {
             if errorsOnly, entry.level != .error && entry.level != .fault {
@@ -131,7 +132,7 @@ struct LogsCommand: AsyncParsableCommand {
             }
             let row = renderRow(entry)
             print(formatRow(row, widths: widths))
-            FileHandle.standardOutput.synchronizeFile()
+            fflush(stdout)
         }
     }
 
