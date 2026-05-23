@@ -13,7 +13,9 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 - **`DashboardViewModel`** — `@MainActor @Observable` with parallel detached fetches per source via `async let`. A slow source (TCC query) doesn't gate the others.
 - **Owlwatch app target gained dependencies** on `OWProcess`, `OWNetwork`, `OWLog`, `OWBinary`, `OWCodeSigning` — every shipped data-source module is now reachable from the macOS app, in preparation for M16.2–M16.5 windows.
 
-_M16.2 (Processes window), M16.3 (Network window), M16.4 (Logs window), M16.5 (Binary Inspector window), M16.6 (menu-bar live indicator + polish), and M16-close follow before the v0.10.0-m16 tag._
+- **Processes window (M16.2)** — fourth top-level window in the macOS app, reachable from MenuBarExtra via "Open Processes View…" (⌘⇧S) and from a Dashboard quick-action button. Two-tab sidebar (All Processes / Process Tree), filterable center list, full-detail right pane. The tree view uses SwiftUI's `OutlineGroup` with `ProcessNode` building the parent → children hierarchy from M1's `RunningProcess` snapshot. Two-phase loading: the initial `OWProcess.all(...)` call uses `includeArguments: false, includeOpenFiles: false` for speed; when the user selects a process, the view model re-fetches *that one process* via `OWProcess.snapshot(pid:, includeArguments: true, includeOpenFiles: true)` for the detail pane so we don't pay the per-process libproc cost across the whole table. Search filters on name / path / PID against the flat list.
+
+_M16.3 (Network window), M16.4 (Logs window), M16.5 (Binary Inspector window), M16.6 (menu-bar live indicator + polish), and M16-close follow before the v0.10.0-m16 tag._
 
 ## [v0.9.0-m11] — 2026-05-23
 

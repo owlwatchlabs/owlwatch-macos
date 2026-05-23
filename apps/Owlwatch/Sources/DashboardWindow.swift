@@ -173,6 +173,12 @@ struct DashboardWindow: View {
                 .font(.title3.bold())
             HStack(spacing: 12) {
                 NavigationButton(
+                    title: "Processes",
+                    symbol: "cpu"
+                ) {
+                    openWindow(id: OwlwatchApp.processesWindowID)
+                }
+                NavigationButton(
                     title: "Persistence",
                     symbol: "play.circle"
                 ) {
