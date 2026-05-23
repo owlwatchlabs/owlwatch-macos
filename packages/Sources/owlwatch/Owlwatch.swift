@@ -26,7 +26,8 @@ struct Owlwatch: AsyncParsableCommand {
             LoginHooksCommand.self,
             LogsCommand.self,
             TccEventsCommand.self,
-            WatchPersistenceCommand.self
+            WatchPersistenceCommand.self,
+            DevicesCommand.self
         ]
     )
 }
