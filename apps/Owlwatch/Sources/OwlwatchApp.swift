@@ -8,6 +8,9 @@ struct OwlwatchApp: App {
     /// `openWindow(id:)`.
     static let persistenceWindowID = "persistence"
 
+    /// Stable identifier for the M11.4 devices-viewer window.
+    static let devicesWindowID = "devices"
+
     var body: some Scene {
         MenuBarExtra("Owlwatch", systemImage: "shield") {
             OwlwatchMenuBarContent()
@@ -18,6 +21,12 @@ struct OwlwatchApp: App {
             PersistenceWindow()
         }
         .defaultSize(width: 1100, height: 640)
+        .windowResizability(.contentMinSize)
+
+        Window("Devices — Owlwatch", id: Self.devicesWindowID) {
+            DevicesWindow()
+        }
+        .defaultSize(width: 980, height: 580)
         .windowResizability(.contentMinSize)
     }
 }
@@ -41,6 +50,11 @@ private struct OwlwatchMenuBarContent: View {
             openWindow(id: OwlwatchApp.persistenceWindowID)
         }
         .keyboardShortcut("p", modifiers: [.command, .shift])
+        Button("Open Devices View…") {
+            NSApp.activate()
+            openWindow(id: OwlwatchApp.devicesWindowID)
+        }
+        .keyboardShortcut("d", modifiers: [.command, .shift])
         Divider()
         Button("Quit Owlwatch") {
             NSApp.terminate(nil)

@@ -26,7 +26,9 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 - **Value types:** `ProcessCandidate` (`identifier`, `pid`, `source`, `confidence`, `evidence`); `AttributionSource` (`.tccRecentRequest` / `.foregroundApplication`); `AttributionConfidence` (`.high` / `.medium` / `.low`).
 - **`owlwatch watch-devices --attribute` flag (M11.3)** — after each `ON` event, prints attribution candidates indented beneath the row. `--attribute-lookback <seconds>` tunes the TCC query window (default 10s).
 
-_M11.4 (macOS app Devices tab) and M11-close follow before the v0.9.0-m11 tag._
+- **macOS app Devices window (M11.4)** — new standalone window (separate from the Persistence viewer) reachable from the MenuBarExtra via "Open Devices View…" (⌘⇧D). Three-column `NavigationSplitView` mirroring the Persistence window's shape: sidebar with three tabs (Cameras, Microphones, Live Events) and per-tab badges, center list of items, right pane with per-item detail. The Cameras and Microphones tabs show snapshot data from `OWDevices.cameras()` / `microphones()` with an "in use" badge per row. The Live Events tab streams `DeviceStateChange` events from `OWDevices.monitor()` newest-first (history capped at 500). When a user selects a live event in the list, the detail pane runs `OWDevices.attribute(_:)` and shows the ranked process candidates inline with a color-coded confidence badge (green/yellow/gray for high/medium/low). The window refreshes its snapshot in-place when a `DeviceStateChange` arrives so the snapshot tabs reflect live in-use state without manual refresh. Live monitor task starts when the window appears and stops on dismissal. Owlwatch app target now depends on the `OWDevices` SPM product.
+
+_M11-close (version bump to `0.9.0-m11`, README tick, CHANGELOG promotion, tag) follows._
 
 ## [v0.8.0-m10] — 2026-05-23
 
