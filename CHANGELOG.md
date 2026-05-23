@@ -21,7 +21,12 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 - **`OWDevicesMonitorError.listenerRegistrationFailed(uid:status:)`** — surfaces non-zero OSStatus from `CMIOObjectAddPropertyListener` / `AudioObjectAddPropertyListener`, with the failing device's UID preserved for diagnostics.
 - **`owlwatch watch-devices` subcommand (M11.2)** — thirteenth subcommand. Live-tails state transitions; prints `TIMESTAMP KIND STATE NAME ID` rows. Flags: `--kind camera|microphone`, `--on-only` (ignore turns-off, show only activations).
 
-_M11.3 (soft process attribution via TCC / log correlation), M11.4 (macOS app Devices tab), and M11-close follow before the v0.9.0-m11 tag._
+- **`OWDevices.attribute(_:lookbackSeconds:)` (M11.3)** — best-effort process attribution for a `DeviceStateChange`. Returns an ordered list of `ProcessCandidate`s by cross-referencing two independent signals: (a) **recent TCC requests** for `kTCCServiceCamera` / `kTCCServiceMicrophone` (queried via `OWLog.tccEvents(_:)` from M6.2 — the `accessingProcess` is the most likely consumer); (b) **the current foreground application** from `NSWorkspace.shared.frontmostApplication`. `confidence` reflects evidence strength: `.high` when TCC fired within the last second with `.allowed`, `.medium` for a single signal with reasonable timing, `.low` for foreground-app-only evidence.
+- **Honest about the limitation:** macOS deliberately doesn't expose which process is using a device through any public API. CMIO and `coreaudiod` log entries redact PIDs / bundle IDs as `<private>` — we cannot extract consumer PIDs from log messages even with full disk access. Recent-TCC and foreground-app are the realistic public-API signals. Background daemons that hold a long-standing TCC grant and open the device without becoming frontmost return no candidate.
+- **Value types:** `ProcessCandidate` (`identifier`, `pid`, `source`, `confidence`, `evidence`); `AttributionSource` (`.tccRecentRequest` / `.foregroundApplication`); `AttributionConfidence` (`.high` / `.medium` / `.low`).
+- **`owlwatch watch-devices --attribute` flag (M11.3)** — after each `ON` event, prints attribution candidates indented beneath the row. `--attribute-lookback <seconds>` tunes the TCC query window (default 10s).
+
+_M11.4 (macOS app Devices tab) and M11-close follow before the v0.9.0-m11 tag._
 
 ## [v0.8.0-m10] — 2026-05-23
 
