@@ -37,6 +37,7 @@ struct PersistenceItemDetail: View {
         case .systemExtension(let ext): SystemExtensionDetail(ext: ext)
         case .kernelExtension(let ext): KernelExtensionDetail(ext: ext)
         case .loginHook(let hook): LoginHookDetail(hook: hook)
+        case .liveMutation(let event): LiveMutationDetail(event: event)
         }
     }
 }
@@ -117,6 +118,53 @@ private struct LoginHookDetail: View {
         DetailField("Scope", hook.scope.rawValue)
         DetailPath("Script", hook.scriptPath)
         DetailPath("Plist", hook.plistPath)
+    }
+}
+
+/// Live-event detail. Surfaces the raw FSEvents fields plus the
+/// enriched payload (parsed `LaunchService` or `[LoginLogoutHook]`)
+/// when one was attached. Removed-file events have no payload.
+private struct LiveMutationDetail: View {
+    let event: EnrichedMutation
+
+    var body: some View {
+        DetailField("Kind", event.mutation.kind.rawValue)
+        DetailField("Scope", event.mutation.scope.rawValue)
+        DetailField("Timestamp", event.mutation.timestamp.formatted(date: .abbreviated, time: .standard))
+        DetailField("FSEvent ID", String(event.mutation.eventID))
+        DetailPath("Path", event.mutation.path)
+
+        if let service = event.launchService {
+            Divider()
+            Text("Parsed LaunchService")
+                .font(.caption2.bold())
+                .foregroundStyle(.secondary)
+                .padding(.top, 4)
+            DetailField("Label", service.label ?? "—")
+            DetailPath("Program", service.executablePath ?? "—")
+            if !service.arguments.isEmpty {
+                DetailField("Arguments", service.arguments.joined(separator: " "))
+            }
+            DetailField("State", service.isDisabled ? "disabled" : "enabled")
+            DetailField("Run At Load", service.runAtLoad ? "true" : "false")
+            DetailField("Keep Alive", service.keepAlive.isActive ? "true" : "false")
+        } else if let hooks = event.hooks, !hooks.isEmpty {
+            Divider()
+            Text("Parsed Hooks")
+                .font(.caption2.bold())
+                .foregroundStyle(.secondary)
+                .padding(.top, 4)
+            ForEach(hooks, id: \.self) { hook in
+                DetailField("\(hook.kind.rawValue.capitalized) Hook", hook.scriptPath)
+            }
+        } else {
+            Text(event.mutation.kind == .removed
+                 ? "(file was removed — no content to parse)"
+                 : "(no parseable payload for this scope)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.top, 8)
+        }
     }
 }
 

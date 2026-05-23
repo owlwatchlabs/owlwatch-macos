@@ -59,7 +59,7 @@ public struct PersistenceMutation: Sendable, Equatable, Hashable {
 /// fire with several flag bits set (e.g. created + modified within
 /// the same batch), in which case the most descriptive kind wins —
 /// ``added`` over ``modified`` over ``metadataChanged``.
-public enum MutationKind: Sendable, Equatable, Hashable, CaseIterable {
+public enum MutationKind: String, Sendable, Equatable, Hashable, CaseIterable {
     /// File or directory came into existence
     /// (`kFSEventStreamEventFlagItemCreated`).
     case added
@@ -90,7 +90,7 @@ public enum MutationKind: Sendable, Equatable, Hashable, CaseIterable {
 /// Which persistence directory hierarchy the mutation lives in.
 /// Mirrors ``LaunchScope`` but spans all M5 sources, not just
 /// LaunchAgents / LaunchDaemons.
-public enum MutationScope: Sendable, Equatable, Hashable, CaseIterable {
+public enum MutationScope: String, Sendable, Equatable, Hashable, CaseIterable {
     /// `/System/Library/LaunchDaemons` or `/System/Library/LaunchAgents`.
     /// SIP-protected; mutations here are rare and high-priority.
     case platformLaunchd

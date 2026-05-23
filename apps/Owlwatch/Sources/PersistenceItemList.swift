@@ -45,6 +45,9 @@ struct PersistenceItemList: View {
                 return "No kexts found in /Library/Extensions or /System/Library/Extensions."
             case .loginHooks:
                 return "No LoginHook or LogoutHook keys are set. (This is the normal state.)"
+            case .liveEvents:
+                return "Watching for filesystem changes across every persistence directory. "
+                     + "Mutations will appear here as they happen."
             }
         }
         return "Filter '\(viewModel.searchText)' matched nothing."

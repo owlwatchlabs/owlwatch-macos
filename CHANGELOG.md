@@ -18,7 +18,10 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 - **`EnrichedMutation` value type** with `mutation`, `launchService`, `hooks`, computed `hasPayload`.
 - **`owlwatch watch-persistence` enriched output (M10.2)** — by default the subcommand now prints `TIMESTAMP KIND SCOPE LABEL/HOOK PROGRAM/SCRIPT PATH`, surfacing the most-detection-relevant fields (the `Label` and `Program` of a newly-dropped LaunchAgent, the `Login`/`Logout` kind and `scriptPath` of a hook change). `--raw` flag falls back to the M10.1 four-column layout.
 
-_M10.3 (macOS app Live tab integration) and M10-close follow before the v0.8.0-m10 tag._
+- **macOS app Live tab (M10.3)** — extends the persistence viewer window (shipped at M5.5) with a sixth sidebar entry, "Live Events". Subscribes to `OWPersistence.monitorEnriched()` for the lifetime of the window; new mutations appear in the center list newest-first. When the user is on a snapshot kind (Launch Services, Login Items, …), the Live entry's sidebar badge shows the number of *unseen* events; switching to Live clears the badge. Live-mutation rows show kind (ADDED / REMOVED / modified / xattr badge), label or path basename, and the resolved Program for enriched LaunchAgent / LaunchDaemon events. Selecting a row shows the full enriched detail (raw mutation fields plus parsed payload) in the right pane. The history buffer caps at 500 events to bound memory. The monitor task stops when the window is dismissed.
+- **`MutationKind` and `MutationScope` gained `String` raw values.** No public-API change beyond the conformance; lets the SwiftUI detail pane render the enum cases as text without a per-case switch.
+
+_M10-close (version bump to `0.8.0-m10`, README tick, CHANGELOG promotion, tag) follows._
 
 ## [v0.7.0-m6] — 2026-05-22
 
