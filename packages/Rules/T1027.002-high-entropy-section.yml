@@ -1,0 +1,35 @@
+id: T1027.002-high-entropy-section
+name: Binary contains a section with very high Shannon entropy
+description: |
+  A Mach-O section with Shannon entropy above 7.5 bits/byte is
+  strongly suggestive of packed, compressed, or encrypted content.
+  Normal compiled code lives in the 5.5–6.5 range; .const data with
+  literal strings is lower. Sections above 7.5 are statistically
+  indistinguishable from random and almost always indicate one of:
+
+  - **Packing** — UPX, themida, custom packers that wrap a payload
+    inside a high-entropy container that the loader stub decompresses
+    at runtime.
+  - **Encrypted payload** — a stage-2 dropper whose final payload is
+    AES- or XOR-encrypted with a runtime-derived key.
+  - **Embedded assets** — legitimately for some binaries (Electron
+    apps embed compressed JavaScript bundles, games embed compressed
+    texture archives). Expect some false-positive volume on developer
+    workstations; flag medium severity.
+
+  Compare this finding's binary path against the linked-dylib /
+  rpath / signature evidence to triage whether the high entropy is
+  packed code or legitimate embedded assets.
+mitre: T1027.002
+severity: medium
+when:
+  source: binary
+  match:
+    max_section_entropy:
+      greater_than: 7.5
+    path:
+      matches: '^(?!/System/|/Library/Apple/|/usr/libexec/|/usr/sbin/|/sbin/).+'
+evidence:
+  - path
+  - max_section_entropy
+  - linked_dylibs

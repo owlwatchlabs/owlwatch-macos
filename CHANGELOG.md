@@ -24,6 +24,19 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 
 _M13.2 (process + binary library), M13.3 (network + persistence), M13.4 (signature + log correlation), M13.5 (schema hardening + golden fixtures), and M13-close follow before the v0.11.0-m13 tag._
 
+- **Process + binary rule library (M13.2)** — extends `OWRules` with a `binary` data source and adds four new rules. `OWRules` gains a dependency on `OWBinary` (M2) for Mach-O parsing.
+  - **New data source** `binary` — iterates `BinarySummary`s built from every unique executable in the process snapshot. Each summary collapses across slices (any-slice semantics) and exposes `path`, `is_universal`, `slice_count`, `architectures`, `linked_dylibs`, `rpaths`, `has_rwx_segment`, `max_section_entropy`.
+  - **Numeric predicates** `greater_than` / `less_than` — required for entropy thresholds. `FieldValue.double` added; integers widen to double for numeric comparison. The loader's `decodePredicate` was split into per-shape helpers (`decodeStringPredicate`, `decodeBooleanPredicate`, `decodeNumericPredicate`, `decodeInPredicate`) to keep cyclomatic complexity under SwiftLint's threshold as the vocabulary grows.
+  - **Conditional binary capture** — `OWRules.captureSnapshot(includeBinaries:)` lets callers skip the (~seconds) Mach-O parse pass when no loaded rule targets the binary source. The convenience `scan(rules:)` auto-detects.
+  - **CLI** — `owlwatch scan` now reports `Captured: snapshot in Xs` separately from `Scanned: N items in Ys`. The evaluator pass is sub-millisecond; capture time (process walk + per-binary parse) is what users actually pay. JSON output gains a `capture_elapsed_seconds` field.
+  - **Four new rules:**
+    - `T1027.002-high-entropy-section` (medium) — Mach-O section with Shannon entropy > 7.5 bits/byte (packing / encryption signal). Excludes `/System/`, `/Library/Apple/`, `/usr/libexec/`, `/usr/sbin/`, `/sbin/` to avoid firing on Apple's own binaries that legitimately embed compressed assets (bookassetd, commerce, BKAgentService).
+    - `T1574.006-rwx-segment` (high) — Mach-O segment declares both VM_PROT_WRITE and VM_PROT_EXECUTE bits. Strong self-modifying-code / packing-stub signal.
+    - `T1564.001-process-in-hidden-dir` (medium) — Running process whose path traverses any dot-prefixed directory (`/Users/x/.cache/foo`, `/var/folders/.../.hidden/`). Expected to fire on developer machines with `.build/`, `.cargo/`, `.rbenv/` paths; tune severity per deployment.
+    - `T1036.005-apple-binary-masquerade` (high) — Running process whose `name` matches a well-known Apple system binary (`launchd`, `kextd`, `coreaudiod`, `mds`, ...) but whose `path` is outside the standard Apple-shipped directories (`/System/`, `/usr/libexec/`, `/sbin/`, `/usr/sbin/`, `/usr/bin/`, `/bin/`).
+  - **8 new tests** in `OWRulesTests` covering numeric predicates, the binary source evaluator, `BinarySummary.make(from:)` against `/bin/ls`, and the capture-skip optimization. Shipped-rules regression gate now expects ≥ 9 rules (5 from M13.1 + 4 here).
+  - **Yams now used for numeric values** — the loader accepts `Int` and `Double` from YAML for the new numeric predicates.
+
 ## [v0.10.0-m16] — 2026-05-23
 
 The macOS app UI integration milestone. M1–M11 each shipped their own data source and CLI surface; M16 brings every one of them into the GUI as a production-ready MVP. The Owlwatch app gains a status dashboard plus five new top-level windows (Processes, Network, Logs, Binary Inspector, on top of the M5.5 Persistence and M11.4 Devices windows) and a live menu-bar indicator that flips between idle, attention, and in-use states without ever opening a window.

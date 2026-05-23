@@ -47,6 +47,14 @@ public indirect enum Predicate: Sendable, Equatable {
     /// matches the boolean `false`. Errors at evaluation time if the
     /// field is not a boolean.
     case isBoolean(Bool)
+
+    /// Strict numeric `>` comparison. Field value must be `.integer`
+    /// or `.double`; non-numeric values never match. Added in M13.2
+    /// for entropy thresholds and similar numeric tests.
+    case greaterThan(Double)
+
+    /// Strict numeric `<` comparison. Same constraints as `.greaterThan`.
+    case lessThan(Double)
 }
 
 extension Predicate {
@@ -85,6 +93,12 @@ extension Predicate {
         case .isBoolean(let expected):
             guard let bool = value.asBool else { return false }
             return bool == expected
+        case .greaterThan(let threshold):
+            guard let number = value.asDouble else { return false }
+            return number > threshold
+        case .lessThan(let threshold):
+            guard let number = value.asDouble else { return false }
+            return number < threshold
         }
     }
 }

@@ -22,11 +22,18 @@ public enum RuleSource: String, Sendable, Codable, CaseIterable, Hashable {
     /// `parent_identifier`, `url`, `is_enabled`.
     case loginItem = "login_item"
 
+    /// Iterates `BinarySummary`s parsed from every unique executable
+    /// in the process snapshot. Fields: `path`, `is_universal`,
+    /// `architectures`, `linked_dylibs`, `rpaths`, `has_rwx_segment`,
+    /// `max_section_entropy`, `slice_count`. Added in M13.2.
+    case binary
+
     public var displayName: String {
         switch self {
         case .process: return "Process"
         case .launchService: return "Launch Service"
         case .loginItem: return "Login Item"
+        case .binary: return "Binary"
         }
     }
 }

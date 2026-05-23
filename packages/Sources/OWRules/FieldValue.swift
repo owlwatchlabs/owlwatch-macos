@@ -14,6 +14,7 @@ import Foundation
 public enum FieldValue: Sendable, Equatable {
     case string(String)
     case integer(Int64)
+    case double(Double)
     case boolean(Bool)
     /// Collection of strings — for fields like `arguments`. Predicates
     /// over collections match if any element satisfies the predicate.
@@ -22,13 +23,14 @@ public enum FieldValue: Sendable, Equatable {
     case missing
 
     /// String form for string-flavored predicates (`equals`,
-    /// `startsWith`, `contains`, ...). `Int64` formats as its decimal
-    /// form; `Bool` formats as `"true"` / `"false"`. Missing returns
-    /// `nil`.
+    /// `startsWith`, `contains`, ...). `Int64` and `Double` format as
+    /// their decimal forms; `Bool` formats as `"true"` / `"false"`.
+    /// Missing returns `nil`.
     var asString: String? {
         switch self {
         case .string(let str): return str
         case .integer(let int): return String(int)
+        case .double(let double): return String(double)
         case .boolean(let bool): return bool ? "true" : "false"
         case .stringArray(let array):
             // Collections concatenate via space — useful for argv-style
@@ -42,6 +44,17 @@ public enum FieldValue: Sendable, Equatable {
     var asBool: Bool? {
         if case .boolean(let bool) = self { return bool }
         return nil
+    }
+
+    /// Numeric form for `greater_than` / `less_than` predicates.
+    /// Integers widen to Double; non-numeric values return `nil` and
+    /// numeric predicates against them never match.
+    var asDouble: Double? {
+        switch self {
+        case .integer(let int): return Double(int)
+        case .double(let double): return double
+        default: return nil
+        }
     }
 
     /// `true` for any populated value; `false` for `.missing` and for

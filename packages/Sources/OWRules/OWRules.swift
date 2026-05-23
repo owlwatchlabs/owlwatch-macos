@@ -1,4 +1,5 @@
 import Foundation
+import OWBinary
 import OWPersistence
 import OWProcess
 
@@ -39,18 +40,51 @@ public enum OWRules {
     /// - Parameter includeArguments: forwarded to ``OWProcess/all(includeArguments:includeOpenFiles:)``.
     ///   Required for any rule that matches on `arguments`; rules that
     ///   only need `pid` / `name` / `path` can pass `false` for speed.
-    public static func captureSnapshot(includeArguments: Bool = true) throws -> Snapshot {
+    /// - Parameter includeBinaries: when `true`, parses each unique
+    ///   process executable via `OWBinary` and builds a
+    ///   ``BinarySummary`` per binary. Costly — a typical Mac runs
+    ///   ~300 unique executables and parsing each is a millisecond or
+    ///   so. The convenience ``scan(rules:)`` overload sets this
+    ///   based on whether any loaded rule needs the binary source.
+    public static func captureSnapshot(
+        includeArguments: Bool = true,
+        includeBinaries: Bool = true
+    ) throws -> Snapshot {
         let processes = try OWProcess.all(
             includeArguments: includeArguments,
             includeOpenFiles: false
         )
         let services = OWPersistence.launchServices()
         let items = OWPersistence.loginItems()
+        let binaries = includeBinaries
+            ? captureBinaries(from: processes)
+            : []
         return Snapshot(
             processes: processes,
             launchServices: services,
-            loginItems: items
+            loginItems: items,
+            binaries: binaries
         )
+    }
+
+    /// Parse every unique executable path in `processes` into a
+    /// ``BinarySummary``. Paths that fail to parse (permission
+    /// denied, non-Mach-O, malformed) are silently skipped — a
+    /// failed parse is not a finding by itself, and the noise would
+    /// dominate the report.
+    private static func captureBinaries(from processes: [RunningProcess]) -> [BinarySummary] {
+        var seen: Set<String> = []
+        var summaries: [BinarySummary] = []
+        for process in processes {
+            guard let path = process.path, !seen.contains(path) else { continue }
+            seen.insert(path)
+            let url = URL(fileURLWithPath: path)
+            guard let binary = try? OWBinary.parse(at: url, includeSymbols: false) else {
+                continue
+            }
+            summaries.append(BinarySummary.make(from: binary))
+        }
+        return summaries
     }
 
     /// Evaluate `rules` against `snapshot`. Returns a ``ScanReport``
@@ -61,9 +95,20 @@ public enum OWRules {
     }
 
     /// Convenience: capture a fresh snapshot and evaluate `rules`
-    /// against it in one call.
+    /// against it in one call. Skips binary parsing when no loaded
+    /// rule targets the `binary` source — keeps simple `process` /
+    /// `launch_service` / `login_item` scans cheap.
     public static func scan(rules: [Rule]) throws -> ScanReport {
-        let snapshot = try captureSnapshot()
+        let needsBinaries = rules.contains { $0.source == .binary }
+        let needsArguments = rules.contains { rule in
+            rule.source == .process && (
+                rule.match.keys.contains("arguments") || rule.evidence.contains("arguments")
+            )
+        }
+        let snapshot = try captureSnapshot(
+            includeArguments: needsArguments,
+            includeBinaries: needsBinaries
+        )
         return scan(rules: rules, snapshot: snapshot)
     }
 }

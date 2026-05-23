@@ -67,14 +67,31 @@ struct ScanCommand: ParsableCommand {
             return
         }
 
-        let report = try OWRules.scan(rules: loadedRules)
+        // Capture and evaluate as separate phases so the user can see
+        // where wall-clock time went. Binary parsing (M13.2) can take
+        // seconds on a busy system; the evaluator itself is sub-ms.
+        let captureStart = Date()
+        let needsBinaries = loadedRules.contains { $0.source == .binary }
+        let needsArguments = loadedRules.contains { rule in
+            rule.source == .process && (
+                rule.match.keys.contains("arguments") || rule.evidence.contains("arguments")
+            )
+        }
+        let snapshot = try OWRules.captureSnapshot(
+            includeArguments: needsArguments,
+            includeBinaries: needsBinaries
+        )
+        let captureElapsed = Date().timeIntervalSince(captureStart)
+
+        let report = OWRules.scan(rules: loadedRules, snapshot: snapshot)
         let visible = report.findings.filter { $0.severity >= minimumSeverity }
 
         if json {
-            try emitJSON(report: report, visible: visible, rulesURL: rulesURL)
+            try emitJSON(report: report, visible: visible, rulesURL: rulesURL,
+                         captureElapsed: captureElapsed)
         } else {
             emitText(report: report, visible: visible, rulesURL: rulesURL,
-                     minimumSeverity: minimumSeverity)
+                     minimumSeverity: minimumSeverity, captureElapsed: captureElapsed)
         }
 
         if !visible.isEmpty {
@@ -114,10 +131,12 @@ struct ScanCommand: ParsableCommand {
         report: ScanReport,
         visible: [Finding],
         rulesURL: URL,
-        minimumSeverity: Severity
+        minimumSeverity: Severity,
+        captureElapsed: TimeInterval
     ) {
         var lines: [String] = []
         lines.append("Rules:    \(report.rulesEvaluated) loaded from \(rulesURL.path)")
+        lines.append("Captured: snapshot in \(String(format: "%.3fs", captureElapsed))")
         lines.append("Scanned:  \(report.itemsEvaluated) items in \(String(format: "%.3fs", report.elapsed))")
         if visible.isEmpty {
             lines.append("Findings: none at severity >= \(minimumSeverity.rawValue)")
@@ -151,12 +170,14 @@ struct ScanCommand: ParsableCommand {
     private func emitJSON(
         report: ScanReport,
         visible: [Finding],
-        rulesURL: URL
+        rulesURL: URL,
+        captureElapsed: TimeInterval
     ) throws {
         let payload: [String: Any] = [
             "scanned_at": ISO8601DateFormatter().string(from: report.scannedAt),
             "rules_loaded": report.rulesEvaluated,
             "items_evaluated": report.itemsEvaluated,
+            "capture_elapsed_seconds": captureElapsed,
             "elapsed_seconds": report.elapsed,
             "rules_directory": rulesURL.path,
             "findings": visible.map { finding -> [String: Any] in

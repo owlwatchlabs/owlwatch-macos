@@ -82,6 +82,27 @@ enum FieldExtractor {
         }
     }
 
+    // MARK: - Binary
+
+    static let binaryFields: Set<String> = [
+        "path", "is_universal", "slice_count", "architectures",
+        "linked_dylibs", "rpaths", "has_rwx_segment", "max_section_entropy"
+    ]
+
+    static func extract(_ field: String, from summary: BinarySummary) -> FieldValue {
+        switch field {
+        case "path": return .string(summary.path)
+        case "is_universal": return .boolean(summary.isUniversal)
+        case "slice_count": return .integer(Int64(summary.sliceCount))
+        case "architectures": return .stringArray(summary.architectures)
+        case "linked_dylibs": return .stringArray(summary.linkedDylibs)
+        case "rpaths": return .stringArray(summary.rpaths)
+        case "has_rwx_segment": return .boolean(summary.hasRWXSegment)
+        case "max_section_entropy": return .double(summary.maxSectionEntropy)
+        default: return .missing
+        }
+    }
+
     // MARK: - Field validation
 
     /// Field names a rule may reference for the given source.
@@ -91,6 +112,7 @@ enum FieldExtractor {
         case .process: return processFields
         case .launchService: return launchServiceFields
         case .loginItem: return loginItemFields
+        case .binary: return binaryFields
         }
     }
 }
