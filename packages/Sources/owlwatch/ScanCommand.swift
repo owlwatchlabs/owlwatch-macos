@@ -72,6 +72,8 @@ struct ScanCommand: ParsableCommand {
         // seconds on a busy system; the evaluator itself is sub-ms.
         let captureStart = Date()
         let needsBinaries = loadedRules.contains { $0.source == .binary }
+        let needsNetwork = loadedRules.contains { $0.source == .network }
+        let needsKexts = loadedRules.contains { $0.source == .kernelExtension }
         let needsArguments = loadedRules.contains { rule in
             rule.source == .process && (
                 rule.match.keys.contains("arguments") || rule.evidence.contains("arguments")
@@ -79,7 +81,9 @@ struct ScanCommand: ParsableCommand {
         }
         let snapshot = try OWRules.captureSnapshot(
             includeArguments: needsArguments,
-            includeBinaries: needsBinaries
+            includeBinaries: needsBinaries,
+            includeNetwork: needsNetwork,
+            includeKernelExtensions: needsKexts
         )
         let captureElapsed = Date().timeIntervalSince(captureStart)
 

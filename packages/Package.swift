@@ -52,6 +52,7 @@ let package = Package(
             case "OWRules":
                 deps = [
                     .byName(name: "OWBinary"),
+                    .byName(name: "OWNetwork"),
                     .byName(name: "OWProcess"),
                     .byName(name: "OWPersistence"),
                     .product(name: "Yams", package: "Yams")

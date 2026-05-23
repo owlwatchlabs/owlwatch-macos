@@ -1,0 +1,39 @@
+id: T1071-listener-on-all-interfaces
+name: TCP listener bound to all interfaces (0.0.0.0 / ::)
+description: |
+  A TCP socket in LISTEN state bound to `0.0.0.0` (IPv4 wildcard)
+  or `::` (IPv6 wildcard) accepts connections from any network the
+  host is on. Compare against `127.0.0.1` / `::1` listeners, which
+  only accept loopback traffic and are operationally invisible
+  outside the host.
+
+  Wildcard listeners aren't malware by themselves — they're how
+  every legitimate server-side process exposes a service. But on
+  an endpoint that isn't deliberately running server software,
+  every wildcard listener represents an attack surface: a port
+  open to the network. Surfacing the full set lets the operator
+  triage which are intentional (sshd, mDNS, the operator's own
+  dev servers) vs unexpected (a backdoor C2 listener,
+  remote-access tooling installed without authorization).
+
+  Severity is `medium` to balance the alerting value with the
+  noise on developer machines that legitimately run local
+  services (databases, dev HTTP servers).
+mitre: T1071
+severity: medium
+when:
+  source: network
+  match:
+    is_listener:
+      is_true: true
+    protocol_name:
+      equals: tcp
+    local_address:
+      in:
+        - 0.0.0.0
+        - "::"
+evidence:
+  - pid
+  - local_address
+  - local_port
+  - family

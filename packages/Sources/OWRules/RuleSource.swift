@@ -28,12 +28,25 @@ public enum RuleSource: String, Sendable, Codable, CaseIterable, Hashable {
     /// `max_section_entropy`, `slice_count`. Added in M13.2.
     case binary
 
+    /// Iterates `OWNetwork.snapshot()`. Fields: `pid`, `fd`, `family`,
+    /// `protocol_name`, `local_address`, `local_port`, `remote_address`,
+    /// `remote_port`, `tcp_state`, `is_listener`. Added in M13.3.
+    case network
+
+    /// Iterates `OWPersistence.kernelExtensions()`. Fields:
+    /// `bundle_path`, `bundle_identifier`, `short_version`,
+    /// `bundle_version`, `executable_name`, `executable_path`, `scope`.
+    /// Added in M13.3.
+    case kernelExtension = "kernel_extension"
+
     public var displayName: String {
         switch self {
         case .process: return "Process"
         case .launchService: return "Launch Service"
         case .loginItem: return "Login Item"
         case .binary: return "Binary"
+        case .network: return "Network"
+        case .kernelExtension: return "Kernel Extension"
         }
     }
 }
