@@ -16,9 +16,11 @@
 		30086B3023C630861C97A4FF /* OWProcess in Frameworks */ = {isa = PBXBuildFile; productRef = 54DECE2B6767ACF115F976B3 /* OWProcess */; };
 		35B66968C3FAB0F2CAEB1EB6 /* PersistenceItemDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44039B583CCA48E977787553 /* PersistenceItemDetail.swift */; };
 		3D441249D8F77F5AF317954C /* DevicesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D127C31DA4EAA2B4917A6F3 /* DevicesViewModel.swift */; };
+		54413CA5546526C8EE245540 /* NetworkViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23046FF903F8FF662AC40E27 /* NetworkViewModel.swift */; };
 		59CDB60D14F061605963AF2E /* OWNetwork in Frameworks */ = {isa = PBXBuildFile; productRef = 9AB02C19DDEC9E21BC9A5868 /* OWNetwork */; };
 		6148BF22CAA7095295B1568C /* PersistenceItemList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E5540D063BAC38169407A4 /* PersistenceItemList.swift */; };
 		69DB910D0201D6AF08099447 /* PersistenceWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8B3F7198CBC17EF7D1CB927 /* PersistenceWindow.swift */; };
+		6B3DC5081B1BABFDCBB5987D /* NetworkWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38431CD03A856A6CC12B6092 /* NetworkWindow.swift */; };
 		752CDD43B83C02F05AAB4AD8 /* ProcessesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B60FD47D6152FB295E78CF8E /* ProcessesViewModel.swift */; };
 		88DA62341C83EA8F586DD97D /* OWCore in Frameworks */ = {isa = PBXBuildFile; productRef = 214AE25A461CC3BEF29D2677 /* OWCore */; };
 		8CEF095D32B246522938118C /* OWPersistence in Frameworks */ = {isa = PBXBuildFile; productRef = 372EF516759FEB18843357AD /* OWPersistence */; };
@@ -33,7 +35,9 @@
 /* Begin PBXFileReference section */
 		0C42A75643E000DAB3165252 /* ProcessesWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessesWindow.swift; sourceTree = "<group>"; };
 		1EB594B8241926AF224E7A18 /* OwlwatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OwlwatchApp.swift; sourceTree = "<group>"; };
+		23046FF903F8FF662AC40E27 /* NetworkViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkViewModel.swift; sourceTree = "<group>"; };
 		26AAF1F70F3C064DFC041B38 /* Owlwatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Owlwatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		38431CD03A856A6CC12B6092 /* NetworkWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkWindow.swift; sourceTree = "<group>"; };
 		44039B583CCA48E977787553 /* PersistenceItemDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceItemDetail.swift; sourceTree = "<group>"; };
 		4CC044269BD860867DB61139 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4DD68FADEAF355A53A580A23 /* packages */ = {isa = PBXFileReference; lastKnownFileType = folder; name = packages; path = ../../packages; sourceTree = SOURCE_ROOT; };
@@ -85,6 +89,8 @@
 				5D127C31DA4EAA2B4917A6F3 /* DevicesViewModel.swift */,
 				FBFAE1539794428E55548293 /* DevicesWindow.swift */,
 				4CC044269BD860867DB61139 /* Info.plist */,
+				23046FF903F8FF662AC40E27 /* NetworkViewModel.swift */,
+				38431CD03A856A6CC12B6092 /* NetworkWindow.swift */,
 				7E438A3EE40CC96C0081E55E /* Owlwatch.entitlements */,
 				1EB594B8241926AF224E7A18 /* OwlwatchApp.swift */,
 				54D13331E7067095DC0AEE17 /* PersistenceItem.swift */,
@@ -191,6 +197,8 @@
 				ECFB43109C56677BCCFDED37 /* DashboardWindow.swift in Sources */,
 				3D441249D8F77F5AF317954C /* DevicesViewModel.swift in Sources */,
 				14694638226F39EA76BDB1BA /* DevicesWindow.swift in Sources */,
+				54413CA5546526C8EE245540 /* NetworkViewModel.swift in Sources */,
+				6B3DC5081B1BABFDCBB5987D /* NetworkWindow.swift in Sources */,
 				EE2AAB13EDDAC1431103125B /* OwlwatchApp.swift in Sources */,
 				24B8E87A565AF3F88F031DF7 /* PersistenceItem.swift in Sources */,
 				35B66968C3FAB0F2CAEB1EB6 /* PersistenceItemDetail.swift in Sources */,
