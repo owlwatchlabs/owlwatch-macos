@@ -6,22 +6,62 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 
 ## [Unreleased]
 
+_No entries yet. Next non-entitlement-gated milestone is M11 (mic and webcam monitor via existing user-mode APIs) or M13 (rules engine over the data sources already implemented); M7 / M8 / M9 / M12 stay blocked on Apple entitlement provisioning._
+
+## [v0.8.0-m10] — 2026-05-23
+
+The real-time-persistence milestone. Lands the FSEvents-backed live counterpart to M5's snapshot reader: `OWPersistence.monitor()` for raw mutation events, `OWPersistence.monitorEnriched()` for events enriched with the parsed contents of the file that changed, plus the `owlwatch watch-persistence` CLI subcommand and a "Live Events" tab in the macOS app's persistence viewer.
+
+First non-entitlement-gated milestone shipped after the unified-log milestone (M6). FSEvents is part of CoreServices and works unprivileged — no Apple entitlement provisioning required. This is the live half of the detection pipeline that pairs with M5's "what's installed right now?" snapshot to answer "what just changed?".
+
 ### Added
 
-- **`OWPersistence.monitor()` (M10.1)** — live-tail FSEvents subscription across every persistence-relevant path on disk. New top-level API returning `AsyncThrowingStream<PersistenceMutation, Error>`. The complement to M5's snapshot reader: where `OWPersistence.launchServices()` answers *"what's installed right now?"*, the monitor answers *"what just changed?"*. Backed by `FSEventStreamCreate` with `kFSEventStreamCreateFlagFileEvents` for file-level granularity, dispatched on a private serial queue. Cancellation stops + invalidates the FSEvents stream cleanly via the `AsyncThrowingStream.onTermination` hook.
-- **Value types:** `PersistenceMutation` (`path`, `kind`, `scope`, `timestamp`, `eventID`); `MutationKind` (`.added` / `.modified` / `.removed` / `.renamed` / `.xattrChanged` / `.metadataChanged`); `MutationScope` (`.platformLaunchd` / `.systemLaunchd` / `.userLaunchd` / `.systemExtensionsRegistry` / `.kernelExtensions` / `.loginwindowPlist` / `.other`); `OWPersistenceMonitorError` (`.unableToCreateStream(paths:)` / `.streamFailedToStart`). `MutationKind` collapses one event's multi-flag bitfield into the single most-descriptive kind — `.removed` over `.modified` over `.metadataChanged` — so detection rules don't have to disambiguate. `xattrChanged` specifically surfaces `com.apple.quarantine` removal as a Gatekeeper-bypass signal.
-- **`OWPersistence.defaultMonitorPaths`** — pre-baked watch set covering `/System/Library/LaunchDaemons` + `/System/Library/LaunchAgents`, `/Library/LaunchDaemons` + `/Library/LaunchAgents`, `~/Library/LaunchAgents`, `/Library/SystemExtensions`, `/Library/Extensions`, and the system + user loginwindow preference plists. Callers can override with a custom path list for narrower or broader scopes.
-- **`owlwatch watch-persistence` (M10.1)** — eleventh subcommand. Live-tails every mutation on the standard watch set; prints `TIMESTAMP KIND SCOPE PATH` rows as events arrive. Flags: `--kind <comma-list>` (filter by mutation kind), `--scope <scope>` (filter by scope), `--latency <seconds>` (FSEvents coalescing window, default 0.5).
-- **`fflush(stdout)` for streaming subcommands** — the M6.3 implementation called `FileHandle.standardOutput.synchronizeFile()` to flush between rows, which throws `NSFileHandleOperationException` ("Invalid argument") when stdout is a pipe or regular file. The exception only manifested intermittently in M6.3 because `log stream` emitted data faster than the exception could terminate the process. Replaced with the C-level `fflush(stdout)` in both `owlwatch logs --follow` and the new `owlwatch watch-persistence`.
+- **`OWPersistence.monitor()` (M10.1)** — `AsyncThrowingStream<PersistenceMutation, Error>` over `FSEventStreamCreate` with `kFSEventStreamCreateFlagFileEvents`. Each kernel filesystem event becomes a `PersistenceMutation`. Cancellation stops + invalidates the stream cleanly via the `onTermination` hook.
 
-- **`OWPersistence.monitorEnriched()` + `EnrichedMutation` (M10.2)** — enrichment layer over M10.1's raw `monitor()` stream. New top-level API returning `AsyncThrowingStream<EnrichedMutation, Error>`. Each yielded record carries the raw `PersistenceMutation` plus the *parsed payload* of the file that changed: for LaunchAgent / LaunchDaemon paths a `LaunchService`, for `com.apple.loginwindow.plist` paths the resulting `[LoginLogoutHook]`. Removed-file events have no readable content; the payload fields stay `nil`. The enrichment runs synchronously on the same dispatch queue as the raw event delivery — launchd plist parsing is on the order of hundreds of microseconds, well inside the FSEvents latency window.
-- **`EnrichedMutation` value type** with `mutation`, `launchService`, `hooks`, computed `hasPayload`.
-- **`owlwatch watch-persistence` enriched output (M10.2)** — by default the subcommand now prints `TIMESTAMP KIND SCOPE LABEL/HOOK PROGRAM/SCRIPT PATH`, surfacing the most-detection-relevant fields (the `Label` and `Program` of a newly-dropped LaunchAgent, the `Login`/`Logout` kind and `scriptPath` of a hook change). `--raw` flag falls back to the M10.1 four-column layout.
+- **Value types (M10.1):**
+  - `PersistenceMutation` (`path`, `kind`, `scope`, `timestamp`, `eventID`)
+  - `MutationKind` — `.added` / `.modified` / `.removed` / `.renamed` / `.xattrChanged` / `.metadataChanged`. The classifier collapses one event's multi-flag bitfield into the single most-descriptive kind — `removed > renamed > added > modified > xattrChanged > metadataChanged` — so detection rules don't have to disambiguate. `xattrChanged` specifically surfaces `com.apple.quarantine` removal as a Gatekeeper-bypass signal.
+  - `MutationScope` — `.platformLaunchd` / `.systemLaunchd` / `.userLaunchd` / `.systemExtensionsRegistry` / `.kernelExtensions` / `.loginwindowPlist` / `.other`. Classified from path prefix.
+  - `OWPersistenceMonitorError` — `.unableToCreateStream(paths:)` / `.streamFailedToStart`.
+  - All three enums gained `String` raw value conformance in M10.3 for SwiftUI text rendering.
 
-- **macOS app Live tab (M10.3)** — extends the persistence viewer window (shipped at M5.5) with a sixth sidebar entry, "Live Events". Subscribes to `OWPersistence.monitorEnriched()` for the lifetime of the window; new mutations appear in the center list newest-first. When the user is on a snapshot kind (Launch Services, Login Items, …), the Live entry's sidebar badge shows the number of *unseen* events; switching to Live clears the badge. Live-mutation rows show kind (ADDED / REMOVED / modified / xattr badge), label or path basename, and the resolved Program for enriched LaunchAgent / LaunchDaemon events. Selecting a row shows the full enriched detail (raw mutation fields plus parsed payload) in the right pane. The history buffer caps at 500 events to bound memory. The monitor task stops when the window is dismissed.
-- **`MutationKind` and `MutationScope` gained `String` raw values.** No public-API change beyond the conformance; lets the SwiftUI detail pane render the enum cases as text without a per-case switch.
+- **`OWPersistence.defaultMonitorPaths`** — pre-baked watch set covering every M5 source (LaunchAgents + LaunchDaemons in all three locations, the System Extensions registry, both kext directories, and the system + user loginwindow preference plists). Callers can override.
 
-_M10-close (version bump to `0.8.0-m10`, README tick, CHANGELOG promotion, tag) follows._
+- **`OWPersistence.monitorEnriched()` (M10.2)** — enrichment layer over the raw stream. `AsyncThrowingStream<EnrichedMutation, Error>` yields each `PersistenceMutation` with the *parsed payload* attached — a `LaunchService` for LaunchAgent / LaunchDaemon mutations, a `[LoginLogoutHook]` for `com.apple.loginwindow.plist` mutations. Removed-file events have no readable content; payload stays `nil`. Enrichment runs synchronously on the FSEvents dispatch queue — plist parsing is hundreds of microseconds, well inside the latency window.
+
+- **`EnrichedMutation` value type** (M10.2) — `mutation`, `launchService`, `hooks`, computed `hasPayload`.
+
+- **`owlwatch watch-persistence` (M10.1 + M10.2)** — eleventh subcommand. Default output is enriched: `TIMESTAMP KIND SCOPE LABEL/HOOK PROGRAM/SCRIPT PATH`, surfacing the most-detection-relevant fields (the `Label` and `Program` of a newly-dropped LaunchAgent, the kind and `scriptPath` of a hook change). `--raw` falls back to the four-column layout (`TIMESTAMP KIND SCOPE PATH`). Other flags: `--kind <comma-list>`, `--scope <scope>`, `--latency <seconds>`.
+
+- **Live Events tab in the macOS app (M10.3)** — sixth sidebar entry in the persistence viewer window (M5.5). Subscribes to `OWPersistence.monitorEnriched()` for the lifetime of the window; new mutations appear newest-first in the center list. The sidebar badge shows *unseen* event count while the user is on a snapshot tab, *total* count while on Live; selecting Live clears the unseen counter. Detail pane shows the raw mutation fields plus the parsed payload (Label / Program / Run-at-Load / Keep-Alive for LaunchAgents; per-hook script paths for hook changes). History caps at 500 events to bound memory.
+
+- **`fflush(stdout)` for streaming subcommands** — M6.3 used `FileHandle.standardOutput.synchronizeFile()` to flush between rows, which throws `NSFileHandleOperationException` (`"Invalid argument"`) when stdout is a pipe or regular file. M6.3 only got away with it because `log stream` emitted data faster than the exception could terminate the process; M10's quieter `watch-persistence` exposed the bug immediately. Replaced with C-level `fflush(stdout)` in both `owlwatch logs --follow` and `owlwatch watch-persistence`.
+
+- **Owlwatch version bump** — `owlwatch --version` now prints `0.8.0-m10`.
+
+### Notes
+
+- 218 / 218 unit tests pass (14 PersistenceMonitorTests + 9 EnrichedMutationTests + 41 OWLog + 47 OWPersistence + 29 OWCodeSigning + 28 OWBinary + 15 OWProcess + 15 OWNetwork + others).
+- `FSEventStream` subscription itself isn't unit-tested — needs real filesystem events with async timing and a live dispatch queue, which is non-deterministic under XCTest. The classifier helpers (`classifyKind`, `classifyScope`, `defaultMonitorPaths` coverage) cover everything deterministic; the live path is exercised through `owlwatch watch-persistence` and the macOS app Live tab during manual smoke testing.
+- The `MonitorRunner` and `LineBuffer` classes both use `@unchecked Sendable` because the underlying Foundation primitives (FSEvents callback queue, `Pipe.fileHandleForReading.readabilityHandler`) serialize invocations onto a single dispatch queue — there's only ever one writer touching the internal state. Documented inline so future contributors don't innocently add a parallel writer path.
+
+### Deferred
+
+- **Disabled-state refresh on every event** — the enrichment parser passes an empty central disabled map; `~/var/db/com.apple.xpc.launchd/disabled.<uid>.plist` isn't re-read per event. The mutation event reports "this file was just written", so the file's own `Disabled` key is what we surface. Detection rules that need live disabled state call `OWPersistence.launchServices(...)` for the current snapshot.
+- **Notifications when the persistence window is closed** — the Live monitor only runs while the window is open. A `UserNotifications` integration that surfaces banners regardless of window state is a future addition; deliberately not in M10's scope.
+- **Persistent event log on disk** — closing the persistence window discards the in-memory event history. M13 (rules engine) will need disk-backed storage of qualifying events; M10 deliberately stays in memory.
+- **System Extensions registry + kext payload extraction** — enrichment for `db.plist` mutations and `.kext` bundle changes would need richer correlation (one `db.plist` change reflects many extensions; a kext bundle change can be deep). Surfaces the raw mutation with no payload today; callers cross-reference `OWPersistence.systemExtensions()` / `kernelExtensions()` for the snapshot.
+
+### What's next
+
+The two remaining non-entitlement-gated milestones are **M11** (`OWDevices` — mic and webcam access attribution via the existing AVCaptureDevice and CoreAudio APIs) and **M13** (rules engine over the data sources already implemented across M1–M6, M10). The four entitlement-gated milestones (M7 Network Extension, M8 Endpoint Security, M9 ES auth/muting, M12 DNS proxy) stay blocked on Apple's entitlement-provisioning queue, tracked at [docs/apple-developer/entitlement-requests.md](docs/apple-developer/entitlement-requests.md).
+
+### PRs in this milestone
+
+#46 feat(OWPersistence, owlwatch): real-time persistence monitor via FSEvents (M10.1)
+#47 feat(OWPersistence, owlwatch): enriched persistence-mutation stream (M10.2)
+#48 feat(Owlwatch, OWPersistence): macOS app Live tab (M10.3)
+#49 feat(owlwatch): close M10 — version bump to 0.8.0-m10, CHANGELOG promotion, README tick
 
 ## [v0.7.0-m6] — 2026-05-22
 
@@ -331,7 +371,8 @@ The foundation milestone. Establishes the repository, build system, CI, governan
 - **No user-installable artifact ships with this tag.** The next runnable binary lands at M1 (`owlwatch ps`); the next visible app surface lands at M2/M3.
 - The four planned system extensions — Endpoint Security (M8), Network Extension filter (M7), DNS proxy (M12), Persistence monitor (M10) — exist as placeholder directories under `extensions/` but have no target shells yet. Each lands in its own milestone PR with the appropriate Apple-restricted entitlement (assuming Apple approval has landed by then).
 
-[Unreleased]: https://github.com/owlwatchlabs/owlwatch-macos/compare/v0.7.0-m6...HEAD
+[Unreleased]: https://github.com/owlwatchlabs/owlwatch-macos/compare/v0.8.0-m10...HEAD
+[v0.8.0-m10]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.8.0-m10
 [v0.7.0-m6]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.7.0-m6
 [v0.6.0-m5]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.6.0-m5
 [v0.5.0-m4]: https://github.com/owlwatchlabs/owlwatch-macos/releases/tag/v0.5.0-m4

@@ -29,7 +29,7 @@ Demo recording scripts live in [`docs/demos/`](docs/demos/) and cover the **CLI 
 - [ ] M7 Network Extension filter provider 🔒
 - [ ] M8 Endpoint Security event ingestion 🔒
 - [ ] M9 ES auth and muting — synchronous AUTH-event decisions, allow/block UX 🔒
-- [ ] M10 persistence monitor (real-time)
+- [x] M10 persistence monitor (real-time) — FSEvents-backed live mutation stream (`OWPersistence.monitor()` / `monitorEnriched()`), `owlwatch watch-persistence` CLI subcommand, Live tab in the macOS app's persistence viewer
 - [ ] M11 mic and webcam monitor (`OWDevices`) with process attribution
 - [ ] M12 DNS proxy and heuristics 🔒
 - [ ] M13 detection rules engine and tested rule library
