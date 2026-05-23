@@ -1,0 +1,40 @@
+id: T1036.005-apple-binary-masquerade
+name: Process masquerading as an Apple system binary
+description: |
+  A running process whose `name` matches a well-known Apple system
+  binary but whose `path` is not in any standard Apple-shipped
+  directory (/System/, /usr/libexec/, /sbin/, /usr/sbin/, /usr/bin/,
+  /bin/) is masquerading. Malware authors frequently name payloads
+  `launchd`, `kextd`, or `mds` to blend into Activity Monitor; users
+  scanning the process list ignore the names. The mismatch between
+  expected and actual path is the giveaway.
+
+  The list of "Apple" names is a high-signal subset of the most-
+  copied attribution targets. A complete list would explode the
+  rule's false-positive surface; the chosen names are processes that
+  legitimately ONLY exist under Apple-shipped paths.
+mitre: T1036.005
+severity: high
+when:
+  source: process
+  match:
+    name:
+      in:
+        - launchd
+        - kextd
+        - opendirectoryd
+        - fseventsd
+        - mds
+        - mds_stores
+        - mdworker
+        - mdworker_shared
+        - coreaudiod
+        - powerd
+        - distnoted
+    path:
+      matches: '^(?!/System/|/usr/libexec/|/sbin/|/usr/sbin/|/usr/bin/|/bin/).+'
+evidence:
+  - pid
+  - name
+  - path
+  - user_id

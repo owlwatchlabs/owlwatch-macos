@@ -40,7 +40,7 @@
       "properties": {
         "source": {
           "type": "string",
-          "enum": ["process", "launch_service", "login_item"],
+          "enum": ["process", "launch_service", "login_item", "binary"],
           "description": "Data source the rule iterates over."
         },
         "match": {
@@ -85,7 +85,9 @@
             },
             "exists":   { "type": "boolean" },
             "is_true":  { "type": "boolean", "enum": [true] },
-            "is_false": { "type": "boolean", "enum": [true] }
+            "is_false": { "type": "boolean", "enum": [true] },
+            "greater_than": { "type": "number" },
+            "less_than":    { "type": "number" }
           }
         }
       ]

@@ -57,6 +57,18 @@ enum Evaluator {
                         ))
                     }
                 }
+            case .binary:
+                itemCount += snapshot.binaries.count
+                for summary in snapshot.binaries {
+                    for rule in sourceRules where matches(rule: rule, summary: summary) {
+                        findings.append(makeFinding(
+                            rule: rule,
+                            targetID: summary.path,
+                            evidence: collectEvidence(rule: rule, summary: summary),
+                            scannedAt: started
+                        ))
+                    }
+                }
             }
         }
 
@@ -95,6 +107,14 @@ enum Evaluator {
         return true
     }
 
+    private static func matches(rule: Rule, summary: BinarySummary) -> Bool {
+        for (field, predicate) in rule.match {
+            let value = FieldExtractor.extract(field, from: summary)
+            guard predicate.evaluate(against: value) else { return false }
+        }
+        return true
+    }
+
     // MARK: - Evidence
 
     private static func collectEvidence(rule: Rule, process: RunningProcess) -> [String: String] {
@@ -117,6 +137,14 @@ enum Evaluator {
         var evidence: [String: String] = [:]
         for field in rule.evidence {
             evidence[field] = FieldExtractor.extract(field, from: item).asString ?? "(missing)"
+        }
+        return evidence
+    }
+
+    private static func collectEvidence(rule: Rule, summary: BinarySummary) -> [String: String] {
+        var evidence: [String: String] = [:]
+        for field in rule.evidence {
+            evidence[field] = FieldExtractor.extract(field, from: summary).asString ?? "(missing)"
         }
         return evidence
     }
@@ -147,14 +175,17 @@ public struct Snapshot: Sendable {
     public let processes: [RunningProcess]
     public let launchServices: [LaunchService]
     public let loginItems: [LoginItem]
+    public let binaries: [BinarySummary]
 
     public init(
         processes: [RunningProcess] = [],
         launchServices: [LaunchService] = [],
-        loginItems: [LoginItem] = []
+        loginItems: [LoginItem] = [],
+        binaries: [BinarySummary] = []
     ) {
         self.processes = processes
         self.launchServices = launchServices
         self.loginItems = loginItems
+        self.binaries = binaries
     }
 }

@@ -1,0 +1,26 @@
+id: T1574.006-rwx-segment
+name: Binary declares a writable + executable segment
+description: |
+  A Mach-O segment with both write (VM_PROT_WRITE) and execute
+  (VM_PROT_EXECUTE) bits is suspicious. Normal binaries split memory
+  into r-x (__TEXT, code) and rw- (__DATA, mutable globals). A
+  segment that is simultaneously writable AND executable is a strong
+  signal of self-modifying code or a packing stub that decompresses
+  into its own segment at runtime — the JIT-protection unwinding
+  pattern that packers and shellcode-loader binaries rely on.
+
+  Hardened-runtime binaries with the JIT entitlement are the main
+  legitimate source (some JavaScript engines, .NET runtimes). For
+  most production binaries the absence of rwx segments is expected;
+  presence warrants investigation.
+mitre: T1574.006
+severity: high
+when:
+  source: binary
+  match:
+    has_rwx_segment:
+      is_true: true
+evidence:
+  - path
+  - architectures
+  - linked_dylibs

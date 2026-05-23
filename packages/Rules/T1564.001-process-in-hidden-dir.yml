@@ -1,0 +1,30 @@
+id: T1564.001-process-in-hidden-dir
+name: Process executing from a hidden directory
+description: |
+  Processes whose executable path traverses a hidden directory
+  (any path component starting with a dot, like /Users/jdoe/.cache
+  or /var/folders/.../.hidden_loader) are anomalous. Legitimate
+  applications install into visible directories under /Applications,
+  /usr/local, ~/Applications, or system paths. Hidden-directory
+  execution is a common malware pattern — droppers stash payloads
+  in dot-prefixed directories to escape casual file-browser inspection.
+
+  Excludes common legitimate cases:
+  - macOS itself stages temporary helpers under /var/folders/.../T/
+    (the .T subdirectory uses uppercase, not a hidden dot prefix).
+  - Developer toolchains under ~/.cargo, ~/.rbenv, ~/.pyenv etc. are
+    technically hidden; this rule will fire on them. Tune severity
+    accordingly for developer machines, or scope to non-developer
+    deploys via a `path: not_starts_with` exclusion.
+mitre: T1564.001
+severity: medium
+when:
+  source: process
+  match:
+    path:
+      matches: '/\.[^./]+/'
+evidence:
+  - pid
+  - name
+  - path
+  - user_id

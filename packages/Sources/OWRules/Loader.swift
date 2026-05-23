@@ -164,6 +164,42 @@ enum RuleLoader {
                 reason: "predicate mapping must have exactly one key"
             )
         }
+        if let stringPred = try decodeStringPredicate(key: key, value: value, field: field, url: url) {
+            return stringPred
+        }
+        if let booleanPred = try decodeBooleanPredicate(key: key, value: value, field: field, url: url) {
+            return booleanPred
+        }
+        if let numericPred = try decodeNumericPredicate(key: key, value: value, field: field, url: url) {
+            return numericPred
+        }
+        if key == "in" {
+            return try decodeInPredicate(value: value, field: field, url: url)
+        }
+        throw OWRulesError.schemaViolation(
+            url: url, field: "when.match.\(field)",
+            reason: "unknown predicate '\(key)'"
+        )
+    }
+
+    private static func requireString(_ dict: [String: Any], field: String, url: URL) throws -> String {
+        guard let value = dict[field.split(separator: ".").last.map(String.init) ?? field] as? String else {
+            throw OWRulesError.schemaViolation(
+                url: url, field: field,
+                reason: "missing required string field"
+            )
+        }
+        return value
+    }
+
+    // MARK: - Predicate decode helpers
+
+    /// String-shaped predicates (`equals`, `not_equals`, `starts_with`,
+    /// `ends_with`, `contains`, `matches`). Returns nil when `key`
+    /// doesn't match any of them.
+    private static func decodeStringPredicate(
+        key: String, value: Any, field: String, url: URL
+    ) throws -> Predicate? {
         switch key {
         case "equals":
             return .equals(try requireScalar(value, key: key, field: field, url: url))
@@ -184,21 +220,16 @@ enum RuleLoader {
                 )
             }
             return .matches(pattern)
-        case "in":
-            guard let array = value as? [Any] else {
-                throw OWRulesError.schemaViolation(
-                    url: url, field: "when.match.\(field).in",
-                    reason: "must be a sequence of scalars"
-                )
-            }
-            let strings = array.compactMap { $0 as? String }
-            guard strings.count == array.count else {
-                throw OWRulesError.schemaViolation(
-                    url: url, field: "when.match.\(field).in",
-                    reason: "sequence must contain only strings"
-                )
-            }
-            return .inSet(Set(strings))
+        default:
+            return nil
+        }
+    }
+
+    /// Boolean-shaped predicates (`exists`, `is_true`, `is_false`).
+    private static func decodeBooleanPredicate(
+        key: String, value: Any, field: String, url: URL
+    ) throws -> Predicate? {
+        switch key {
         case "exists":
             guard let bool = value as? Bool else {
                 throw OWRulesError.schemaViolation(
@@ -224,21 +255,49 @@ enum RuleLoader {
             }
             return .isBoolean(false)
         default:
-            throw OWRulesError.schemaViolation(
-                url: url, field: "when.match.\(field)",
-                reason: "unknown predicate '\(key)'"
-            )
+            return nil
         }
     }
 
-    private static func requireString(_ dict: [String: Any], field: String, url: URL) throws -> String {
-        guard let value = dict[field.split(separator: ".").last.map(String.init) ?? field] as? String else {
+    /// Numeric predicates (`greater_than`, `less_than`).
+    private static func decodeNumericPredicate(
+        key: String, value: Any, field: String, url: URL
+    ) throws -> Predicate? {
+        switch key {
+        case "greater_than":
+            return .greaterThan(try requireDouble(value, key: key, field: field, url: url))
+        case "less_than":
+            return .lessThan(try requireDouble(value, key: key, field: field, url: url))
+        default:
+            return nil
+        }
+    }
+
+    /// Set-membership predicate (`in`).
+    private static func decodeInPredicate(value: Any, field: String, url: URL) throws -> Predicate {
+        guard let array = value as? [Any] else {
             throw OWRulesError.schemaViolation(
-                url: url, field: field,
-                reason: "missing required string field"
+                url: url, field: "when.match.\(field).in",
+                reason: "must be a sequence of scalars"
             )
         }
-        return value
+        let strings = array.compactMap { $0 as? String }
+        guard strings.count == array.count else {
+            throw OWRulesError.schemaViolation(
+                url: url, field: "when.match.\(field).in",
+                reason: "sequence must contain only strings"
+            )
+        }
+        return .inSet(Set(strings))
+    }
+
+    private static func requireDouble(_ raw: Any, key: String, field: String, url: URL) throws -> Double {
+        if let double = raw as? Double { return double }
+        if let int = raw as? Int { return Double(int) }
+        throw OWRulesError.schemaViolation(
+            url: url, field: "when.match.\(field).\(key)",
+            reason: "must be a number"
+        )
     }
 
     private static func requireScalar(_ raw: Any, key: String, field: String, url: URL) throws -> String {
