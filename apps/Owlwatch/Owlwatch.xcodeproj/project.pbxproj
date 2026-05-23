@@ -19,16 +19,19 @@
 		59CDB60D14F061605963AF2E /* OWNetwork in Frameworks */ = {isa = PBXBuildFile; productRef = 9AB02C19DDEC9E21BC9A5868 /* OWNetwork */; };
 		6148BF22CAA7095295B1568C /* PersistenceItemList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E5540D063BAC38169407A4 /* PersistenceItemList.swift */; };
 		69DB910D0201D6AF08099447 /* PersistenceWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8B3F7198CBC17EF7D1CB927 /* PersistenceWindow.swift */; };
+		752CDD43B83C02F05AAB4AD8 /* ProcessesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B60FD47D6152FB295E78CF8E /* ProcessesViewModel.swift */; };
 		88DA62341C83EA8F586DD97D /* OWCore in Frameworks */ = {isa = PBXBuildFile; productRef = 214AE25A461CC3BEF29D2677 /* OWCore */; };
 		8CEF095D32B246522938118C /* OWPersistence in Frameworks */ = {isa = PBXBuildFile; productRef = 372EF516759FEB18843357AD /* OWPersistence */; };
 		ABA81CF230328513F16720C6 /* OWCodeSigning in Frameworks */ = {isa = PBXBuildFile; productRef = 897C389B7082CAF5B986B27F /* OWCodeSigning */; };
 		EB814B23CB4A60E032E8ECA5 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCBA36F8CD7997ECFA944B3B /* DashboardViewModel.swift */; };
+		EC5F04BBBCE76B47784FE024 /* ProcessesWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C42A75643E000DAB3165252 /* ProcessesWindow.swift */; };
 		ECFB43109C56677BCCFDED37 /* DashboardWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5330345428645E330DF3E3 /* DashboardWindow.swift */; };
 		EE2AAB13EDDAC1431103125B /* OwlwatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EB594B8241926AF224E7A18 /* OwlwatchApp.swift */; };
 		FED04D77BA9E01AA84A37CC8 /* PersistenceSidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF3253B96EE22E3904329236 /* PersistenceSidebar.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0C42A75643E000DAB3165252 /* ProcessesWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessesWindow.swift; sourceTree = "<group>"; };
 		1EB594B8241926AF224E7A18 /* OwlwatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OwlwatchApp.swift; sourceTree = "<group>"; };
 		26AAF1F70F3C064DFC041B38 /* Owlwatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Owlwatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		44039B583CCA48E977787553 /* PersistenceItemDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceItemDetail.swift; sourceTree = "<group>"; };
@@ -39,6 +42,7 @@
 		65E5540D063BAC38169407A4 /* PersistenceItemList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceItemList.swift; sourceTree = "<group>"; };
 		7A5330345428645E330DF3E3 /* DashboardWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardWindow.swift; sourceTree = "<group>"; };
 		7E438A3EE40CC96C0081E55E /* Owlwatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Owlwatch.entitlements; sourceTree = "<group>"; };
+		B60FD47D6152FB295E78CF8E /* ProcessesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessesViewModel.swift; sourceTree = "<group>"; };
 		BCBA36F8CD7997ECFA944B3B /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
 		C8B3F7198CBC17EF7D1CB927 /* PersistenceWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceWindow.swift; sourceTree = "<group>"; };
 		DF3253B96EE22E3904329236 /* PersistenceSidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceSidebar.swift; sourceTree = "<group>"; };
@@ -89,6 +93,8 @@
 				DF3253B96EE22E3904329236 /* PersistenceSidebar.swift */,
 				E760B0CBDF97D4038125F9E1 /* PersistenceViewModel.swift */,
 				C8B3F7198CBC17EF7D1CB927 /* PersistenceWindow.swift */,
+				B60FD47D6152FB295E78CF8E /* ProcessesViewModel.swift */,
+				0C42A75643E000DAB3165252 /* ProcessesWindow.swift */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -192,6 +198,8 @@
 				FED04D77BA9E01AA84A37CC8 /* PersistenceSidebar.swift in Sources */,
 				28214F1134BCA66E9F356017 /* PersistenceViewModel.swift in Sources */,
 				69DB910D0201D6AF08099447 /* PersistenceWindow.swift in Sources */,
+				752CDD43B83C02F05AAB4AD8 /* ProcessesViewModel.swift in Sources */,
+				EC5F04BBBCE76B47784FE024 /* ProcessesWindow.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
