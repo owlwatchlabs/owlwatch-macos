@@ -34,6 +34,33 @@ public enum OWLog {
         let result = try runLogShow(arguments: arguments)
         return parseLogShowNDJSON(result)
     }
+
+    /// Query the `com.apple.TCC` subsystem and reconstruct the
+    /// 6-line transactions `tccd` emits per privacy-permission
+    /// request into typed ``TCCEvent`` records.
+    ///
+    /// The default `query` ships `subsystem = "com.apple.TCC"` and
+    /// `category = "access"` — you don't need to set those. Callers
+    /// can override the time range, process filter, predicate, etc.
+    /// to scope the search; the typed extraction layers on top of
+    /// the raw query.
+    ///
+    /// Transactions whose `AUTHREQ_CTX` line is outside the snapshot
+    /// window (no service captured → no detection value) are
+    /// silently dropped.
+    public static func tccEvents(_ query: LogQuery = .tccDefault) throws -> [TCCEvent] {
+        let entries = try OWLog.query(query)
+        return buildTCCEvents(from: entries)
+    }
+}
+
+public extension LogQuery {
+    /// Default query for ``OWLog/OWLog/tccEvents(_:)``: scoped to
+    /// `subsystem == "com.apple.TCC"` and `category == "access"`.
+    /// Callers can extend it with `since` / `until` / `process` etc.
+    static var tccDefault: LogQuery {
+        LogQuery(subsystem: "com.apple.TCC", category: "access")
+    }
 }
 
 // MARK: - Subprocess
