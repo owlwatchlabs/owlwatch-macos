@@ -16,7 +16,12 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 - **`owlwatch devices` subcommand** — twelfth subcommand. Prints `TYPE NAME MANUFACTURER IN USE EXTERNAL ID` rows for every visible camera and microphone. Flags: `--cameras`, `--microphones`, `--in-use-only`.
 - **Honest limit documented in the module docs:** macOS does not expose which *process* is using a device through any public API — Apple has closed that privacy boundary. Soft attribution via TCC events (M6.2) + `com.apple.cmio` / `coreaudiod` log entries (M6.1) lands in M11.3.
 
-_M11.2 (live device-state stream — AsyncThrowingStream of state-change events), M11.3 (soft process attribution via TCC / log correlation), M11.4 (macOS app Devices tab), and M11-close follow before the v0.9.0-m11 tag._
+- **`OWDevices.monitor()` (M11.2)** — live counterpart to M11.1's snapshot. `AsyncThrowingStream<DeviceStateChange, Error>` that yields one record per `kCMIODevicePropertyDeviceIsRunningSomewhere` / `kAudioDevicePropertyDeviceIsRunningSomewhere` transition. The monitor snapshots the device set at startup, registers CMIO + CoreAudio property listeners on each (one per device per property), and removes them all on stream cancellation. Devices plugged in after the monitor starts are NOT picked up — recreate the stream to pick them up. A future M11.x can also subscribe to `kCMIOHardwarePropertyDevices` / `kAudioHardwarePropertyDevices` to detect new attachments.
+- **`DeviceStateChange` value type** (`kind`, `id`, `name`, `isInUse`, `timestamp`) — same `Sendable, Equatable, Hashable` shape as the rest of the OW* value types.
+- **`OWDevicesMonitorError.listenerRegistrationFailed(uid:status:)`** — surfaces non-zero OSStatus from `CMIOObjectAddPropertyListener` / `AudioObjectAddPropertyListener`, with the failing device's UID preserved for diagnostics.
+- **`owlwatch watch-devices` subcommand (M11.2)** — thirteenth subcommand. Live-tails state transitions; prints `TIMESTAMP KIND STATE NAME ID` rows. Flags: `--kind camera|microphone`, `--on-only` (ignore turns-off, show only activations).
+
+_M11.3 (soft process attribution via TCC / log correlation), M11.4 (macOS app Devices tab), and M11-close follow before the v0.9.0-m11 tag._
 
 ## [v0.8.0-m10] — 2026-05-23
 
