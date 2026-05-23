@@ -39,7 +39,12 @@ let package = Package(
     ],
     targets:
         modules.map { name in
-            .target(name: name)
+            // OWDevices's attribution layer (M11.3) reads TCC events
+            // via OWLog. Other modules stay dependency-free.
+            let deps: [Target.Dependency] = (name == "OWDevices")
+                ? [.byName(name: "OWLog")]
+                : []
+            return .target(name: name, dependencies: deps)
         }
         + modules.map { name in
             .testTarget(name: "\(name)Tests", dependencies: [.byName(name: name)])
