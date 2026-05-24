@@ -49,70 +49,137 @@ enum Evaluator {
     ) {
         switch source {
         case .process:
-            itemCount += snapshot.processes.count
-            for process in snapshot.processes {
-                for rule in rules where matches(rule: rule, process: process) {
-                    findings.append(makeFinding(
-                        rule: rule, targetID: "pid:\(process.pid)",
-                        evidence: collectEvidence(rule: rule, process: process),
-                        scannedAt: startedAt
-                    ))
-                }
-            }
+            evaluateProcesses(rules: rules, snapshot: snapshot, startedAt: startedAt,
+                              findings: &findings, itemCount: &itemCount)
         case .launchService:
-            itemCount += snapshot.launchServices.count
-            for service in snapshot.launchServices {
-                for rule in rules where matches(rule: rule, service: service) {
-                    findings.append(makeFinding(
-                        rule: rule, targetID: service.plistPath,
-                        evidence: collectEvidence(rule: rule, service: service),
-                        scannedAt: startedAt
-                    ))
-                }
-            }
+            evaluateLaunchServices(rules: rules, snapshot: snapshot, startedAt: startedAt,
+                                   findings: &findings, itemCount: &itemCount)
         case .loginItem:
-            itemCount += snapshot.loginItems.count
-            for item in snapshot.loginItems {
-                for rule in rules where matches(rule: rule, item: item) {
-                    findings.append(makeFinding(
-                        rule: rule, targetID: item.uuid,
-                        evidence: collectEvidence(rule: rule, item: item),
-                        scannedAt: startedAt
-                    ))
-                }
-            }
+            evaluateLoginItems(rules: rules, snapshot: snapshot, startedAt: startedAt,
+                               findings: &findings, itemCount: &itemCount)
         case .binary:
-            itemCount += snapshot.binaries.count
-            for summary in snapshot.binaries {
-                for rule in rules where matches(rule: rule, summary: summary) {
-                    findings.append(makeFinding(
-                        rule: rule, targetID: summary.path,
-                        evidence: collectEvidence(rule: rule, summary: summary),
-                        scannedAt: startedAt
-                    ))
-                }
-            }
+            evaluateBinaries(rules: rules, snapshot: snapshot, startedAt: startedAt,
+                             findings: &findings, itemCount: &itemCount)
         case .network:
-            itemCount += snapshot.connections.count
-            for connection in snapshot.connections {
-                for rule in rules where matches(rule: rule, connection: connection) {
-                    findings.append(makeFinding(
-                        rule: rule, targetID: connectionID(connection),
-                        evidence: collectEvidence(rule: rule, connection: connection),
-                        scannedAt: startedAt
-                    ))
-                }
-            }
+            evaluateConnections(rules: rules, snapshot: snapshot, startedAt: startedAt,
+                                findings: &findings, itemCount: &itemCount)
         case .kernelExtension:
-            itemCount += snapshot.kernelExtensions.count
-            for kext in snapshot.kernelExtensions {
-                for rule in rules where matches(rule: rule, kext: kext) {
-                    findings.append(makeFinding(
-                        rule: rule, targetID: kext.bundleIdentifier ?? kext.bundlePath,
-                        evidence: collectEvidence(rule: rule, kext: kext),
-                        scannedAt: startedAt
-                    ))
-                }
+            evaluateKernelExtensions(rules: rules, snapshot: snapshot, startedAt: startedAt,
+                                     findings: &findings, itemCount: &itemCount)
+        case .signature:
+            evaluateSignatures(rules: rules, snapshot: snapshot, startedAt: startedAt,
+                               findings: &findings, itemCount: &itemCount)
+        }
+    }
+
+    private static func evaluateProcesses(
+        rules: [Rule], snapshot: Snapshot, startedAt: Date,
+        findings: inout [Finding], itemCount: inout Int
+    ) {
+        itemCount += snapshot.processes.count
+        for process in snapshot.processes {
+            for rule in rules where matches(rule: rule, process: process) {
+                findings.append(makeFinding(
+                    rule: rule, targetID: "pid:\(process.pid)",
+                    evidence: collectEvidence(rule: rule, process: process),
+                    scannedAt: startedAt
+                ))
+            }
+        }
+    }
+
+    private static func evaluateLaunchServices(
+        rules: [Rule], snapshot: Snapshot, startedAt: Date,
+        findings: inout [Finding], itemCount: inout Int
+    ) {
+        itemCount += snapshot.launchServices.count
+        for service in snapshot.launchServices {
+            for rule in rules where matches(rule: rule, service: service) {
+                findings.append(makeFinding(
+                    rule: rule, targetID: service.plistPath,
+                    evidence: collectEvidence(rule: rule, service: service),
+                    scannedAt: startedAt
+                ))
+            }
+        }
+    }
+
+    private static func evaluateLoginItems(
+        rules: [Rule], snapshot: Snapshot, startedAt: Date,
+        findings: inout [Finding], itemCount: inout Int
+    ) {
+        itemCount += snapshot.loginItems.count
+        for item in snapshot.loginItems {
+            for rule in rules where matches(rule: rule, item: item) {
+                findings.append(makeFinding(
+                    rule: rule, targetID: item.uuid,
+                    evidence: collectEvidence(rule: rule, item: item),
+                    scannedAt: startedAt
+                ))
+            }
+        }
+    }
+
+    private static func evaluateBinaries(
+        rules: [Rule], snapshot: Snapshot, startedAt: Date,
+        findings: inout [Finding], itemCount: inout Int
+    ) {
+        itemCount += snapshot.binaries.count
+        for summary in snapshot.binaries {
+            for rule in rules where matches(rule: rule, summary: summary) {
+                findings.append(makeFinding(
+                    rule: rule, targetID: summary.path,
+                    evidence: collectEvidence(rule: rule, summary: summary),
+                    scannedAt: startedAt
+                ))
+            }
+        }
+    }
+
+    private static func evaluateConnections(
+        rules: [Rule], snapshot: Snapshot, startedAt: Date,
+        findings: inout [Finding], itemCount: inout Int
+    ) {
+        itemCount += snapshot.connections.count
+        for connection in snapshot.connections {
+            for rule in rules where matches(rule: rule, connection: connection) {
+                findings.append(makeFinding(
+                    rule: rule, targetID: connectionID(connection),
+                    evidence: collectEvidence(rule: rule, connection: connection),
+                    scannedAt: startedAt
+                ))
+            }
+        }
+    }
+
+    private static func evaluateKernelExtensions(
+        rules: [Rule], snapshot: Snapshot, startedAt: Date,
+        findings: inout [Finding], itemCount: inout Int
+    ) {
+        itemCount += snapshot.kernelExtensions.count
+        for kext in snapshot.kernelExtensions {
+            for rule in rules where matches(rule: rule, kext: kext) {
+                findings.append(makeFinding(
+                    rule: rule, targetID: kext.bundleIdentifier ?? kext.bundlePath,
+                    evidence: collectEvidence(rule: rule, kext: kext),
+                    scannedAt: startedAt
+                ))
+            }
+        }
+    }
+
+    private static func evaluateSignatures(
+        rules: [Rule], snapshot: Snapshot, startedAt: Date,
+        findings: inout [Finding], itemCount: inout Int
+    ) {
+        itemCount += snapshot.signatures.count
+        for summary in snapshot.signatures {
+            for rule in rules where matches(rule: rule, signature: summary) {
+                findings.append(makeFinding(
+                    rule: rule, targetID: summary.path,
+                    evidence: collectEvidence(rule: rule, signature: summary),
+                    scannedAt: startedAt
+                ))
             }
         }
     }
@@ -162,6 +229,14 @@ enum Evaluator {
     private static func matches(rule: Rule, kext: KernelExtension) -> Bool {
         for (field, predicate) in rule.match {
             let value = FieldExtractor.extract(field, from: kext)
+            guard predicate.evaluate(against: value) else { return false }
+        }
+        return true
+    }
+
+    private static func matches(rule: Rule, signature: SignatureSummary) -> Bool {
+        for (field, predicate) in rule.match {
+            let value = FieldExtractor.extract(field, from: signature)
             guard predicate.evaluate(against: value) else { return false }
         }
         return true
@@ -217,6 +292,14 @@ enum Evaluator {
         return evidence
     }
 
+    private static func collectEvidence(rule: Rule, signature: SignatureSummary) -> [String: String] {
+        var evidence: [String: String] = [:]
+        for field in rule.evidence {
+            evidence[field] = FieldExtractor.extract(field, from: signature).asString ?? "(missing)"
+        }
+        return evidence
+    }
+
     /// Synthesizes a stable target ID for a connection. Connections
     /// don't have a natural unique key, so we compose pid + fd + the
     /// proto:local→remote tuple. Sockets get a unique (pid, fd) pair;
@@ -257,6 +340,7 @@ public struct Snapshot: Sendable {
     public let binaries: [BinarySummary]
     public let connections: [Connection]
     public let kernelExtensions: [KernelExtension]
+    public let signatures: [SignatureSummary]
 
     public init(
         processes: [RunningProcess] = [],
@@ -264,7 +348,8 @@ public struct Snapshot: Sendable {
         loginItems: [LoginItem] = [],
         binaries: [BinarySummary] = [],
         connections: [Connection] = [],
-        kernelExtensions: [KernelExtension] = []
+        kernelExtensions: [KernelExtension] = [],
+        signatures: [SignatureSummary] = []
     ) {
         self.processes = processes
         self.launchServices = launchServices
@@ -272,5 +357,6 @@ public struct Snapshot: Sendable {
         self.binaries = binaries
         self.connections = connections
         self.kernelExtensions = kernelExtensions
+        self.signatures = signatures
     }
 }

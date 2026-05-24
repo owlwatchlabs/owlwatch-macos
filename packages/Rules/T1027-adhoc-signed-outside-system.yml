@@ -1,0 +1,40 @@
+id: T1027-adhoc-signed-outside-system
+name: Ad-hoc signed binary outside system paths
+description: |
+  Ad-hoc signed binaries (`kSecCodeSignatureAdhoc` flag set, no
+  certificate chain) carry a CodeDirectory and CDHash but no proof
+  of identity. They are the default for locally-built unsigned
+  binaries on Apple Silicon — the linker auto-applies an ad-hoc
+  signature so the binary can load at all — and are also legitimately
+  used by some packagers (ChromeBuild, custom-build pipelines that
+  defer signing to a CI step).
+
+  In a production endpoint context, ad-hoc binaries outside the
+  Apple-shipped system paths usually represent one of:
+
+  - **Developer machine artifacts** — locally-compiled binaries from
+    a checkout (this rule fires on Owlwatch's own dev `.build/`
+    binaries). Acceptable on workstations, suspect on servers.
+  - **Stripped Developer ID signatures** — adversary tooling that
+    started with a Developer ID signature and had the certificate
+    chain stripped to evade signer-based attribution.
+  - **Container / supply-chain artifacts** — binaries built inside a
+    container or unsigned build pipeline that escaped without going
+    through the publisher's signing flow.
+
+  Severity is `low` because the developer-machine case dominates
+  the population. Production deploys should consider raising this
+  to `medium` or `high` via custom rule overrides.
+mitre: T1027
+severity: low
+when:
+  source: signature
+  match:
+    signature_type:
+      equals: adhoc
+    path:
+      matches: '^(?!/System/|/usr/libexec/|/usr/bin/|/usr/sbin/|/sbin/|/bin/|/Library/Apple/).+'
+evidence:
+  - path
+  - identifier
+  - cd_hash

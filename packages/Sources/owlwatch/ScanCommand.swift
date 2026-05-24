@@ -74,6 +74,7 @@ struct ScanCommand: ParsableCommand {
         let needsBinaries = loadedRules.contains { $0.source == .binary }
         let needsNetwork = loadedRules.contains { $0.source == .network }
         let needsKexts = loadedRules.contains { $0.source == .kernelExtension }
+        let needsSignatures = loadedRules.contains { $0.source == .signature }
         let needsArguments = loadedRules.contains { rule in
             rule.source == .process && (
                 rule.match.keys.contains("arguments") || rule.evidence.contains("arguments")
@@ -83,7 +84,8 @@ struct ScanCommand: ParsableCommand {
             includeArguments: needsArguments,
             includeBinaries: needsBinaries,
             includeNetwork: needsNetwork,
-            includeKernelExtensions: needsKexts
+            includeKernelExtensions: needsKexts,
+            includeSignatures: needsSignatures
         )
         let captureElapsed = Date().timeIntervalSince(captureStart)
 

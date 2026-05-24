@@ -1,0 +1,41 @@
+id: T1553.005-developer-id-without-stapled-ticket
+name: Developer ID-signed binary without stapled notarization ticket
+description: |
+  A binary signed with a Developer ID certificate but missing a
+  stapled notarization ticket is operationally noteworthy.
+  Apple-signed third-party software shipped through Gatekeeper-
+  approved channels carries an embedded notarization ticket — the
+  output of `xcrun stapler staple`. Binaries without one fall into
+  three categories:
+
+  - **Online-notarized but unstapled.** The binary was submitted to
+    Apple's notary service and approved, but the publisher chose not
+    to staple the ticket. Gatekeeper falls back to an online check
+    on first launch. VS Code is the canonical example. **This is
+    legitimate** — there is no offline proof of notarization.
+  - **Notarization request rejected.** The publisher's submission
+    failed Apple's malware scan. Gatekeeper will block first launch.
+  - **Never submitted.** A pre-notarization-requirement binary (rare
+    on a modern system) or a binary that bypassed Apple's pipeline.
+
+  This is a **medium-severity inventory rule**. Use the findings
+  list to confirm every entry is a known publisher in the
+  "intentionally unstapled" category; entries that aren't warrant
+  deeper investigation via `owlwatch verify <path>`.
+
+  See `CodeSignature.stapledNotarizationTicket`'s docstring (M3.2)
+  for the offline-vs-online distinction.
+mitre: T1553.005
+severity: medium
+when:
+  source: signature
+  match:
+    signature_type:
+      equals: developer_id
+    is_stapled_for_notarization:
+      is_false: true
+evidence:
+  - path
+  - identifier
+  - team_identifier
+  - authorities

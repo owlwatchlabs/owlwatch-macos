@@ -1,6 +1,7 @@
 @testable import OWRules
 import Foundation
 import OWBinary
+import OWCodeSigning
 import OWNetwork
 import OWPersistence
 import XCTest
@@ -158,6 +159,89 @@ final class OWRulesSourceTests: XCTestCase {
         let report = OWRules.scan(rules: [rule], snapshot: Snapshot(kernelExtensions: [thirdParty, apple]))
         XCTAssertEqual(report.findings.count, 1)
         XCTAssertEqual(report.findings[0].targetID, "com.someoneElse.driver")
+    }
+
+    // MARK: - Signature source (M13.4)
+
+    func testEvaluatorFiresOnUnsignedExecutable() {
+        let rule = Rule(
+            id: "T0001-unsigned", name: "Unsigned outside /System",
+            severity: .high, source: .signature,
+            match: [
+                "signature_type": .equals("unsigned"),
+                "path": .startsWith("/tmp/")
+            ],
+            evidence: ["path", "identifier"]
+        )
+        let suspect = SignatureSummary(
+            path: "/tmp/payload", isSigned: false, isValid: false,
+            signatureType: "unsigned", identifier: nil,
+            teamIdentifier: nil, cdHashHex: nil,
+            authoritiesJoined: "", flagsSymbolic: "",
+            hasHardenedRuntime: false, hardenedRuntimeVersion: nil,
+            isStapledForNotarization: false, entitlementsCount: 0
+        )
+        let benign = SignatureSummary(
+            path: "/System/Library/Frameworks/Foo.framework/Versions/A/Foo",
+            isSigned: true, isValid: true,
+            signatureType: "apple", identifier: "com.apple.foo",
+            teamIdentifier: nil, cdHashHex: "abc123",
+            authoritiesJoined: "Software Signing", flagsSymbolic: "runtime",
+            hasHardenedRuntime: true, hardenedRuntimeVersion: "14.0.0",
+            isStapledForNotarization: false, entitlementsCount: 0
+        )
+        let report = OWRules.scan(rules: [rule], snapshot: Snapshot(signatures: [suspect, benign]))
+        XCTAssertEqual(report.findings.count, 1)
+        XCTAssertEqual(report.findings[0].targetID, "/tmp/payload")
+        XCTAssertEqual(report.findings[0].evidence["identifier"], "(missing)")
+    }
+
+    func testEvaluatorFiresOnDeveloperIdWithoutHardenedRuntime() {
+        let rule = Rule(
+            id: "T0001-no-runtime", name: "No hardened runtime",
+            severity: .medium, source: .signature,
+            match: [
+                "signature_type": .equals("developer_id"),
+                "has_hardened_runtime": .isBoolean(false)
+            ]
+        )
+        let nonHardened = SignatureSummary(
+            path: "/Applications/LegacyApp.app/Contents/MacOS/LegacyApp",
+            isSigned: true, isValid: true,
+            signatureType: "developer_id", identifier: "com.dev.legacy",
+            teamIdentifier: "ABCDE12345", cdHashHex: "deadbeef",
+            authoritiesJoined: "Developer ID Application: Dev",
+            flagsSymbolic: "",
+            hasHardenedRuntime: false, hardenedRuntimeVersion: nil,
+            isStapledForNotarization: false, entitlementsCount: 0
+        )
+        let hardened = SignatureSummary(
+            path: "/Applications/ModernApp.app/Contents/MacOS/ModernApp",
+            isSigned: true, isValid: true,
+            signatureType: "developer_id", identifier: "com.dev.modern",
+            teamIdentifier: "ABCDE12345", cdHashHex: "cafef00d",
+            authoritiesJoined: "Developer ID Application: Dev",
+            flagsSymbolic: "runtime",
+            hasHardenedRuntime: true, hardenedRuntimeVersion: "14.0.0",
+            isStapledForNotarization: true, entitlementsCount: 1
+        )
+        let report = OWRules.scan(rules: [rule], snapshot: Snapshot(signatures: [nonHardened, hardened]))
+        XCTAssertEqual(report.findings.count, 1)
+        XCTAssertEqual(report.findings[0].targetID, "/Applications/LegacyApp.app/Contents/MacOS/LegacyApp")
+    }
+
+    func testSignatureSummaryFromSystemBinary() throws {
+        // /bin/ls is signed by Apple's "Software Signing" identity
+        // on every modern macOS. Use it as the integration check for
+        // SignatureSummary.make(from:).
+        let url = URL(fileURLWithPath: "/bin/ls")
+        let signature = try OWCodeSigning.inspect(at: url)
+        let summary = SignatureSummary.make(from: signature)
+        XCTAssertEqual(summary.path, "/bin/ls")
+        XCTAssertTrue(summary.isSigned)
+        XCTAssertEqual(summary.signatureType, "apple",
+                       "/bin/ls should classify as Apple first-party")
+        XCTAssertFalse(summary.authoritiesJoined.isEmpty)
     }
 
     // MARK: - Capture skip behavior

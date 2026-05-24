@@ -39,6 +39,15 @@ public enum RuleSource: String, Sendable, Codable, CaseIterable, Hashable {
     /// Added in M13.3.
     case kernelExtension = "kernel_extension"
 
+    /// Iterates `SignatureSummary`s captured via
+    /// `OWCodeSigning.inspect(at:)` for every unique executable path
+    /// in the process snapshot. Fields: `path`, `is_signed`,
+    /// `is_valid`, `signature_type`, `identifier`, `team_identifier`,
+    /// `cd_hash`, `authorities`, `flags`, `has_hardened_runtime`,
+    /// `hardened_runtime_version`, `is_stapled_for_notarization`,
+    /// `entitlements_count`. Added in M13.4.
+    case signature
+
     public var displayName: String {
         switch self {
         case .process: return "Process"
@@ -47,6 +56,7 @@ public enum RuleSource: String, Sendable, Codable, CaseIterable, Hashable {
         case .binary: return "Binary"
         case .network: return "Network"
         case .kernelExtension: return "Kernel Extension"
+        case .signature: return "Signature"
         }
     }
 }

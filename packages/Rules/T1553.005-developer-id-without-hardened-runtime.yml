@@ -1,0 +1,36 @@
+id: T1553.005-developer-id-without-hardened-runtime
+name: Developer ID binary without hardened runtime
+description: |
+  Apple has required the hardened runtime for notarization since
+  macOS 10.14 (Mojave). A binary signed with a Developer ID
+  certificate but with the `runtime` flag absent (`SecCodeSignatureFlags`
+  bit `0x10000`) cannot be notarized — which means it either
+  predates the 10.14 requirement (unlikely on a modern system) or
+  the publisher deliberately built without the hardened runtime to
+  retain capabilities the runtime restricts (legacy injection,
+  unsigned dylib loading, debugger attach, etc.).
+
+  The hardened runtime tightens what a binary can do at load time:
+  it requires library validation by default, disables dyld variable
+  overrides, blocks debugger attachment by other processes, and
+  forces signed JIT pages. A Developer ID binary opting out of
+  these protections is publishing a deliberate security choice that
+  warrants surfacing.
+
+  Severity is `medium`: legitimate cases exist (some developer
+  tools, debugger frontends, dynamic-language runtimes) but every
+  finding is worth confirming against an expected list.
+mitre: T1553.005
+severity: medium
+when:
+  source: signature
+  match:
+    signature_type:
+      equals: developer_id
+    has_hardened_runtime:
+      is_false: true
+evidence:
+  - path
+  - identifier
+  - team_identifier
+  - flags

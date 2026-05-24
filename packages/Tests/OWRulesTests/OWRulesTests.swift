@@ -284,8 +284,8 @@ final class OWRulesTests: XCTestCase {
         // this is the regression gate for rule-format breakage.
         let url = shippedRulesURL()
         let rules = try OWRules.loadRules(from: url)
-        XCTAssertGreaterThanOrEqual(rules.count, 13,
-                                    "expected at least M13.1+M13.2+M13.3 starter rules (5+4+4)")
+        XCTAssertGreaterThanOrEqual(rules.count, 17,
+                                    "expected at least M13.1+M13.2+M13.3+M13.4 starter rules (5+4+4+4)")
         for rule in rules {
             XCTAssertFalse(rule.id.isEmpty, "rule \(rule.id) has empty id")
             XCTAssertFalse(rule.name.isEmpty, "rule \(rule.id) has empty name")
