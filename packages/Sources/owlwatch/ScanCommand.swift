@@ -24,6 +24,7 @@ struct ScanCommand: ParsableCommand {
               owlwatch scan
               owlwatch scan --rules ./packages/Rules
               owlwatch scan --severity high
+              owlwatch scan --scope /Users/ --scope /Applications/
               owlwatch scan --rules ./packages/Rules --dry-run
               owlwatch scan --json > findings.json
             """
@@ -37,6 +38,20 @@ struct ScanCommand: ParsableCommand {
 
     @Option(name: .long, help: "Minimum severity to report. One of: info, low, medium, high, critical.")
     var severity: String = "info"
+
+    @Option(
+        name: .long,
+        parsing: .upToNextOption,
+        help: ArgumentHelp(
+            "Path prefix(es) the binary and signature passes should restrict to.",
+            discussion: "Repeatable. Defaults to no restriction (every running executable parsed)."
+                + " Use `--scope /Users/` or `--scope /Applications/` to skip the bulk of"
+                + " system binaries — typically cuts capture time from minutes to seconds."
+                + " Process, launch_service, login_item, network, and kernel_extension sources"
+                + " always see the full snapshot regardless of --scope."
+        )
+    )
+    var scope: [String] = []
 
     @Flag(name: .long, help: "Parse and schema-check rules without evaluating them against the system.")
     var dryRun: Bool = false
@@ -85,7 +100,8 @@ struct ScanCommand: ParsableCommand {
             includeBinaries: needsBinaries,
             includeNetwork: needsNetwork,
             includeKernelExtensions: needsKexts,
-            includeSignatures: needsSignatures
+            includeSignatures: needsSignatures,
+            binaryScope: scope
         )
         let captureElapsed = Date().timeIntervalSince(captureStart)
 

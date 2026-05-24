@@ -1,7 +1,7 @@
-@testable import OWRules
 import Foundation
 import OWPersistence
 import OWProcess
+@testable import OWRules
 import XCTest
 
 final class OWRulesTests: XCTestCase {
@@ -137,6 +137,122 @@ final class OWRulesTests: XCTestCase {
                 return XCTFail("expected .schemaViolation, got \(error)")
             }
             XCTAssertEqual(field, "severity")
+        }
+    }
+
+    func testLoadRuleRejectsUnknownRootKey() {
+        let yaml = """
+        id: T0001-bad
+        name: Bad
+        severity: low
+        when:
+          source: process
+        unknown_key: value
+        """
+        XCTAssertThrowsError(try loadRule(yaml: yaml)) { error in
+            guard case .schemaViolation(_, let field, _) = error as? OWRulesError else {
+                return XCTFail("expected .schemaViolation, got \(error)")
+            }
+            XCTAssertEqual(field, "unknown_key")
+        }
+    }
+
+    func testLoadRuleRejectsUnknownWhenKey() {
+        let yaml = """
+        id: T0001-bad
+        name: Bad
+        severity: low
+        when:
+          source: process
+          typo_match: {}
+        """
+        XCTAssertThrowsError(try loadRule(yaml: yaml)) { error in
+            guard case .schemaViolation(_, let field, _) = error as? OWRulesError else {
+                return XCTFail("expected .schemaViolation, got \(error)")
+            }
+            XCTAssertEqual(field, "when.typo_match")
+        }
+    }
+
+    func testLoadRuleRejectsEmptyID() {
+        let yaml = """
+        id: ""
+        name: Bad
+        severity: low
+        when:
+          source: process
+        """
+        XCTAssertThrowsError(try loadRule(yaml: yaml)) { error in
+            guard case .schemaViolation(_, let field, _) = error as? OWRulesError else {
+                return XCTFail("expected .schemaViolation, got \(error)")
+            }
+            XCTAssertEqual(field, "id")
+        }
+    }
+
+    func testLoadRuleRejectsInvalidIDCharacters() {
+        let yaml = """
+        id: T0001 with spaces
+        name: Bad
+        severity: low
+        when:
+          source: process
+        """
+        XCTAssertThrowsError(try loadRule(yaml: yaml)) { error in
+            guard case .schemaViolation(_, let field, _) = error as? OWRulesError else {
+                return XCTFail("expected .schemaViolation, got \(error)")
+            }
+            XCTAssertEqual(field, "id")
+        }
+    }
+
+    func testLoadRuleRejectsMalformedMITRE() {
+        let yaml = """
+        id: T0001-bad
+        name: Bad
+        severity: low
+        mitre: NOT-A-MITRE-ID
+        when:
+          source: process
+        """
+        XCTAssertThrowsError(try loadRule(yaml: yaml)) { error in
+            guard case .schemaViolation(_, let field, _) = error as? OWRulesError else {
+                return XCTFail("expected .schemaViolation, got \(error)")
+            }
+            XCTAssertEqual(field, "mitre")
+        }
+    }
+
+    func testLoadRuleAcceptsValidMITRESubtechnique() throws {
+        let yaml = """
+        id: T1546.004-test
+        name: Test
+        severity: low
+        mitre: T1546.004
+        when:
+          source: process
+        """
+        let rule = try loadRule(yaml: yaml)
+        XCTAssertEqual(rule.mitre, "T1546.004")
+    }
+
+    func testLoadRuleRejectsDuplicateEvidenceFields() {
+        let yaml = """
+        id: T0001-dup-ev
+        name: Dup evidence
+        severity: low
+        when:
+          source: process
+        evidence:
+          - pid
+          - name
+          - pid
+        """
+        XCTAssertThrowsError(try loadRule(yaml: yaml)) { error in
+            guard case .schemaViolation(_, let field, _) = error as? OWRulesError else {
+                return XCTFail("expected .schemaViolation, got \(error)")
+            }
+            XCTAssertEqual(field, "evidence")
         }
     }
 

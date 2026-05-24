@@ -53,7 +53,8 @@ public enum OWRules {
         includeBinaries: Bool = true,
         includeNetwork: Bool = true,
         includeKernelExtensions: Bool = true,
-        includeSignatures: Bool = true
+        includeSignatures: Bool = true,
+        binaryScope: [String] = []
     ) throws -> Snapshot {
         let processes = try OWProcess.all(
             includeArguments: includeArguments,
@@ -62,7 +63,7 @@ public enum OWRules {
         let services = OWPersistence.launchServices()
         let items = OWPersistence.loginItems()
         let binaries = includeBinaries
-            ? captureBinaries(from: processes)
+            ? captureBinaries(from: processes, scope: binaryScope)
             : []
         let connections = includeNetwork
             ? ((try? OWNetwork.snapshot()) ?? [])
@@ -71,7 +72,7 @@ public enum OWRules {
             ? OWPersistence.kernelExtensions()
             : []
         let signatures = includeSignatures
-            ? captureSignatures(from: processes)
+            ? captureSignatures(from: processes, scope: binaryScope)
             : []
         return Snapshot(
             processes: processes,
@@ -89,11 +90,21 @@ public enum OWRules {
     /// denied, non-Mach-O, malformed) are silently skipped — a
     /// failed parse is not a finding by itself, and the noise would
     /// dominate the report.
-    private static func captureBinaries(from processes: [RunningProcess]) -> [BinarySummary] {
+    ///
+    /// `scope` is the set of path prefixes to include. Empty scope
+    /// means "every binary"; non-empty scope means "only binaries
+    /// whose path starts with any of these prefixes". This is what
+    /// makes `owlwatch scan --scope /Users/` cheap on a system
+    /// that otherwise has 500+ system binaries to parse.
+    private static func captureBinaries(
+        from processes: [RunningProcess],
+        scope: [String]
+    ) -> [BinarySummary] {
         var seen: Set<String> = []
         var summaries: [BinarySummary] = []
         for process in processes {
             guard let path = process.path, !seen.contains(path) else { continue }
+            guard pathInScope(path, scope: scope) else { continue }
             seen.insert(path)
             let url = URL(fileURLWithPath: path)
             guard let binary = try? OWBinary.parse(at: url, includeSymbols: false) else {
@@ -108,17 +119,30 @@ public enum OWRules {
     /// collect their `SignatureSummary`. Failed inspections are
     /// silently skipped — a single Security framework error on one
     /// path shouldn't suppress the rest of the scan.
-    private static func captureSignatures(from processes: [RunningProcess]) -> [SignatureSummary] {
+    ///
+    /// `scope` matches ``captureBinaries(from:scope:)``: empty means
+    /// "every binary", non-empty means "only path prefixes that
+    /// match".
+    private static func captureSignatures(
+        from processes: [RunningProcess],
+        scope: [String]
+    ) -> [SignatureSummary] {
         var seen: Set<String> = []
         var summaries: [SignatureSummary] = []
         for process in processes {
             guard let path = process.path, !seen.contains(path) else { continue }
+            guard pathInScope(path, scope: scope) else { continue }
             seen.insert(path)
             let url = URL(fileURLWithPath: path)
             guard let signature = try? OWCodeSigning.inspect(at: url) else { continue }
             summaries.append(SignatureSummary.make(from: signature))
         }
         return summaries
+    }
+
+    private static func pathInScope(_ path: String, scope: [String]) -> Bool {
+        if scope.isEmpty { return true }
+        return scope.contains { path.hasPrefix($0) }
     }
 
     /// Evaluate `rules` against `snapshot`. Returns a ``ScanReport``

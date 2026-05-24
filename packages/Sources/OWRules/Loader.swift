@@ -79,60 +79,45 @@ enum RuleLoader {
 
     // MARK: - Decoding
 
+    /// Root keys the rule schema permits. Anything else at the top
+    /// level is a typo (`severity:` → `serverity:`, `mitre:` →
+    /// `mitter:`) — reject explicitly instead of silently dropping.
+    private static let allowedRootKeys: Set<String> = [
+        "id", "name", "description", "mitre", "severity", "when", "evidence"
+    ]
+
+    /// Keys the `when:` block permits.
+    private static let allowedWhenKeys: Set<String> = ["source", "match"]
+
+    /// Rule ID character set (matches the JSON Schema pattern). Letters,
+    /// digits, dot, underscore, hyphen. No spaces, no slashes, no
+    /// path separators.
+    private static let idAllowedCharacters: CharacterSet = {
+        var set = CharacterSet.alphanumerics
+        set.insert(charactersIn: "._-")
+        return set
+    }()
+
+    /// MITRE technique ID shape: `T<4 digits>` optionally followed by
+    /// `.<3 digits>` (subtechnique). Matches what's in the schema.
+    private static let mitrePattern = "^T[0-9]{4}([.][0-9]{3})?$"
+
     private static func decodeRule(_ dict: [String: Any], url: URL) throws -> Rule {
+        try rejectUnknownRootKeys(dict, url: url)
+
         let id = try requireString(dict, field: "id", url: url)
+        try validateID(id, url: url)
+
         let name = try requireString(dict, field: "name", url: url)
+        try validateName(name, url: url)
+
         let description = dict["description"] as? String
         let mitre = dict["mitre"] as? String
+        try validateMITRE(mitre, url: url)
 
-        let severity: Severity
-        if let raw = dict["severity"] as? String {
-            guard let parsed = Severity(rawValue: raw) else {
-                throw OWRulesError.schemaViolation(
-                    url: url, field: "severity",
-                    reason: "must be one of: \(Severity.allCases.map { $0.rawValue }.joined(separator: ", "))"
-                )
-            }
-            severity = parsed
-        } else {
-            throw OWRulesError.schemaViolation(
-                url: url, field: "severity",
-                reason: "missing required field"
-            )
-        }
-
-        guard let whenBlock = dict["when"] as? [String: Any] else {
-            throw OWRulesError.schemaViolation(
-                url: url, field: "when",
-                reason: "missing required block"
-            )
-        }
-        let sourceRaw = try requireString(whenBlock, field: "when.source", url: url)
-        guard let source = RuleSource(rawValue: sourceRaw) else {
-            throw OWRulesError.schemaViolation(
-                url: url, field: "when.source",
-                reason: "unknown source '\(sourceRaw)' — must be one of: "
-                    + RuleSource.allCases.map { $0.rawValue }.joined(separator: ", ")
-            )
-        }
-
-        var matchDict: [String: Predicate] = [:]
-        if let rawMatch = whenBlock["match"] as? [String: Any] {
-            let allowedFields = FieldExtractor.fields(for: source)
-            for (field, rawPredicate) in rawMatch {
-                guard allowedFields.contains(field) else {
-                    throw OWRulesError.unknownField(url: url, source: source, field: field)
-                }
-                matchDict[field] = try decodePredicate(rawPredicate, field: field, url: url)
-            }
-        }
-
-        let evidence = (dict["evidence"] as? [String]) ?? []
-        // Evidence fields must also be valid field names for the source.
-        let allowedFields = FieldExtractor.fields(for: source)
-        for field in evidence where !allowedFields.contains(field) {
-            throw OWRulesError.unknownField(url: url, source: source, field: field)
-        }
+        let severity = try decodeSeverity(dict, url: url)
+        let (source, matchDict) = try decodeWhen(dict, url: url)
+        let evidence = try decodeEvidence(dict, source: source, url: url)
 
         return Rule(
             id: id,
@@ -190,6 +175,137 @@ enum RuleLoader {
             )
         }
         return value
+    }
+
+    // MARK: - Schema validation helpers (M13.5)
+
+    private static func rejectUnknownRootKeys(_ dict: [String: Any], url: URL) throws {
+        for key in dict.keys where !allowedRootKeys.contains(key) {
+            throw OWRulesError.schemaViolation(
+                url: url, field: key,
+                reason: "unknown root key — allowed: "
+                    + allowedRootKeys.sorted().joined(separator: ", ")
+            )
+        }
+    }
+
+    private static func validateID(_ value: String, url: URL) throws {
+        guard !value.isEmpty else {
+            throw OWRulesError.schemaViolation(
+                url: url, field: "id", reason: "must not be empty"
+            )
+        }
+        guard value.count <= 200 else {
+            throw OWRulesError.schemaViolation(
+                url: url, field: "id",
+                reason: "must be 200 characters or fewer (got \(value.count))"
+            )
+        }
+        guard value.unicodeScalars.allSatisfy({ idAllowedCharacters.contains($0) }) else {
+            throw OWRulesError.schemaViolation(
+                url: url, field: "id",
+                reason: "must match [A-Za-z0-9._-]+ (no spaces, slashes, or punctuation)"
+            )
+        }
+    }
+
+    private static func validateName(_ value: String, url: URL) throws {
+        guard !value.isEmpty else {
+            throw OWRulesError.schemaViolation(
+                url: url, field: "name", reason: "must not be empty"
+            )
+        }
+        guard value.count <= 200 else {
+            throw OWRulesError.schemaViolation(
+                url: url, field: "name",
+                reason: "must be 200 characters or fewer (got \(value.count))"
+            )
+        }
+    }
+
+    private static func validateMITRE(_ value: String?, url: URL) throws {
+        guard let value else { return }
+        guard let regex = try? NSRegularExpression(pattern: mitrePattern) else { return }
+        let range = NSRange(value.startIndex..<value.endIndex, in: value)
+        if regex.firstMatch(in: value, options: [], range: range) == nil {
+            throw OWRulesError.schemaViolation(
+                url: url, field: "mitre",
+                reason: "must match T<NNNN> or T<NNNN>.<NNN> (got '\(value)')"
+            )
+        }
+    }
+
+    private static func decodeSeverity(_ dict: [String: Any], url: URL) throws -> Severity {
+        guard let raw = dict["severity"] as? String else {
+            throw OWRulesError.schemaViolation(
+                url: url, field: "severity", reason: "missing required field"
+            )
+        }
+        guard let parsed = Severity(rawValue: raw) else {
+            throw OWRulesError.schemaViolation(
+                url: url, field: "severity",
+                reason: "must be one of: " + Severity.allCases.map { $0.rawValue }.joined(separator: ", ")
+            )
+        }
+        return parsed
+    }
+
+    /// Returns the parsed (source, match-dict). Validates that the
+    /// `when:` block carries no unknown keys.
+    private static func decodeWhen(_ dict: [String: Any], url: URL) throws -> (RuleSource, [String: Predicate]) {
+        guard let whenBlock = dict["when"] as? [String: Any] else {
+            throw OWRulesError.schemaViolation(
+                url: url, field: "when", reason: "missing required block"
+            )
+        }
+        for key in whenBlock.keys where !allowedWhenKeys.contains(key) {
+            throw OWRulesError.schemaViolation(
+                url: url, field: "when.\(key)",
+                reason: "unknown key under 'when' — allowed: "
+                    + allowedWhenKeys.sorted().joined(separator: ", ")
+            )
+        }
+        let sourceRaw = try requireString(whenBlock, field: "when.source", url: url)
+        guard let source = RuleSource(rawValue: sourceRaw) else {
+            throw OWRulesError.schemaViolation(
+                url: url, field: "when.source",
+                reason: "unknown source '\(sourceRaw)' — must be one of: "
+                    + RuleSource.allCases.map { $0.rawValue }.joined(separator: ", ")
+            )
+        }
+        var matchDict: [String: Predicate] = [:]
+        if let rawMatch = whenBlock["match"] as? [String: Any] {
+            let allowedFields = FieldExtractor.fields(for: source)
+            for (field, rawPredicate) in rawMatch {
+                guard allowedFields.contains(field) else {
+                    throw OWRulesError.unknownField(url: url, source: source, field: field)
+                }
+                matchDict[field] = try decodePredicate(rawPredicate, field: field, url: url)
+            }
+        }
+        return (source, matchDict)
+    }
+
+    /// Returns the validated evidence array. Rejects duplicates and
+    /// any field name not in the source's vocabulary.
+    private static func decodeEvidence(
+        _ dict: [String: Any], source: RuleSource, url: URL
+    ) throws -> [String] {
+        let evidence = (dict["evidence"] as? [String]) ?? []
+        let allowedFields = FieldExtractor.fields(for: source)
+        var seen: Set<String> = []
+        for field in evidence {
+            guard allowedFields.contains(field) else {
+                throw OWRulesError.unknownField(url: url, source: source, field: field)
+            }
+            guard seen.insert(field).inserted else {
+                throw OWRulesError.schemaViolation(
+                    url: url, field: "evidence",
+                    reason: "duplicate field '\(field)' — every entry must be unique"
+                )
+            }
+        }
+        return evidence
     }
 
     // MARK: - Predicate decode helpers
