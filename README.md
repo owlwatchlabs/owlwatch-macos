@@ -1,4 +1,4 @@
-# Owlwatch
+![Owlwatch — a transparent, inspectable EDR for macOS](docs/images/owlwatch-readme-banner.png)
 
 Owlwatch is an open-source Endpoint Detection and Response platform for macOS, with a companion iOS posture agent. The macOS product is designed around Endpoint Security, Network Extension, code-signing validation, persistence inspection, and a native detection rules library for identifying suspicious behavior on Apple platforms.
 
