@@ -13,7 +13,7 @@ struct Owlwatch: AsyncParsableCommand {
             Inspect and interact with Owlwatch's endpoint security surfaces.
             See https://github.com/owlwatchlabs/owlwatch-macos for the full surface.
             """,
-        version: "0.10.0-m16",
+        version: "0.11.0-m13",
         subcommands: [
             PSCommand.self,
             InspectCommand.self,
