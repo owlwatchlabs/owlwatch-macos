@@ -32,12 +32,12 @@ Demo recording scripts live in [`docs/demos/`](docs/demos/) and cover the **CLI 
 - [x] M10 persistence monitor (real-time) — FSEvents-backed live mutation stream (`OWPersistence.monitor()` / `monitorEnriched()`), `owlwatch watch-persistence` CLI subcommand, Live tab in the macOS app's persistence viewer
 - [x] M11 mic and webcam monitor (`OWDevices`) — device snapshot with in-use state via CMIO + CoreAudio HAL, live state-change stream, best-effort process attribution via TCC events + foreground app; `owlwatch devices` and `owlwatch watch-devices` CLI subcommands, Devices window in the macOS app
 - [ ] M12 DNS proxy and heuristics 🔒
-- [ ] M13 detection rules engine and tested rule library
+- [x] M13 detection rules engine and tested rule library — `OWRules` with declarative YAML rules, 7 data sources (process / launch_service / login_item / binary / network / kernel_extension / signature), 17 starter rules tagged to MITRE ATT&CK, `owlwatch scan` CLI with severity filter / JSON output / bounded `--scope`
 - [ ] M14 iOS companion (posture, App Attest) 🔒
 - [ ] M15 v1.0 notarized release 🔒
 - [x] M16 macOS app UI integration — status dashboard + per-source windows (Processes, Network, Logs, Binary Inspector) + live menu-bar indicator, bringing every CLI surface from M1–M11 into the GUI
 
-**🔒 — gated on Apple entitlement provisioning.** Milestones marked above require Apple to approve restricted entitlements (Endpoint Security, Network Extension filter / DNS proxy, Developer ID / notarization). Submission status is tracked at [docs/apple-developer/entitlement-requests.md](docs/apple-developer/entitlement-requests.md). Until those land, development proceeds on the milestones that can ship without entitlement gating — currently M13 (rules engine over already-implemented data sources).
+**🔒 — gated on Apple entitlement provisioning.** Milestones marked above require Apple to approve restricted entitlements (Endpoint Security, Network Extension filter / DNS proxy, Developer ID / notarization). Submission status is tracked at [docs/apple-developer/entitlement-requests.md](docs/apple-developer/entitlement-requests.md). With M13 closed, every milestone that can ship without entitlement gating is in. Development pauses on new feature work until Apple's queue clears or a non-entitlement-blocked follow-on milestone is scoped.
 
 ## Architecture
 

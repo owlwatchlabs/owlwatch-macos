@@ -6,68 +6,114 @@ Pre-1.0 entries are tagged with the milestone identifier (`v0.1.0-m0`, `v0.2.0-m
 
 ## [Unreleased]
 
+_No entries yet — M13 is the last unblocked milestone in the current ROADMAP. Follow-on milestones (M7/M8/M9/M12/M14/M15) require Apple entitlement provisioning before they can land._
+
+## [v0.11.0-m13] — 2026-05-24
+
+The detection rules engine milestone. M1–M11 each shipped a data source and a CLI reader for it; M16 brought every reader into the macOS app GUI; M13 sits on top of all of it as the **rules engine** that evaluates declarative YAML detections against snapshots of every shipped source.
+
+Ships `OWRules` — a new SPM library — plus `owlwatch scan`, a YAML schema, an ADR, and a starter library of 17 rules tagged to MITRE ATT&CK across 7 data sources. The engine is snapshot-based, synchronous, pure; streaming evaluation is a future-slice topic.
+
+With M13 closed, every milestone in the original ROADMAP that can ship without Apple entitlement provisioning is in.
+
 ### Added
 
-- **Rules engine + initial library (M13.1)** — Owlwatch ships its first detection rules engine. `OWRules` parses declarative YAML rules (one rule per file), validates them against [`docs/rules/rule-schema.json`](docs/rules/rule-schema.json) at load time, captures a snapshot of the data sources the rules reference (M1's processes + M5's launch services + M5's login items in this slice), and evaluates every rule against every item. Snapshot-based, synchronous, pure — streaming evaluation lands in M13.5+.
-  - New CLI subcommand **`owlwatch scan`** runs the loaded rules against the live system. Flags: `--rules <dir>` (defaults to `./packages/Rules` from a checkout or `$OWLWATCH_RULES`), `--severity {info|low|medium|high|critical}` (filter findings at or above the level), `--dry-run` (parse + schema-check without evaluating), `--json` (emit findings as JSON for piping into other tools). Exit code 0 = clean scan, 1 = at least one finding, 2 = rule-load error.
-  - **Predicate vocabulary**: `equals`, `not_equals`, `starts_with`, `ends_with`, `contains`, `matches` (NSRegularExpression with anchors + lookahead), `in: [...]`, `exists: bool`, `is_true`/`is_false`. Bare scalar values are shorthand for `equals`. Predicates in a single rule's `match:` block are ANDed; OR/NOT composition is deferred to a later slice.
-  - **Starter rule library** (5 rules across all three sources, every rule tagged with a MITRE ATT&CK technique ID):
-    - `T1546.004-launchagent-in-downloads` (high) — LaunchAgent referencing an executable in `~/Downloads`.
-    - `T1546.004-launchagent-in-tmp` (critical) — LaunchAgent / Daemon executing from `/tmp`, `/var/tmp`, or their `/private/` aliases.
-    - `T1059.004-process-from-tmp` (high) — running process whose executable lives under `/tmp` / `/var/tmp` (excludes Apple's `/tmp/com.apple.*` helpers).
-    - `T1547.001-login-item-no-developer` (medium) — enabled BTM login item with no developer name, no team identifier, and no bundle identifier.
-    - `T1059.004-curl-pipe-shell` (medium) — shell process whose argv contains a `curl|wget … | sh|bash` pipeline.
-  - **Yams** (5.1.0, MIT) added as a SPM dependency — Owlwatch's second non-Apple dependency after swift-argument-parser. Used exclusively by `OWRules` for YAML parsing.
-  - **[ADR-0004](docs/adr/0004-rules-engine-format.md)** documents the format choice — declarative YAML with JSON Schema validation over Swift-code rules or a custom DSL. Notes the engineering surface trade-offs (no embedded interpreter, no schema-versioning yet, AND-only predicates in v1) and the contributor benefits (YAML PRs, no Swift toolchain required).
-  - **Schema document** at [`docs/rules/rule-schema.json`](docs/rules/rule-schema.json) — JSON Schema (draft 2020-12) defining the rule format. Single source of truth; the in-Swift `Rule` decoder matches the schema field for field.
-  - **Tests**: 20 new unit tests in `OWRulesTests` covering predicate evaluation, YAML loader strictness (unknown fields, missing severity, invalid regex, duplicate IDs), evaluator firing on synthetic snapshots across all three sources, and a regression gate that every shipped rule in `packages/Rules/` parses + schema-validates.
+- **`OWRules` library.** A small declarative-rules engine on top of M1–M11's data sources. Public surface:
 
-_M13.2 (process + binary library), M13.3 (network + persistence), M13.4 (signature + log correlation), M13.5 (schema hardening + golden fixtures), and M13-close follow before the v0.11.0-m13 tag._
+  ```swift
+  OWRules.loadRule(from: URL) throws -> Rule
+  OWRules.loadRules(from: URL) throws -> [Rule]
+  OWRules.captureSnapshot(...) throws -> Snapshot
+  OWRules.scan(rules: [Rule], snapshot: Snapshot) -> ScanReport
+  OWRules.scan(rules: [Rule]) throws -> ScanReport   // captures + scans
+  ```
 
-- **Schema hardening, bounded capture, golden fixtures (M13.5)** — the last engine slice before M13-close. Tightens what the loader accepts, cuts scan wall-clock time on demand, and locks the rule library against silent regressions.
-  - **Schema hardening** — the in-Swift loader now enforces every constraint that's been in `docs/rules/rule-schema.json` since M13.1. Unknown root keys (`severity` → `serverity` typos), unknown `when:` keys (`match` → `mathc`), empty / over-long IDs, IDs with disallowed characters (spaces, slashes), malformed MITRE technique IDs that don't match `T<NNNN>[.<NNN>]`, and duplicate entries in `evidence:` arrays are all rejected at load time with structured errors pointing at the offending field. Seven new loader-validation tests in `OWRulesTests`.
-  - **Bounded binary capture** — `owlwatch scan` gains a `--scope <prefix>` flag (repeatable). When supplied, the `binary` and `signature` capture passes only process executables whose path starts with one of the prefixes. `owlwatch scan --scope /Users/ --scope /Applications/` cuts a typical full-system scan from minutes to seconds by skipping the bulk of `/System/` binaries. The `process`, `launch_service`, `login_item`, `network`, and `kernel_extension` sources always see the full snapshot regardless of `--scope`.
-  - **Golden regression fixtures** — new `OWRulesGoldenTests` class with 20 tests. A `testCleanSnapshotProducesNoFindings` baseline asserts that **no** shipped rule fires on a benign-looking synthetic snapshot (Apple system binaries, no third-party kexts, no wildcard listeners). Plus one per-rule positive case for every rule in `packages/Rules/` — each builds a snapshot tailored to fire its rule and asserts the expected finding count and target ID. Catches the "rule's predicates silently stop matching" regression class.
-  - **Bug fix surfaced by the golden suite** — `T1543.001-third-party-launch-daemon` had been silently broken since M13.3. The rule wrote `scope: equals: system_daemon` (snake_case, matching format convention) but `FieldExtractor` was returning `LaunchScope.systemDaemon.rawValue` (camelCase). The rule never fired. `FieldExtractor.launchScopeSnakeCase` now maps the enum to snake_case explicitly — same pattern `SignatureSummary` already used for `SignatureType`.
-  - **Documentation** — [`docs/rules/README.md`](docs/rules/README.md) now carries the full predicate vocabulary, per-source field reference, bounded-scan section, and a tighter contributing flow that points at the golden-fixture file rather than a hypothetical fixtures directory.
-  - **Test count**: OWRules now ships 61 unit tests (up from 34 in M13.4): 27 core (`OWRulesTests`) + 14 source (`OWRulesSourceTests`) + 20 golden (`OWRulesGoldenTests`). Full project suite at 299 / 299.
+- **YAML rule format** (M13.1). One rule per YAML file. Required: `id`, `name`, `severity`, `when.source`. Optional: `description`, `mitre`, `when.match`, `evidence`. Validated against [`docs/rules/rule-schema.json`](docs/rules/rule-schema.json) at load time with structured per-field errors. [ADR-0004](docs/adr/0004-rules-engine-format.md) documents the format choice over Swift-code rules or a custom DSL.
 
-- **Signature rule library (M13.4)** — extends `OWRules` with a `signature` data source and four new rules covering MITRE T1553.002, T1553.005 (two variants), and T1027. Library grows from 13 to 17 rules across 7 sources. `OWRules` gains a dependency on `OWCodeSigning` (M3).
-  - **New data source** `signature` — iterates `SignatureSummary`s built by calling `OWCodeSigning.inspect(at:)` for every unique executable in the process snapshot. Each summary collapses the `CodeSignature` shape into rule-queryable snake_case fields: `path`, `is_signed`, `is_valid`, `signature_type` (`unsigned` / `adhoc` / `developer_id` / `apple_developer` / `app_store` / `apple` / `unknown`), `identifier`, `team_identifier`, `cd_hash`, `authorities`, `flags`, `has_hardened_runtime`, `hardened_runtime_version`, `is_stapled_for_notarization`, `entitlements_count`.
-  - **Capture skip extended** — `OWRules.captureSnapshot(includeSignatures:)` lets callers skip the per-binary `SecStaticCode` inspection pass when no rule needs it. The convenience `scan(rules:)` auto-detects.
-  - **Evaluator refactor (round 2)** — `evaluateSource` was split into one private function per data source (`evaluateProcesses`, `evaluateBinaries`, …, `evaluateSignatures`). The single switch had hit cyclomatic complexity 21 (over SwiftLint's 20 error threshold) after the M13.4 source added a seventh case. One-function-per-source caps the per-function complexity below 10 and scales for future sources without further refactoring pressure.
-  - **Four new rules:**
-    - `T1553.002-unsigned-executable` (high) — Process executing an unsigned binary outside Apple's expected paths (`/System/`, `/usr/libexec/`, `/usr/bin/`, `/usr/sbin/`, `/sbin/`, `/bin/`, `/Library/Apple/`). Rare on modern macOS; unsigned binaries running there warrant immediate triage.
-    - `T1553.005-developer-id-without-stapled-ticket` (medium) — Developer ID-signed binary with no embedded notarization ticket. Could be legitimately online-notarized (VS Code pattern), rejected notarization, or never submitted. Inventory-style; confirm every entry is a known publisher.
-    - `T1553.005-developer-id-without-hardened-runtime` (medium) — Developer ID binary missing the `runtime` `SecCodeSignatureFlags` bit. Apple required the hardened runtime for notarization since macOS 10.14; absence is a deliberate publisher choice that warrants surfacing.
-    - `T1027-adhoc-signed-outside-system` (low) — Ad-hoc signed binary outside Apple's system paths. Dominated on developer machines by locally-built binaries (Owlwatch's own `.build/` artifacts fire this); flagged `low` to reflect that population. Production deploys should consider raising via custom override.
-  - **3 new tests** in `OWRulesSourceTests` covering the signature source evaluator on synthetic snapshots and `SignatureSummary.make(from:)` against the real `/bin/ls` signature. 34 OWRules tests total; shipped-rules regression gate now expects ≥ 17 rules.
+- **Seven data sources** (across M13.1–M13.4):
 
-- **Network + persistence rule library (M13.3)** — extends `OWRules` with two new data sources (`network` and `kernel_extension`) and adds four new rules. `OWRules` gains a dependency on `OWNetwork` (M4) for the connection snapshot.
-  - **New data sources:**
-    - `network` — iterates `OWNetwork.snapshot()`. Fields: `pid`, `fd`, `family`, `protocol_name`, `local_address`, `local_port`, `remote_address`, `remote_port`, `tcp_state`, `is_listener`. Findings get a stable `pid:N:fd:M:proto:local→remote` target ID.
-    - `kernel_extension` — iterates `OWPersistence.kernelExtensions()`. Fields: `bundle_path`, `bundle_identifier`, `short_version`, `bundle_version`, `executable_name`, `executable_path`, `scope`. Findings target the bundle identifier (or path fallback).
-  - **Capture skip extended** — `OWRules.captureSnapshot(includeNetwork:includeKernelExtensions:)` lets callers skip the network and kext passes when no rule needs them. The convenience `scan(rules:)` auto-detects from the rule set.
-  - **Four new rules:**
-    - `T1543.001-third-party-launch-daemon` (info, `launch_service`) — every plist under `/Library/LaunchDaemons` (third-party root daemons). Inventory-style — surfaces every entry for the operator to confirm against installed-software lists.
-    - `T1547.011-launch-service-no-executable` (medium, `launch_service`) — launchd plist with no `Program` / `ProgramArguments` key. Either malformed or using XPC indirection; warrants inspection.
-    - `T1071-listener-on-all-interfaces` (medium, `network`) — TCP socket in `LISTEN` bound to `0.0.0.0` or `::`. Surfaces every wildcard-bound listener so the operator can triage which are intentional vs unauthorized.
-    - `T1547.006-third-party-kernel-extension` (high, `kernel_extension`) — kext under `/Library/Extensions`. Exceptional on modern macOS (Apple deprecated third-party kexts post-Catalina); high severity reflects kernel-privilege impact.
-  - **Evaluator refactor** — per-source iteration extracted from `evaluate()` into a private `evaluateSource(_:rules:snapshot:...)` helper, keeping cyclomatic complexity under SwiftLint's threshold as the source count grows.
-  - **Tests split** — per-source evaluator tests moved to a new `OWRulesSourceTests` class file. 31 tests total across both classes; shipped-rules regression gate now expects ≥ 13 rules (5 + 4 + 4).
+  | Source | Backing reader | What rules see |
+  |---|---|---|
+  | `process` | `OWProcess.all(...)` (M1) | pid, parent_pid, name, path, user_id, arguments |
+  | `launch_service` | `OWPersistence.launchServices()` (M5) | plist_path, scope, label, executable_path, arguments, run_at_load, runs_as_root, is_disabled |
+  | `login_item` | `OWPersistence.loginItems()` (M5) | identifier, developer_name, team_identifier, bundle_identifier, parent_identifier, url, is_enabled |
+  | `binary` | `OWBinary.parse(...)` (M2) | path, is_universal, slice_count, architectures, linked_dylibs, rpaths, has_rwx_segment, max_section_entropy |
+  | `network` | `OWNetwork.snapshot()` (M4) | pid, fd, family, protocol_name, local_address, local_port, remote_address, remote_port, tcp_state, is_listener |
+  | `kernel_extension` | `OWPersistence.kernelExtensions()` (M5) | bundle_path, bundle_identifier, short_version, bundle_version, executable_name, executable_path, scope |
+  | `signature` | `OWCodeSigning.inspect(at:)` (M3) | path, is_signed, is_valid, signature_type, identifier, team_identifier, cd_hash, authorities, flags, has_hardened_runtime, hardened_runtime_version, is_stapled_for_notarization, entitlements_count |
 
-- **Process + binary rule library (M13.2)** — extends `OWRules` with a `binary` data source and adds four new rules. `OWRules` gains a dependency on `OWBinary` (M2) for Mach-O parsing.
-  - **New data source** `binary` — iterates `BinarySummary`s built from every unique executable in the process snapshot. Each summary collapses across slices (any-slice semantics) and exposes `path`, `is_universal`, `slice_count`, `architectures`, `linked_dylibs`, `rpaths`, `has_rwx_segment`, `max_section_entropy`.
-  - **Numeric predicates** `greater_than` / `less_than` — required for entropy thresholds. `FieldValue.double` added; integers widen to double for numeric comparison. The loader's `decodePredicate` was split into per-shape helpers (`decodeStringPredicate`, `decodeBooleanPredicate`, `decodeNumericPredicate`, `decodeInPredicate`) to keep cyclomatic complexity under SwiftLint's threshold as the vocabulary grows.
-  - **Conditional binary capture** — `OWRules.captureSnapshot(includeBinaries:)` lets callers skip the (~seconds) Mach-O parse pass when no loaded rule targets the binary source. The convenience `scan(rules:)` auto-detects.
-  - **CLI** — `owlwatch scan` now reports `Captured: snapshot in Xs` separately from `Scanned: N items in Ys`. The evaluator pass is sub-millisecond; capture time (process walk + per-binary parse) is what users actually pay. JSON output gains a `capture_elapsed_seconds` field.
-  - **Four new rules:**
-    - `T1027.002-high-entropy-section` (medium) — Mach-O section with Shannon entropy > 7.5 bits/byte (packing / encryption signal). Excludes `/System/`, `/Library/Apple/`, `/usr/libexec/`, `/usr/sbin/`, `/sbin/` to avoid firing on Apple's own binaries that legitimately embed compressed assets (bookassetd, commerce, BKAgentService).
-    - `T1574.006-rwx-segment` (high) — Mach-O segment declares both VM_PROT_WRITE and VM_PROT_EXECUTE bits. Strong self-modifying-code / packing-stub signal.
-    - `T1564.001-process-in-hidden-dir` (medium) — Running process whose path traverses any dot-prefixed directory (`/Users/x/.cache/foo`, `/var/folders/.../.hidden/`). Expected to fire on developer machines with `.build/`, `.cargo/`, `.rbenv/` paths; tune severity per deployment.
-    - `T1036.005-apple-binary-masquerade` (high) — Running process whose `name` matches a well-known Apple system binary (`launchd`, `kextd`, `coreaudiod`, `mds`, ...) but whose `path` is outside the standard Apple-shipped directories (`/System/`, `/usr/libexec/`, `/sbin/`, `/usr/sbin/`, `/usr/bin/`, `/bin/`).
-  - **8 new tests** in `OWRulesTests` covering numeric predicates, the binary source evaluator, `BinarySummary.make(from:)` against `/bin/ls`, and the capture-skip optimization. Shipped-rules regression gate now expects ≥ 9 rules (5 from M13.1 + 4 here).
-  - **Yams now used for numeric values** — the loader accepts `Int` and `Double` from YAML for the new numeric predicates.
+- **Predicate vocabulary** (11 predicates): `equals`, `not_equals`, `starts_with`, `ends_with`, `contains`, `matches` (NSRegularExpression with anchors + lookahead / lookbehind), `in: [...]`, `exists: bool`, `is_true`/`is_false`, `greater_than`, `less_than`. Bare scalars are shorthand for `equals`. Predicates in one `match:` block are ANDed; OR/NOT composition is deferred.
+
+- **Starter rule library** (17 rules across 7 sources, every rule tagged with a MITRE ATT&CK technique ID):
+
+  | Rule | Severity | Source | MITRE |
+  |---|---|---|---|
+  | `T1546.004-launchagent-in-downloads` | high | launch_service | T1546.004 |
+  | `T1546.004-launchagent-in-tmp` | critical | launch_service | T1546.004 |
+  | `T1059.004-process-from-tmp` | high | process | T1059.004 |
+  | `T1547.001-login-item-no-developer` | medium | login_item | T1547.001 |
+  | `T1059.004-curl-pipe-shell` | medium | process | T1059.004 |
+  | `T1027.002-high-entropy-section` | medium | binary | T1027.002 |
+  | `T1574.006-rwx-segment` | high | binary | T1574.006 |
+  | `T1564.001-process-in-hidden-dir` | medium | process | T1564.001 |
+  | `T1036.005-apple-binary-masquerade` | high | process | T1036.005 |
+  | `T1543.001-third-party-launch-daemon` | info | launch_service | T1543.001 |
+  | `T1547.011-launch-service-no-executable` | medium | launch_service | T1547.011 |
+  | `T1071-listener-on-all-interfaces` | medium | network | T1071 |
+  | `T1547.006-third-party-kernel-extension` | high | kernel_extension | T1547.006 |
+  | `T1553.002-unsigned-executable` | high | signature | T1553.002 |
+  | `T1553.005-developer-id-without-stapled-ticket` | medium | signature | T1553.005 |
+  | `T1553.005-developer-id-without-hardened-runtime` | medium | signature | T1553.005 |
+  | `T1027-adhoc-signed-outside-system` | low | signature | T1027 |
+
+- **`owlwatch scan` CLI subcommand:**
+
+  ```
+  owlwatch scan                                     # all rules vs live system
+  owlwatch scan --rules ./packages/Rules            # custom rule dir
+  owlwatch scan --severity high                     # filter at or above
+  owlwatch scan --scope /Users/ --scope /Applications/   # bound binary + signature passes
+  owlwatch scan --json > findings.json              # JSON output
+  owlwatch scan --dry-run                           # parse + schema-check only
+  ```
+
+  Exit code 0 = clean, 1 = at least one finding, 2 = rule-load error. Output reports `Captured:` and `Scanned:` phases separately so the (heavy) per-binary parse cost is visible. Capture skips sources no loaded rule needs.
+
+- **Bounded binary capture** — `--scope <prefix>` (repeatable, M13.5) filters which executables get parsed for the `binary` and `signature` sources. Cuts a typical scan from minutes to seconds when narrowed to user paths.
+
+- **Golden regression fixtures** (M13.5) — `OWRulesGoldenTests` with a clean-baseline test (no shipped rule fires on a benign synthetic snapshot) plus one per-rule positive case (each rule's predicates are exercised against a snapshot designed to fire it). Caught and fixed a silent `LaunchScope` snake_case/camelCase mismatch in the `T1543.001` rule on first run.
+
+- **Yams 5.1.0** added as an SPM dependency — Owlwatch's second non-Apple dependency after swift-argument-parser. Used exclusively by `OWRules` for YAML parsing.
+
+- **`owlwatch --version`** bumped to `0.11.0-m13`.
+
+### Notes
+
+- 299 / 299 unit tests pass across the project (up from 258 at M11-close, +41 net for M13). OWRules itself ships 61 tests across three classes: 27 core (loader / predicate / evaluator), 14 per-source, 20 golden.
+- The engine is **AND-only** in `when.match`. OR / NOT predicate composition lands when a real rule needs it.
+- The engine is **snapshot-based**, not streaming. Live evaluation against the M10 persistence monitor / M11 device monitor / M6 log stream is a future-slice topic.
+
+### What's next
+
+**Nothing immediately.** M13 is the last unblocked milestone in the original ROADMAP. The remaining work is gated:
+
+- **M7** (Network Extension filter) — Apple entitlement required
+- **M8** (Endpoint Security extension) — Apple entitlement required
+- **M9** (System extension installer flow) — Apple entitlement required
+- **M12** (DNS proxy provider) — Apple entitlement required
+- **M14** (iOS companion) — App Attest entitlement required
+- **M15** (notarized v1.0 release) — paid Apple Developer Program required
+
+Until Apple's entitlement provisioning queue clears, development pauses on new milestone work. Maintenance, bugfixes, and rule-library expansions remain in scope.
+
+### PRs in this milestone
+
+- #62 feat(OWRules, owlwatch): rules engine + initial library (M13.1)
+- #63 feat(OWRules, owlwatch): process + binary rule library (M13.2)
+- #64 feat(OWRules, owlwatch): network + persistence rule library (M13.3)
+- #65 feat(OWRules, owlwatch): signature rule library (M13.4)
+- #66 feat(OWRules, owlwatch): schema hardening, bounded capture, golden fixtures (M13.5)
+- #67 feat(owlwatch): close M13 — version bump to 0.11.0-m13, CHANGELOG promotion, README tick
 
 ## [v0.10.0-m16] — 2026-05-23
 
