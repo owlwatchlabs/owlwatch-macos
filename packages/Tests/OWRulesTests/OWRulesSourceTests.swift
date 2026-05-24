@@ -1,9 +1,9 @@
-@testable import OWRules
 import Foundation
 import OWBinary
 import OWCodeSigning
 import OWNetwork
 import OWPersistence
+@testable import OWRules
 import XCTest
 
 /// Per-source evaluator tests, split from `OWRulesTests` to keep each

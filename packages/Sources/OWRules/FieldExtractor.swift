@@ -47,7 +47,7 @@ enum FieldExtractor {
     static func extract(_ field: String, from service: LaunchService) -> FieldValue {
         switch field {
         case "plist_path": return .string(service.plistPath)
-        case "scope": return .string(service.scope.rawValue)
+        case "scope": return .string(launchScopeSnakeCase(service.scope))
         case "label": return service.label.map(FieldValue.string) ?? .missing
         case "executable_path":
             return service.executablePath.map(FieldValue.string) ?? .missing
@@ -192,6 +192,24 @@ enum FieldExtractor {
             return .boolean(signature.isStapledForNotarization)
         case "entitlements_count": return .integer(Int64(signature.entitlementsCount))
         default: return .missing
+        }
+    }
+
+    // MARK: - Enum value mapping
+
+    /// Map `LaunchScope` to the snake_case form rules use. The
+    /// upstream enum's raw values are camelCase
+    /// (`systemDaemon`, `userAgent`, ...) but the rule format
+    /// uniformly uses snake_case (`system_daemon`, `user_agent`).
+    /// Explicit table — auto-deriving would surface the camelCase
+    /// form and clash with rule-author expectations.
+    private static func launchScopeSnakeCase(_ scope: LaunchScope) -> String {
+        switch scope {
+        case .platformDaemon: return "platform_daemon"
+        case .platformAgent: return "platform_agent"
+        case .systemDaemon: return "system_daemon"
+        case .systemAgent: return "system_agent"
+        case .userAgent: return "user_agent"
         }
     }
 
