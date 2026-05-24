@@ -1,5 +1,6 @@
 import Foundation
 import OWBinary
+import OWCodeSigning
 import OWNetwork
 import OWPersistence
 import OWProcess
@@ -51,7 +52,8 @@ public enum OWRules {
         includeArguments: Bool = true,
         includeBinaries: Bool = true,
         includeNetwork: Bool = true,
-        includeKernelExtensions: Bool = true
+        includeKernelExtensions: Bool = true,
+        includeSignatures: Bool = true
     ) throws -> Snapshot {
         let processes = try OWProcess.all(
             includeArguments: includeArguments,
@@ -68,13 +70,17 @@ public enum OWRules {
         let kexts = includeKernelExtensions
             ? OWPersistence.kernelExtensions()
             : []
+        let signatures = includeSignatures
+            ? captureSignatures(from: processes)
+            : []
         return Snapshot(
             processes: processes,
             launchServices: services,
             loginItems: items,
             binaries: binaries,
             connections: connections,
-            kernelExtensions: kexts
+            kernelExtensions: kexts,
+            signatures: signatures
         )
     }
 
@@ -98,6 +104,23 @@ public enum OWRules {
         return summaries
     }
 
+    /// Inspect every unique executable path in `processes` and
+    /// collect their `SignatureSummary`. Failed inspections are
+    /// silently skipped — a single Security framework error on one
+    /// path shouldn't suppress the rest of the scan.
+    private static func captureSignatures(from processes: [RunningProcess]) -> [SignatureSummary] {
+        var seen: Set<String> = []
+        var summaries: [SignatureSummary] = []
+        for process in processes {
+            guard let path = process.path, !seen.contains(path) else { continue }
+            seen.insert(path)
+            let url = URL(fileURLWithPath: path)
+            guard let signature = try? OWCodeSigning.inspect(at: url) else { continue }
+            summaries.append(SignatureSummary.make(from: signature))
+        }
+        return summaries
+    }
+
     /// Evaluate `rules` against `snapshot`. Returns a ``ScanReport``
     /// with one ``Finding`` per match. Synchronous and pure — safe to
     /// call from any actor context.
@@ -114,6 +137,7 @@ public enum OWRules {
         let needsBinaries = rules.contains { $0.source == .binary }
         let needsNetwork = rules.contains { $0.source == .network }
         let needsKexts = rules.contains { $0.source == .kernelExtension }
+        let needsSignatures = rules.contains { $0.source == .signature }
         let needsArguments = rules.contains { rule in
             rule.source == .process && (
                 rule.match.keys.contains("arguments") || rule.evidence.contains("arguments")
@@ -123,7 +147,8 @@ public enum OWRules {
             includeArguments: needsArguments,
             includeBinaries: needsBinaries,
             includeNetwork: needsNetwork,
-            includeKernelExtensions: needsKexts
+            includeKernelExtensions: needsKexts,
+            includeSignatures: needsSignatures
         )
         return scan(rules: rules, snapshot: snapshot)
     }

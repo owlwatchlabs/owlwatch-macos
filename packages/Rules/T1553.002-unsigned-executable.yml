@@ -1,0 +1,33 @@
+id: T1553.002-unsigned-executable
+name: Unsigned executable running outside system paths
+description: |
+  A process running an unsigned binary from outside Apple's expected
+  system paths (`/System/`, `/usr/libexec/`, `/usr/bin/`, `/sbin/`,
+  `/usr/sbin/`, `/bin/`, `/Library/Apple/`) is operationally
+  significant. Apple's own system binaries are always signed; Apple
+  Silicon further requires every loaded binary to carry at least an
+  ad-hoc signature, so a truly unsigned binary either:
+
+  - Was built outside Apple's normal toolchain (cross-compiled, or
+    stripped of its CodeDirectory blob after the fact).
+  - Predates Apple Silicon's signature enforcement and is somehow
+    still running (unlikely on a 14.0+ system).
+  - Was deliberately stripped of its signature to defeat
+    Gatekeeper / TCC / library validation.
+
+  Severity is `high`: unsigned executables outside system paths are
+  rare enough that surfacing every one is warranted, and the cases
+  that *do* fire deserve immediate triage.
+mitre: T1553.002
+severity: high
+when:
+  source: signature
+  match:
+    signature_type:
+      equals: unsigned
+    path:
+      matches: '^(?!/System/|/usr/libexec/|/usr/bin/|/usr/sbin/|/sbin/|/bin/|/Library/Apple/).+'
+evidence:
+  - path
+  - identifier
+  - flags

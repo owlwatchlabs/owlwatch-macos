@@ -159,6 +159,42 @@ enum FieldExtractor {
         }
     }
 
+    // MARK: - Code signature
+
+    static let signatureFields: Set<String> = [
+        "path", "is_signed", "is_valid", "signature_type",
+        "identifier", "team_identifier", "cd_hash",
+        "authorities", "flags",
+        "has_hardened_runtime", "hardened_runtime_version",
+        "is_stapled_for_notarization", "entitlements_count"
+    ]
+
+    static func extract(_ field: String, from signature: SignatureSummary) -> FieldValue {
+        switch field {
+        case "path": return .string(signature.path)
+        case "is_signed": return .boolean(signature.isSigned)
+        case "is_valid": return .boolean(signature.isValid)
+        case "signature_type": return .string(signature.signatureType)
+        case "identifier":
+            return signature.identifier.map(FieldValue.string) ?? .missing
+        case "team_identifier":
+            return signature.teamIdentifier.map(FieldValue.string) ?? .missing
+        case "cd_hash":
+            return signature.cdHashHex.map(FieldValue.string) ?? .missing
+        case "authorities":
+            return signature.authoritiesJoined.isEmpty ? .missing : .string(signature.authoritiesJoined)
+        case "flags":
+            return signature.flagsSymbolic.isEmpty ? .missing : .string(signature.flagsSymbolic)
+        case "has_hardened_runtime": return .boolean(signature.hasHardenedRuntime)
+        case "hardened_runtime_version":
+            return signature.hardenedRuntimeVersion.map(FieldValue.string) ?? .missing
+        case "is_stapled_for_notarization":
+            return .boolean(signature.isStapledForNotarization)
+        case "entitlements_count": return .integer(Int64(signature.entitlementsCount))
+        default: return .missing
+        }
+    }
+
     // MARK: - Field validation
 
     /// Field names a rule may reference for the given source.
@@ -171,6 +207,7 @@ enum FieldExtractor {
         case .binary: return binaryFields
         case .network: return networkFields
         case .kernelExtension: return kernelExtensionFields
+        case .signature: return signatureFields
         }
     }
 }

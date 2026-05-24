@@ -42,7 +42,7 @@
           "type": "string",
           "enum": [
             "process", "launch_service", "login_item", "binary",
-            "network", "kernel_extension"
+            "network", "kernel_extension", "signature"
           ],
           "description": "Data source the rule iterates over."
         },
