@@ -1,0 +1,6 @@
+<svg width="256" height="256" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Owlwatch mark">
+  <title>Owlwatch mark</title>
+  <desc>The Owlwatch mark — a gold disc with a dark pupil. Transparent background, pupil = 38% of disc diameter.</desc>
+  <circle cx="50" cy="50" r="37" fill="#E8C95A"/>
+  <circle cx="50" cy="50" r="14" fill="#0B0E11"/>
+</svg>
