@@ -3,6 +3,11 @@ import SwiftUI
 
 @main
 struct OwlwatchApp: App {
+    /// Stable identifier for the M17 consolidated single window.
+    /// Wired into the SwiftUI scene declaration and used by
+    /// `AppModel.show(_:)` to find and front the window.
+    static let mainWindowID = "main"
+
     /// Live status model that drives the M16.6 menu-bar indicator and
     /// dropdown header. Started in the MenuBarExtra's content closure
     /// the first time the menu is built.
