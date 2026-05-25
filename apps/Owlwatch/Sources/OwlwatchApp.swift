@@ -44,19 +44,65 @@ struct OwlwatchApp: App {
     }
 }
 
-/// The menu-bar mark — the same OwlMark from `Design/OwlMark.swift`
-/// tinted by capture state. Per DESIGN.md §2: red (camera/mic live)
-/// outranks green (capturing) outranks dim gold (idle).
+/// The menu-bar mark — same shape as `OwlMark`, but rendered via
+/// AppKit and embedded as `Image(nsImage:)` so it shows up
+/// reliably in the menu bar.
 ///
-/// SwiftUI's MenuBarExtra renders the label closure as a NSImage
-/// internally; the resulting bitmap is **not** marked as a template,
-/// so the gold/green/red disc colors come through.
+/// **Why not a SwiftUI Circle composition?** SwiftUI's MenuBarExtra
+/// label closure passes through a coercion path that does not
+/// faithfully render arbitrary shape views — the disc came out
+/// invisible in M17.5's first attempt. The spec (`docs/DESIGN.md`
+/// §2) already prescribes the AppKit path: draw the mark with
+/// `NSBezierPath` into an `NSImage`, set `isTemplate = false` so
+/// macOS doesn't auto-tint the gold/green/red disc to monochrome.
 private struct MenuBarMark: View {
     @EnvironmentObject var model: AppModel
 
     var body: some View {
-        OwlMark(iris: statusColor(model.captureState))
-            .frame(width: 18, height: 18)
+        Image(nsImage: owlStatusImage(for: model.captureState))
+            .renderingMode(.original)
+    }
+}
+
+/// Render the Owlwatch mark as an `NSImage` sized for the menu bar.
+/// Disc tinted per ``CaptureState``; pupil is a solid `owlBg`
+/// circle at 38% of the disc diameter (the "real eye" per §4).
+/// `isTemplate = false` is load-bearing — without it macOS forces
+/// the bitmap to monochrome and the color signal is lost.
+private func owlStatusImage(for state: CaptureState, size: CGFloat = 18) -> NSImage {
+    let tint: NSColor
+    switch state {
+    case .idle:            tint = NSColor(owlHex: 0xE8C95A)  // owlAmber
+    case .capturing:       tint = NSColor(owlHex: 0x3FBF95)  // owlGreen
+    case .cameraOrMicLive: tint = NSColor(owlHex: 0xF0726F)  // owlRed
+    }
+    let image = NSImage(size: NSSize(width: size, height: size), flipped: false) { rect in
+        tint.setFill()
+        NSBezierPath(ovalIn: rect).fill()
+
+        let pupilDiameter = rect.width * 0.38
+        let pupilRect = NSRect(
+            x: rect.midX - pupilDiameter / 2,
+            y: rect.midY - pupilDiameter / 2,
+            width: pupilDiameter,
+            height: pupilDiameter
+        )
+        NSColor(owlHex: 0x0B0E11).setFill()
+        NSBezierPath(ovalIn: pupilRect).fill()
+        return true
+    }
+    image.isTemplate = false
+    return image
+}
+
+private extension NSColor {
+    convenience init(owlHex: UInt) {
+        self.init(
+            srgbRed: CGFloat((owlHex >> 16) & 0xff) / 255,
+            green:   CGFloat((owlHex >> 8)  & 0xff) / 255,
+            blue:    CGFloat( owlHex        & 0xff) / 255,
+            alpha: 1
+        )
     }
 }
 

@@ -49,7 +49,7 @@ final class AppModel: ObservableObject {
 /// apply (camera/mic live is more urgent than generic capturing).
 func statusColor(_ state: CaptureState) -> Color {
     switch state {
-    case .idle:            return .owlAmberDim
+    case .idle:            return .owlAmber
     case .capturing:       return .owlGreen
     case .cameraOrMicLive: return .owlRed
     }

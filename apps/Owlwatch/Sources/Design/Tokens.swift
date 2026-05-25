@@ -25,8 +25,8 @@ extension Color {
     // Brand + signal — apply ONLY where the color carries meaning
     // (signing status, network, capture state). Decoration use is
     // a design-system violation.
-    static let owlAmber     = Color(owlHex: 0xE8C95A)  // brand / signed
-    static let owlAmberDim  = Color(owlHex: 0x8A7A3E)  // idle status
+    static let owlAmber     = Color(owlHex: 0xE8C95A)  // brand / signed / idle status
+    static let owlAmberDim  = Color(owlHex: 0x8A7A3E)  // active sub-nav pill stroke (§10.3) — *not* the idle status anymore
     static let owlGreen     = Color(owlHex: 0x3FBF95)  // verified / capturing
     static let owlRed       = Color(owlHex: 0xF0726F)  // unsigned / capture live
     static let owlBlue      = Color(owlHex: 0x6FA8E0)  // network / links
