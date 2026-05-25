@@ -23,6 +23,7 @@ Owlwatch is developed through short, reviewable milestones. `main` remains shipp
 | M14 | iOS companion | Posture agent, App Attest, paired-Mac alert dashboard |
 | M15 | v1.0 release | Notarized DMG, signed installer, release notes, demo video |
 | M16 | App UI integration | Status dashboard + per-source windows (Processes, Network, Logs, Binary Inspector) + menu-bar polish — every CLI surface from M1–M11 gets a GUI affordance |
+| M17 | App UI consolidation | Collapse M16's seven windows into one `NavigationSplitView`-based window; shared design system per `docs/DESIGN.md`; menu bar selects sections (no per-window opens); cross-linking between sections |
 
 ## Current Status
 
