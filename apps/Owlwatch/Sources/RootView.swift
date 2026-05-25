@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// The single Owlwatch window's root.
@@ -21,6 +22,18 @@ struct RootView: View {
             sidebar
         } detail: {
             detail
+        }
+        .onAppear {
+            // The Info.plist sets LSUIElement = true so launch is a
+            // menu-bar agent (no Dock icon, no ⌘Tab entry, no top
+            // app menu). While a window is showing, promote to a
+            // regular app so the user can ⌘Tab away and back. The
+            // demotion in .onDisappear restores agent state when
+            // the window closes.
+            NSApp.setActivationPolicy(.regular)
+        }
+        .onDisappear {
+            NSApp.setActivationPolicy(.accessory)
         }
     }
 
