@@ -63,8 +63,12 @@ enum CaptureState {
 /// section's view reads this on appear and clears it via
 /// ``AppModel/focus``.
 enum FocusTarget: Equatable {
-    /// Filter the target section by the given process PID.
-    case process(Int32)
+    /// Filter the target section by the given process. Carries both
+    /// the PID (for Network filtering, which keys off the PID
+    /// shown in row text) and the name (for Logs filtering, where
+    /// `LogQuery.process` expects a process name like `tccd`, not
+    /// a PID).
+    case process(pid: Int32, name: String)
     /// Highlight the given socket (network section).
     case socket(UInt64)
     /// Pre-load the binary at the given URL (inspector section).

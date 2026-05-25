@@ -161,6 +161,7 @@ private struct ProcessRow: View {
 
 private struct ProcessesDetailPane: View {
     @Bindable var viewModel: ProcessesViewModel
+    @EnvironmentObject private var model: AppModel
 
     var body: some View {
         if let process = viewModel.selectedProcess {
@@ -168,10 +169,16 @@ private struct ProcessesDetailPane: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(process.name).font(.title2).bold()
                     Divider()
-                    DetailField("PID", String(process.pid))
-                    DetailField("Parent PID", String(process.parentPid))
-                    DetailField("User ID", String(process.userId))
+                    DetailField("PID", raw(process.pid))
+                    DetailField("Parent PID", raw(process.parentPid))
+                    DetailField("User ID", raw(process.userId))
                     DetailField("Path", process.path ?? "—")
+
+                    Divider()
+                    Text("Linked")
+                        .font(.caption2.bold())
+                        .foregroundStyle(.secondary)
+                    crossLinks(for: process)
 
                     Divider()
                     Text("Arguments")
@@ -188,11 +195,41 @@ private struct ProcessesDetailPane: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         } else {
-            ContentUnavailableView(
-                "Select a Process",
-                systemImage: "list.bullet.indent",
-                description: Text("Pick a process on the left to see its details.")
-            )
+            EmptyState(text: "Select a process to see its details.")
+        }
+    }
+
+    /// Cross-link rows per DESIGN.md §6 — switch section and set
+    /// `model.focus` so the target view can pre-filter to this
+    /// process. Three jumps cover the common follow-the-thread
+    /// flows from a process.
+    @ViewBuilder
+    private func crossLinks(for process: RunningProcess) -> some View {
+        LinkedRow(
+            icon: "globe",
+            label: "Network · sockets owned by pid \(raw(process.pid))",
+            tint: .owlBlue
+        ) {
+            model.focus = .process(pid: process.pid, name: process.name)
+            model.section = .network
+        }
+        if let path = process.path {
+            LinkedRow(
+                icon: "doc.text.magnifyingglass",
+                label: "Inspector · \((path as NSString).lastPathComponent)",
+                tint: .owlAmber
+            ) {
+                model.focus = .binary(URL(fileURLWithPath: path))
+                model.section = .inspector
+            }
+        }
+        LinkedRow(
+            icon: "lock.shield",
+            label: "Logs · TCC events for \(process.name)",
+            tint: .owlGreen
+        ) {
+            model.focus = .process(pid: process.pid, name: process.name)
+            model.section = .logs
         }
     }
 

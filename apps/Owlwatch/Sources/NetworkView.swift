@@ -6,6 +6,7 @@ import SwiftUI
 /// NavigationSplitView with center list + trailing detail.
 struct NetworkView: View {
     @State private var viewModel = NetworkViewModel()
+    @EnvironmentObject private var model: AppModel
 
     var body: some View {
         VStack(spacing: 0) {
@@ -33,6 +34,19 @@ struct NetworkView: View {
                 await viewModel.refresh()
             }
         }
+        .onAppear { applyFocus() }
+        .onChange(of: model.focus) { _, _ in applyFocus() }
+    }
+
+    /// Read a pending cross-link target set by another section
+    /// (`process(pid)`) and pre-filter to that PID. Always clears
+    /// `model.focus` so the same target doesn't reapply on the next
+    /// section switch.
+    private func applyFocus() {
+        guard case .process(let pid, _)? = model.focus else { return }
+        viewModel.searchText = raw(pid)
+        viewModel.selectedTab = .all
+        model.focus = nil
     }
 
     @ViewBuilder
