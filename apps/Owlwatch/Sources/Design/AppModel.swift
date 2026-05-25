@@ -31,10 +31,16 @@ final class AppModel: ObservableObject {
     /// doesn't reapply on later navigations.
     @Published var focus: FocusTarget?
 
-    /// Bring the single window forward and switch to a section.
-    /// Called by ``MenuRouter`` for menu-bar navigation; equivalent
-    /// to setting ``section`` directly but also ensures the window
-    /// is key.
+    /// Bring the single window forward (if it exists) and switch to
+    /// a section. Safe to call from anywhere that already has the
+    /// window open — `NSApp.windows.first { id == … }` only finds an
+    /// already-instantiated SwiftUI scene, so this **does not open
+    /// the window the first time**.
+    ///
+    /// For LSUIElement apps the menu-bar `Open …` actions need to
+    /// run `openWindow(id:)` from a `@Environment(\.openWindow)`
+    /// view first to create the scene; once the window exists,
+    /// `show(_:)` reliably re-fronts it on subsequent calls.
     func show(_ section: AppSection) {
         self.section = section
         NSApp.activate(ignoringOtherApps: true)

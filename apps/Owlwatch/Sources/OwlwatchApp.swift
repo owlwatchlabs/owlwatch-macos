@@ -107,10 +107,11 @@ private extension NSColor {
 }
 
 /// Content of the menu-bar dropdown. Live status header from M16.6
-/// plus per-section open items (⌘⇧[DPSNLBI]) that select a section
-/// in the single consolidated window via `MenuRouter`.
+/// plus per-section open items (⌘⇧[HSNPDLI]) that select a section
+/// in the single consolidated window and bring it forward.
 private struct OwlwatchMenuBarContent: View {
     @Bindable var status: MenuBarStatusModel
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         // The header surfaces the same signal the menu-bar mark
@@ -130,26 +131,37 @@ private struct OwlwatchMenuBarContent: View {
             Text("All quiet")
         }
         Divider()
-        Button("Open dashboard")    { MenuRouter.open(.dashboard) }
+        Button("Open dashboard")    { open(.dashboard) }
             .keyboardShortcut("h", modifiers: [.command, .shift])
         Divider()
-        Button("Open processes")    { MenuRouter.open(.processes) }
+        Button("Open processes")    { open(.processes) }
             .keyboardShortcut("s", modifiers: [.command, .shift])
-        Button("Open network")      { MenuRouter.open(.network) }
+        Button("Open network")      { open(.network) }
             .keyboardShortcut("n", modifiers: [.command, .shift])
-        Button("Open persistence")  { MenuRouter.open(.persistence) }
+        Button("Open persistence")  { open(.persistence) }
             .keyboardShortcut("p", modifiers: [.command, .shift])
-        Button("Open devices")      { MenuRouter.open(.devices) }
+        Button("Open devices")      { open(.devices) }
             .keyboardShortcut("d", modifiers: [.command, .shift])
-        Button("Open logs")         { MenuRouter.open(.logs) }
+        Button("Open logs")         { open(.logs) }
             .keyboardShortcut("l", modifiers: [.command, .shift])
-        Button("Open inspector")    { MenuRouter.open(.inspector) }
+        Button("Open inspector")    { open(.inspector) }
             .keyboardShortcut("i", modifiers: [.command, .shift])
         Divider()
         Button("Quit Owlwatch") {
             NSApp.terminate(nil)
         }
         .keyboardShortcut("q", modifiers: .command)
+    }
+
+    /// Set the active section, ensure the window exists, then bring
+    /// it forward. Calling `openWindow(id:)` is what makes this work
+    /// in an LSUIElement app — `AppModel.shared.show(_:)` alone uses
+    /// `NSApp.windows.first { id == "main" }`, which returns nil
+    /// until SwiftUI has actually instantiated the scene's window.
+    private func open(_ section: AppSection) {
+        AppModel.shared.section = section
+        NSApp.activate(ignoringOtherApps: true)
+        openWindow(id: OwlwatchApp.mainWindowID)
     }
 
     private var devicesSummary: String {
