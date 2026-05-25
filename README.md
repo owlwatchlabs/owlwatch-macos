@@ -36,8 +36,9 @@ Demo recording scripts live in [`docs/demos/`](docs/demos/) and cover the **CLI 
 - [ ] M14 iOS companion (posture, App Attest) 🔒
 - [ ] M15 v1.0 notarized release 🔒
 - [x] M16 macOS app UI integration — status dashboard + per-source windows (Processes, Network, Logs, Binary Inspector) + live menu-bar indicator, bringing every CLI surface from M1–M11 into the GUI
+- [ ] M17 App UI consolidation — collapse M16's seven windows into a single window with `NavigationSplitView`; ship a shared design system (Color/Font tokens, `OwlMark`, component library) per [docs/DESIGN.md](docs/DESIGN.md); rewire the menu bar to select sections instead of opening windows; add cross-linking between sections (process → its sockets, its binary, its TCC events)
 
-**🔒 — gated on Apple entitlement provisioning.** Milestones marked above require Apple to approve restricted entitlements (Endpoint Security, Network Extension filter / DNS proxy, Developer ID / notarization). Submission status is tracked at [docs/apple-developer/entitlement-requests.md](docs/apple-developer/entitlement-requests.md). With M13 closed, every milestone that can ship without entitlement gating is in. Development pauses on new feature work until Apple's queue clears or a non-entitlement-blocked follow-on milestone is scoped.
+**🔒 — gated on Apple entitlement provisioning.** Milestones marked above require Apple to approve restricted entitlements (Endpoint Security, Network Extension filter / DNS proxy, Developer ID / notarization). Submission status is tracked at [docs/apple-developer/entitlement-requests.md](docs/apple-developer/entitlement-requests.md). With M13 closed, every M1–M16 milestone that can ship without entitlement gating is in. Current unblocked work is **M17** (UI consolidation).
 
 ## Architecture
 

@@ -24,5 +24,7 @@
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 Owlwatch contributors.</string>
+	<key>ATSApplicationFontsPath</key>
+	<string>Fonts/</string>
 </dict>
 </plist>

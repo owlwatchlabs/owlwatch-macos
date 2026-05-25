@@ -29,6 +29,8 @@ targets:
     platform: macOS
     sources:
       - path: Sources
+      - path: Resources
+        buildPhase: resources
     info:
       path: Sources/Info.plist
       properties:
@@ -37,6 +39,10 @@ targets:
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSHumanReadableCopyright: "Copyright © 2026 Owlwatch contributors."
+        # Auto-register bundled fonts at launch. The directory is
+        # relative to the bundle's Resources root, so "Fonts" picks
+        # up apps/Owlwatch/Resources/Fonts/.
+        ATSApplicationFontsPath: "Fonts/"
     # Entitlements are sourced verbatim from the file; project.yml is no
     # longer responsible for setting them. The intentional configuration
     # (no sandbox, no extra entitlements) is documented in the .entitlements

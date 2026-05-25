@@ -4,62 +4,65 @@ import OWCodeSigning
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// M16.5 Binary Inspector window — surfaces M2's `OWBinary` parser and
+/// The M17 Inspector section. Surfaces M2's `OWBinary` parser and
 /// M3's `OWCodeSigning` over a user-chosen Mach-O binary or bundle.
 ///
-/// Layout matches the rest of the M16 family: a three-column
-/// NavigationSplitView with a sidebar of sections, a content area, and
-/// a detail pane. The wrinkle is that this window operates on a single
-/// path at a time — not a live list — so the top of the content pane
-/// carries a path/open-button bar that drives the view model.
-struct BinaryInspectorWindow: View {
+/// SectionHeader with SubnavPicker over `BinaryInspectorSection`
+/// (Overview / Load Commands / Segments / Symbols / Signature /
+/// Entitlements) + Open and Reload controls; below it the
+/// path/header bar and the current-section content. Drag-drop a
+/// file URL onto the content to load.
+struct InspectorView: View {
     @State private var viewModel = BinaryInspectorViewModel()
 
     var body: some View {
-        NavigationSplitView {
-            BinaryInspectorSidebar(viewModel: viewModel)
-                .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 280)
-        } detail: {
-            VStack(spacing: 0) {
-                BinaryInspectorHeaderBar(viewModel: viewModel)
-                Divider()
-                BinaryInspectorContent(viewModel: viewModel)
+        VStack(spacing: 0) {
+            SectionHeader(title: "Inspector") {
+                SubnavPicker(
+                    selection: $viewModel.selectedSection,
+                    options: BinaryInspectorSection.allCases.map { ($0, $0.displayName) }
+                )
+                Spacer()
+                openReloadGroup
             }
-            .navigationSplitViewColumnWidth(min: 600, ideal: 820)
-            .onDrop(of: [.fileURL], isTargeted: nil) { providers in
-                guard let provider = providers.first else { return false }
-                _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                    guard let url else { return }
-                    Task { @MainActor in await viewModel.load(url: url) }
-                }
-                return true
-            }
-        }
-        .navigationTitle("Binary Inspector — Owlwatch")
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    chooseFile()
-                } label: {
-                    Label("Open…", systemImage: "doc.badge.plus")
-                }
-                .keyboardShortcut("o", modifiers: .command)
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    Task { await viewModel.reload() }
-                } label: {
-                    if viewModel.isLoading {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Label("Reload", systemImage: "arrow.clockwise")
+            BinaryInspectorHeaderBar(viewModel: viewModel)
+            Divider()
+            BinaryInspectorContent(viewModel: viewModel)
+                .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+                    guard let provider = providers.first else { return false }
+                    _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                        guard let url else { return }
+                        Task { @MainActor in await viewModel.load(url: url) }
                     }
+                    return true
                 }
-                .disabled(viewModel.path == nil || viewModel.isLoading)
-                .keyboardShortcut("r", modifiers: .command)
+        }
+    }
+
+    @ViewBuilder
+    private var openReloadGroup: some View {
+        Button {
+            chooseFile()
+        } label: {
+            Image(systemName: "doc.badge.plus")
+                .foregroundStyle(Color.owlTextMuted)
+        }
+        .buttonStyle(.plain)
+        .keyboardShortcut("o", modifiers: .command)
+
+        Button {
+            Task { await viewModel.reload() }
+        } label: {
+            if viewModel.isLoading {
+                ProgressView().controlSize(.small)
+            } else {
+                Image(systemName: "arrow.clockwise")
+                    .foregroundStyle(Color.owlTextMuted)
             }
         }
-        .frame(minWidth: 1000, minHeight: 600)
+        .buttonStyle(.plain)
+        .disabled(viewModel.path == nil || viewModel.isLoading)
+        .keyboardShortcut("r", modifiers: .command)
     }
 
     /// Driven by the toolbar Open button. The view model can also be
@@ -72,34 +75,6 @@ struct BinaryInspectorWindow: View {
         panel.message = "Choose a Mach-O binary or signed bundle to inspect."
         if panel.runModal() == .OK, let url = panel.url {
             Task { await viewModel.load(url: url) }
-        }
-    }
-}
-
-// MARK: - Sidebar
-
-private struct BinaryInspectorSidebar: View {
-    @Bindable var viewModel: BinaryInspectorViewModel
-
-    var body: some View {
-        List(BinaryInspectorSection.allCases, selection: $viewModel.selectedSection) { section in
-            NavigationLink(value: section) {
-                Label(section.displayName, systemImage: section.symbolName)
-                    .badge(badge(for: section))
-            }
-        }
-        .navigationTitle("Inspector")
-    }
-
-    private func badge(for section: BinaryInspectorSection) -> Int {
-        guard viewModel.binary != nil else { return 0 }
-        switch section {
-        case .overview: return 0
-        case .loadCommands: return viewModel.dylibsForCurrentSlice.count
-        case .segments: return viewModel.segmentsForCurrentSlice.count
-        case .symbols: return viewModel.currentSlice?.symbols?.count ?? 0
-        case .signature: return viewModel.signature?.isSigned == true ? 1 : 0
-        case .entitlements: return viewModel.signature?.entitlements?.count ?? 0
         }
     }
 }

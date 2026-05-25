@@ -1,42 +1,32 @@
 import OWDevices
 import SwiftUI
 
-/// Top-level window for the M11.4 Devices viewer.
-/// Three columns: sidebar (kinds + badges) | center list (devices or
-/// live events) | trailing detail.
-struct DevicesWindow: View {
+/// The M17 Devices section. SectionHeader (with SubnavPicker over
+/// `DeviceSidebarKind`) on top; below, a nested NavigationSplitView
+/// with the center list + trailing detail. The former per-window
+/// sub-sidebar is now the segmented sub-nav in the header per
+/// DESIGN.md §10.3.
+struct DevicesView: View {
     @State private var viewModel = DevicesViewModel()
 
     var body: some View {
-        NavigationSplitView {
-            DevicesSidebar(viewModel: viewModel)
-                .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 260)
-        } content: {
-            DevicesCenterPane(viewModel: viewModel)
-                .navigationSplitViewColumnWidth(min: 320, ideal: 420)
-        } detail: {
-            DevicesDetailPane(viewModel: viewModel)
-                .navigationSplitViewColumnWidth(min: 320, ideal: 380)
-        }
-        .navigationTitle("Devices — Owlwatch")
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                if let last = viewModel.lastRefresh {
-                    Text("Last refresh: \(last.formatted(date: .omitted, time: .standard))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+        VStack(spacing: 0) {
+            SectionHeader(title: "Devices") {
+                SubnavPicker(
+                    selection: $viewModel.selectedKind,
+                    options: DeviceSidebarKind.allCases.map { ($0, $0.displayName) }
+                )
+                Spacer()
+                refreshGroup
             }
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    viewModel.refresh()
-                } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
-                }
-                .keyboardShortcut("r", modifiers: .command)
+            NavigationSplitView {
+                DevicesCenterPane(viewModel: viewModel)
+                    .navigationSplitViewColumnWidth(min: 320, ideal: 420)
+            } detail: {
+                DevicesDetailPane(viewModel: viewModel)
+                    .navigationSplitViewColumnWidth(min: 320, ideal: 380)
             }
         }
-        .frame(minWidth: 880, minHeight: 480)
         .task {
             viewModel.startMonitor()
             if viewModel.lastRefresh == nil {
@@ -47,36 +37,22 @@ struct DevicesWindow: View {
             viewModel.stopMonitor()
         }
     }
-}
 
-// MARK: - Sidebar
-
-private struct DevicesSidebar: View {
-    @Bindable var viewModel: DevicesViewModel
-
-    var body: some View {
-        List(DeviceSidebarKind.allCases, selection: $viewModel.selectedKind) { kind in
-            NavigationLink(value: kind) {
-                Label(kind.displayName, systemImage: kind.symbolName)
-                    .badge(badge(for: kind))
-            }
+    @ViewBuilder
+    private var refreshGroup: some View {
+        if let last = viewModel.lastRefresh {
+            Text("last refresh \(last.formatted(date: .omitted, time: .standard))")
+                .font(.owlMono(11))
+                .foregroundStyle(Color.owlTextDim)
         }
-        .navigationTitle("Devices")
-    }
-
-    private func badge(for kind: DeviceSidebarKind) -> Int {
-        switch kind {
-        case .cameras:
-            return viewModel.cameras.count
-        case .microphones:
-            return viewModel.microphones.count
-        case .events:
-            // Show unseen count while on snapshot tabs; total while
-            // on the Events tab itself.
-            return viewModel.selectedKind == .events
-                ? viewModel.events.count
-                : viewModel.unseenEventCount
+        Button {
+            viewModel.refresh()
+        } label: {
+            Image(systemName: "arrow.clockwise")
+                .foregroundStyle(Color.owlTextMuted)
         }
+        .buttonStyle(.plain)
+        .keyboardShortcut("r", modifiers: .command)
     }
 }
 

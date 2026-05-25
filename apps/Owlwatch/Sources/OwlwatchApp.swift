@@ -3,34 +3,21 @@ import SwiftUI
 
 @main
 struct OwlwatchApp: App {
-    /// Live status model that drives the M16.6 menu-bar indicator and
-    /// dropdown header. Started in the MenuBarExtra's content closure
-    /// the first time the menu is built.
+    /// Stable identifier for the M17 consolidated single window.
+    /// Wired into the SwiftUI scene declaration and used by
+    /// `AppModel.show(_:)` to find and front the window.
+    static let mainWindowID = "main"
+
+    /// One shared model for the entire app — section selection,
+    /// capture state, cross-link focus target. SwiftUI scenes can't
+    /// take constructor args, so the menu router reaches in via
+    /// `AppModel.shared`.
+    @StateObject private var model = AppModel.shared
+
+    /// Live status model that drives the menu-bar indicator and
+    /// dropdown header. Kept from M16.6; reconciled with
+    /// `AppModel.captureState` in M17.5.
     @State private var status = MenuBarStatusModel()
-
-    /// Stable identifier for the M16.1 status dashboard — the new
-    /// app "home" reachable via "Open Dashboard…" (⌘⇧H).
-    static let dashboardWindowID = "dashboard"
-
-    /// Stable identifier for the persistence-viewer window. Used by the
-    /// MenuBarExtra's "Open Persistence View…" command via
-    /// `openWindow(id:)`.
-    static let persistenceWindowID = "persistence"
-
-    /// Stable identifier for the M11.4 devices-viewer window.
-    static let devicesWindowID = "devices"
-
-    /// Stable identifier for the M16.2 processes-viewer window.
-    static let processesWindowID = "processes"
-
-    /// Stable identifier for the M16.3 network-viewer window.
-    static let networkWindowID = "network"
-
-    /// Stable identifier for the M16.4 logs-viewer window.
-    static let logsWindowID = "logs"
-
-    /// Stable identifier for the M16.5 binary-inspector window.
-    static let binaryInspectorWindowID = "binary-inspector"
 
     var body: some Scene {
         MenuBarExtra {
@@ -41,53 +28,22 @@ struct OwlwatchApp: App {
         }
         .menuBarExtraStyle(.menu)
 
-        Window("Dashboard — Owlwatch", id: Self.dashboardWindowID) {
-            DashboardWindow()
+        Window("Owlwatch", id: Self.mainWindowID) {
+            RootView()
+                .environmentObject(model)
+                .tint(.owlAmber)
+                .preferredColorScheme(.dark)
         }
-        .defaultSize(width: 820, height: 620)
-        .windowResizability(.contentMinSize)
-
-        Window("Persistence — Owlwatch", id: Self.persistenceWindowID) {
-            PersistenceWindow()
-        }
-        .defaultSize(width: 1100, height: 640)
-        .windowResizability(.contentMinSize)
-
-        Window("Devices — Owlwatch", id: Self.devicesWindowID) {
-            DevicesWindow()
-        }
-        .defaultSize(width: 980, height: 580)
-        .windowResizability(.contentMinSize)
-
-        Window("Processes — Owlwatch", id: Self.processesWindowID) {
-            ProcessesWindow()
-        }
-        .defaultSize(width: 1040, height: 620)
-        .windowResizability(.contentMinSize)
-
-        Window("Network — Owlwatch", id: Self.networkWindowID) {
-            NetworkWindow()
-        }
-        .defaultSize(width: 1080, height: 620)
-        .windowResizability(.contentMinSize)
-
-        Window("Logs — Owlwatch", id: Self.logsWindowID) {
-            LogsWindow()
-        }
-        .defaultSize(width: 1180, height: 680)
-        .windowResizability(.contentMinSize)
-
-        Window("Binary Inspector — Owlwatch", id: Self.binaryInspectorWindowID) {
-            BinaryInspectorWindow()
-        }
-        .defaultSize(width: 1100, height: 680)
+        .defaultSize(width: 1180, height: 720)
         .windowResizability(.contentMinSize)
     }
 }
 
 /// The menu-bar icon. Swaps between a neutral shield, an in-use shield
 /// (red), and an attention shield (orange, for recent TCC denials).
-/// Driven by `MenuBarStatusModel`.
+/// Driven by `MenuBarStatusModel`. Will swap to `OwlMark` tinted by
+/// `statusColor(_:)` in M17.5 — kept as the shield variant here so
+/// the icon doesn't regress mid-milestone.
 private struct MenuBarIcon: View {
     @Bindable var status: MenuBarStatusModel
 
@@ -104,9 +60,10 @@ private struct MenuBarIcon: View {
     }
 }
 
-/// Content of the menu-bar dropdown. Carries the live status header
-/// (devices in use, recent TCC denials) plus jump links to every
-/// per-source window.
+/// Content of the menu-bar dropdown. Live status header from M16.6
+/// plus a single "Open Owlwatch" item that fronts the consolidated
+/// window. M17.5 expands this back into per-section selectors that
+/// drive `AppModel.show(_:)` instead of opening windows.
 private struct OwlwatchMenuBarContent: View {
     @Bindable var status: MenuBarStatusModel
     @Environment(\.openWindow) private var openWindow
@@ -129,47 +86,14 @@ private struct OwlwatchMenuBarContent: View {
             Text("All quiet")
         }
         Divider()
-        Button("Open Dashboard…") {
+        Button("Open Owlwatch") {
+            // LSUIElement apps don't activate on openWindow alone —
+            // the new window appears behind whatever's frontmost.
+            // Explicit activation is required.
             NSApp.activate()
-            openWindow(id: OwlwatchApp.dashboardWindowID)
+            openWindow(id: OwlwatchApp.mainWindowID)
         }
-        .keyboardShortcut("h", modifiers: [.command, .shift])
-        Divider()
-        Button("Open Persistence View…") {
-            // LSUIElement apps do not activate when a window is opened —
-            // the new window appears behind the currently-frontmost app
-            // unless we explicitly activate ourselves. NSApp.activate()
-            // (the no-arg form available on macOS 14+) is what
-            // SwiftUI's default Dock-icon apps do under the hood.
-            NSApp.activate()
-            openWindow(id: OwlwatchApp.persistenceWindowID)
-        }
-        .keyboardShortcut("p", modifiers: [.command, .shift])
-        Button("Open Devices View…") {
-            NSApp.activate()
-            openWindow(id: OwlwatchApp.devicesWindowID)
-        }
-        .keyboardShortcut("d", modifiers: [.command, .shift])
-        Button("Open Processes View…") {
-            NSApp.activate()
-            openWindow(id: OwlwatchApp.processesWindowID)
-        }
-        .keyboardShortcut("s", modifiers: [.command, .shift])
-        Button("Open Network View…") {
-            NSApp.activate()
-            openWindow(id: OwlwatchApp.networkWindowID)
-        }
-        .keyboardShortcut("n", modifiers: [.command, .shift])
-        Button("Open Logs View…") {
-            NSApp.activate()
-            openWindow(id: OwlwatchApp.logsWindowID)
-        }
-        .keyboardShortcut("l", modifiers: [.command, .shift])
-        Button("Open Binary Inspector…") {
-            NSApp.activate()
-            openWindow(id: OwlwatchApp.binaryInspectorWindowID)
-        }
-        .keyboardShortcut("b", modifiers: [.command, .shift])
+        .keyboardShortcut("o", modifiers: [.command, .shift])
         Divider()
         Button("Quit Owlwatch") {
             NSApp.terminate(nil)

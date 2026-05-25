@@ -1,71 +1,61 @@
 import OWNetwork
 import SwiftUI
 
-/// M16.3 Network window. Three-column `NavigationSplitView` mirroring
-/// the M16.2 Processes window: sidebar tabs for protocol / listener
-/// filter, center list with search, detail pane per connection.
-struct NetworkWindow: View {
+/// The M17 Network section. SectionHeader (with SubnavPicker over
+/// `NetworkTab` + FilterField + refresh) on top; below, a nested
+/// NavigationSplitView with center list + trailing detail.
+struct NetworkView: View {
     @State private var viewModel = NetworkViewModel()
 
     var body: some View {
-        NavigationSplitView {
-            NetworkSidebar(viewModel: viewModel)
-                .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 280)
-        } content: {
-            NetworkCenterPane(viewModel: viewModel)
-                .navigationSplitViewColumnWidth(min: 400, ideal: 520)
-        } detail: {
-            NetworkDetailPane(viewModel: viewModel)
-                .navigationSplitViewColumnWidth(min: 320, ideal: 380)
-        }
-        .navigationTitle("Network — Owlwatch")
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                if let last = viewModel.lastRefresh {
-                    let when = last.formatted(date: .omitted, time: .standard)
-                    Text("Last refresh: \(when) · \(viewModel.connections.count) sockets")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+        VStack(spacing: 0) {
+            SectionHeader(title: "Network") {
+                SubnavPicker(
+                    selection: $viewModel.selectedTab,
+                    options: NetworkTab.allCases.map { ($0, $0.displayName) }
+                )
+                FilterField(text: $viewModel.searchText,
+                            placeholder: "Filter by address, port, process, or state")
+                    .frame(maxWidth: 360)
+                Spacer()
+                refreshGroup
             }
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    Task { await viewModel.refresh() }
-                } label: {
-                    if viewModel.isLoading {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Label("Refresh", systemImage: "arrow.clockwise")
-                    }
-                }
-                .disabled(viewModel.isLoading)
-                .keyboardShortcut("r", modifiers: .command)
+            NavigationSplitView {
+                NetworkCenterPane(viewModel: viewModel)
+                    .navigationSplitViewColumnWidth(min: 400, ideal: 520)
+            } detail: {
+                NetworkDetailPane(viewModel: viewModel)
+                    .navigationSplitViewColumnWidth(min: 320, ideal: 380)
             }
         }
-        .searchable(text: $viewModel.searchText,
-                    prompt: "Filter by address, port, process, or state")
-        .frame(minWidth: 980, minHeight: 520)
         .task {
             if viewModel.lastRefresh == nil {
                 await viewModel.refresh()
             }
         }
     }
-}
 
-// MARK: - Sidebar
-
-private struct NetworkSidebar: View {
-    @Bindable var viewModel: NetworkViewModel
-
-    var body: some View {
-        List(NetworkTab.allCases, selection: $viewModel.selectedTab) { tab in
-            NavigationLink(value: tab) {
-                Label(tab.displayName, systemImage: tab.symbolName)
-                    .badge(viewModel.count(for: tab))
+    @ViewBuilder
+    private var refreshGroup: some View {
+        if let last = viewModel.lastRefresh {
+            let when = last.formatted(date: .omitted, time: .standard)
+            Text("last refresh \(when) · \(grouped(viewModel.connections.count)) sockets")
+                .font(.owlMono(11))
+                .foregroundStyle(Color.owlTextDim)
+        }
+        Button {
+            Task { await viewModel.refresh() }
+        } label: {
+            if viewModel.isLoading {
+                ProgressView().controlSize(.small)
+            } else {
+                Image(systemName: "arrow.clockwise")
+                    .foregroundStyle(Color.owlTextMuted)
             }
         }
-        .navigationTitle("Network")
+        .buttonStyle(.plain)
+        .disabled(viewModel.isLoading)
+        .keyboardShortcut("r", modifiers: .command)
     }
 }
 
