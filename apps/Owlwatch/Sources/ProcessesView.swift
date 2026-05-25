@@ -1,49 +1,35 @@
 import OWProcess
 import SwiftUI
 
-/// M16.2 Processes window. Three-column `NavigationSplitView`:
-///
-///   sidebar (All / Tree)  |  center list / outline  |  detail pane
-struct ProcessesWindow: View {
+/// The M17 Processes section. SectionHeader (with SubnavPicker over
+/// `ProcessesTab` + a FilterField + the refresh control) on top;
+/// below, a nested NavigationSplitView with center list + trailing
+/// detail. The former per-window sub-sidebar (All / Tree) is now
+/// the segmented sub-nav in the header per DESIGN.md §10.3.
+struct ProcessesView: View {
     @State private var viewModel = ProcessesViewModel()
 
     var body: some View {
-        NavigationSplitView {
-            ProcessesSidebar(viewModel: viewModel)
-                .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 260)
-        } content: {
-            ProcessesCenterPane(viewModel: viewModel)
-                .navigationSplitViewColumnWidth(min: 360, ideal: 480)
-        } detail: {
-            ProcessesDetailPane(viewModel: viewModel)
-                .navigationSplitViewColumnWidth(min: 320, ideal: 380)
-        }
-        .navigationTitle("Processes — Owlwatch")
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                if let last = viewModel.lastRefresh {
-                    let when = last.formatted(date: .omitted, time: .standard)
-                    Text("Last refresh: \(when) · \(viewModel.processes.count) processes")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+        VStack(spacing: 0) {
+            SectionHeader(title: "Processes") {
+                SubnavPicker(
+                    selection: $viewModel.selectedTab,
+                    options: ProcessesTab.allCases.map { ($0, $0.displayName) }
+                )
+                FilterField(text: $viewModel.searchText,
+                            placeholder: "Filter by name, path, or PID")
+                    .frame(maxWidth: 320)
+                Spacer()
+                refreshGroup
             }
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    Task { await viewModel.refresh() }
-                } label: {
-                    if viewModel.isLoading {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Label("Refresh", systemImage: "arrow.clockwise")
-                    }
-                }
-                .disabled(viewModel.isLoading)
-                .keyboardShortcut("r", modifiers: .command)
+            NavigationSplitView {
+                ProcessesCenterPane(viewModel: viewModel)
+                    .navigationSplitViewColumnWidth(min: 360, ideal: 480)
+            } detail: {
+                ProcessesDetailPane(viewModel: viewModel)
+                    .navigationSplitViewColumnWidth(min: 320, ideal: 380)
             }
         }
-        .searchable(text: $viewModel.searchText, prompt: "Filter by name, path, or PID")
-        .frame(minWidth: 960, minHeight: 520)
         .task {
             if viewModel.lastRefresh == nil {
                 await viewModel.refresh()
@@ -57,20 +43,28 @@ struct ProcessesWindow: View {
             }
         }
     }
-}
 
-// MARK: - Sidebar
-
-private struct ProcessesSidebar: View {
-    @Bindable var viewModel: ProcessesViewModel
-
-    var body: some View {
-        List(ProcessesTab.allCases, selection: $viewModel.selectedTab) { tab in
-            NavigationLink(value: tab) {
-                Label(tab.displayName, systemImage: tab.symbolName)
+    @ViewBuilder
+    private var refreshGroup: some View {
+        if let last = viewModel.lastRefresh {
+            let when = last.formatted(date: .omitted, time: .standard)
+            Text("last refresh \(when) · \(grouped(viewModel.processes.count)) processes")
+                .font(.owlMono(11))
+                .foregroundStyle(Color.owlTextDim)
+        }
+        Button {
+            Task { await viewModel.refresh() }
+        } label: {
+            if viewModel.isLoading {
+                ProgressView().controlSize(.small)
+            } else {
+                Image(systemName: "arrow.clockwise")
+                    .foregroundStyle(Color.owlTextMuted)
             }
         }
-        .navigationTitle("Processes")
+        .buttonStyle(.plain)
+        .disabled(viewModel.isLoading)
+        .keyboardShortcut("r", modifiers: .command)
     }
 }
 

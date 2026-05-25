@@ -1,49 +1,38 @@
 import OWLog
 import SwiftUI
 
-/// The M16.1 status dashboard — the new app "home". A single
-/// scrolling view that surfaces headline counts from every data
-/// source plus a recent-activity list. Designed to be the first
-/// thing the user sees when they open Owlwatch.
-///
-/// Navigation links across the bottom open the dedicated per-source
-/// windows (Persistence, Devices, and the M16.2+ windows as they
-/// land).
-struct DashboardWindow: View {
+/// The M17 Dashboard section — the app "home". One scrolling view
+/// with headline counts from every data source plus a recent-
+/// activity list. Below: a quick-actions row that switches sections
+/// via AppModel. Wrapped in the M17 SectionHeader for visual
+/// consistency with the other sections.
+struct DashboardView: View {
     @State private var viewModel = DashboardViewModel()
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                headerSection
-                Divider()
-                summaryGrid
-                Divider()
-                recentActivitySection
-                Divider()
-                quickActionsSection
-            }
-            .padding(24)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .navigationTitle("Owlwatch")
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    Task { await viewModel.refresh() }
-                } label: {
-                    if viewModel.isLoading {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Label("Refresh", systemImage: "arrow.clockwise")
-                    }
+        VStack(spacing: 0) {
+            SectionHeader(title: "Dashboard") {
+                if viewModel.deviceInUseCount > 0 {
+                    Text("\(raw(viewModel.deviceInUseCount)) device\(viewModel.deviceInUseCount == 1 ? "" : "s") in use")
+                        .font(.owlMono(11))
+                        .foregroundStyle(Color.owlRed)
                 }
-                .disabled(viewModel.isLoading)
-                .keyboardShortcut("r", modifiers: .command)
+                Spacer()
+                refreshGroup
+            }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    summaryGrid
+                    Divider()
+                    recentActivitySection
+                    Divider()
+                    quickActionsSection
+                }
+                .padding(24)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .frame(minWidth: 720, minHeight: 540)
         .task {
             if viewModel.lastRefresh == nil {
                 await viewModel.refresh()
@@ -51,34 +40,26 @@ struct DashboardWindow: View {
         }
     }
 
-    // MARK: - Header
-
-    private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Image(systemName: "shield.fill")
-                    .foregroundStyle(.blue)
-                    .font(.system(size: 28))
-                Text("Owlwatch Status")
-                    .font(.largeTitle.bold())
-                Spacer()
-                if viewModel.deviceInUseCount > 0 {
-                    Label("\(viewModel.deviceInUseCount) device(s) in use",
-                          systemImage: "dot.radiowaves.left.and.right")
-                        .foregroundStyle(.red)
-                        .font(.callout)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(.red.opacity(0.12))
-                        .clipShape(Capsule())
-                }
-            }
-            if let lastRefresh = viewModel.lastRefresh {
-                Text("Last refresh: \(lastRefresh.formatted(date: .omitted, time: .standard))")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+    @ViewBuilder
+    private var refreshGroup: some View {
+        if let last = viewModel.lastRefresh {
+            Text("last refresh \(last.formatted(date: .omitted, time: .standard))")
+                .font(.owlMono(11))
+                .foregroundStyle(Color.owlTextDim)
+        }
+        Button {
+            Task { await viewModel.refresh() }
+        } label: {
+            if viewModel.isLoading {
+                ProgressView().controlSize(.small)
+            } else {
+                Image(systemName: "arrow.clockwise")
+                    .foregroundStyle(Color.owlTextMuted)
             }
         }
+        .buttonStyle(.plain)
+        .disabled(viewModel.isLoading)
+        .keyboardShortcut("r", modifiers: .command)
     }
 
     // MARK: - Summary grid

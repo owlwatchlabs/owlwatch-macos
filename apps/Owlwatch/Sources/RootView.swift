@@ -44,13 +44,13 @@ struct RootView: View {
     @ViewBuilder
     private var detail: some View {
         switch model.section {
-        case .dashboard:   DashboardWindow()
-        case .processes:   ProcessesWindow()
-        case .network:     NetworkWindow()
-        case .persistence: PersistenceWindow()
-        case .devices:     DevicesWindow()
-        case .logs:        LogsWindow()
-        case .inspector:   BinaryInspectorWindow()
+        case .dashboard:   DashboardView()
+        case .processes:   ProcessesView()
+        case .network:     NetworkView()
+        case .persistence: PersistenceView()
+        case .devices:     DevicesView()
+        case .logs:        LogsView()
+        case .inspector:   InspectorView()
         }
     }
 }

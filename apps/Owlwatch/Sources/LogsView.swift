@@ -1,86 +1,63 @@
 import OWLog
 import SwiftUI
 
-/// M16.4 Logs window. Three tabs (All Logs / TCC Events / Live Tail)
-/// share the same three-column NavigationSplitView shape used by the
-/// rest of the M16 windows. Each tab has its own filter controls in
-/// the top toolbar.
-struct LogsWindow: View {
+/// The M17 Logs section. Three tabs (All Logs / TCC Events / Live
+/// Tail). SectionHeader with SubnavPicker over `LogsTab` + the
+/// Apply / Start Tail button; below it the existing LogsFilterBar
+/// (predicate + level controls) and the center list + trailing
+/// detail. The per-window sub-sidebar from M16.4 is gone — its
+/// tabs are now the segmented sub-nav.
+struct LogsView: View {
     @State private var viewModel = LogsViewModel()
 
     var body: some View {
-        NavigationSplitView {
-            LogsSidebar(viewModel: viewModel)
-                .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 280)
-        } content: {
-            VStack(spacing: 0) {
-                LogsFilterBar(viewModel: viewModel)
-                Divider()
+        VStack(spacing: 0) {
+            SectionHeader(title: "Logs") {
+                SubnavPicker(
+                    selection: $viewModel.selectedTab,
+                    options: LogsTab.allCases.map { ($0, $0.displayName) }
+                )
+                Spacer()
+                applyGroup
+            }
+            LogsFilterBar(viewModel: viewModel)
+            Divider()
+            NavigationSplitView {
                 LogsCenterPane(viewModel: viewModel)
-            }
-            .navigationSplitViewColumnWidth(min: 420, ideal: 560)
-        } detail: {
-            LogsDetailPane(viewModel: viewModel)
-                .navigationSplitViewColumnWidth(min: 320, ideal: 400)
-        }
-        .navigationTitle("Logs — Owlwatch")
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                if let last = viewModel.lastRefresh {
-                    let when = last.formatted(date: .omitted, time: .standard)
-                    Text("Last: \(when) · \(viewModel.selectedTab.displayName)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    Task { await viewModel.apply() }
-                } label: {
-                    if viewModel.isLoading {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Label(viewModel.selectedTab == .live ? "Start Tail" : "Apply",
-                              systemImage: viewModel.selectedTab == .live
-                                  ? "dot.radiowaves.left.and.right"
-                                  : "arrow.clockwise")
-                    }
-                }
-                .disabled(viewModel.isLoading)
-                .keyboardShortcut("r", modifiers: .command)
+                    .navigationSplitViewColumnWidth(min: 420, ideal: 560)
+            } detail: {
+                LogsDetailPane(viewModel: viewModel)
+                    .navigationSplitViewColumnWidth(min: 320, ideal: 400)
             }
         }
-        .frame(minWidth: 1100, minHeight: 600)
         .onDisappear {
             viewModel.stopLiveTail()
         }
     }
-}
 
-// MARK: - Sidebar
-
-private struct LogsSidebar: View {
-    @Bindable var viewModel: LogsViewModel
-
-    var body: some View {
-        List(LogsTab.allCases, selection: $viewModel.selectedTab) { tab in
-            NavigationLink(value: tab) {
-                Label(tab.displayName, systemImage: tab.symbolName)
-                    .badge(badge(for: tab))
+    @ViewBuilder
+    private var applyGroup: some View {
+        if let last = viewModel.lastRefresh {
+            let when = last.formatted(date: .omitted, time: .standard)
+            Text("last \(when) · \(viewModel.selectedTab.displayName)")
+                .font(.owlMono(11))
+                .foregroundStyle(Color.owlTextDim)
+        }
+        Button {
+            Task { await viewModel.apply() }
+        } label: {
+            if viewModel.isLoading {
+                ProgressView().controlSize(.small)
+            } else {
+                Image(systemName: viewModel.selectedTab == .live
+                      ? "dot.radiowaves.left.and.right"
+                      : "arrow.clockwise")
+                    .foregroundStyle(Color.owlTextMuted)
             }
         }
-        .navigationTitle("Logs")
-    }
-
-    private func badge(for tab: LogsTab) -> Int {
-        switch tab {
-        case .all: return viewModel.logEntries.count
-        case .tcc: return viewModel.tccEvents.count
-        case .live:
-            return viewModel.selectedTab == .live
-                ? viewModel.liveEntries.count
-                : viewModel.unseenLiveCount
-        }
+        .buttonStyle(.plain)
+        .disabled(viewModel.isLoading)
+        .keyboardShortcut("r", modifiers: .command)
     }
 }
 
