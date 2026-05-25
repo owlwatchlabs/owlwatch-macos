@@ -13,6 +13,7 @@
 		21FE5A2A447B5A3AACAF7D24 /* owlwatch-mark.svg in Resources */ = {isa = PBXBuildFile; fileRef = 7DFA576C822612D439823624 /* owlwatch-mark.svg */; };
 		235B0F18C54971EB3C5B1B66 /* LogsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D41FF6BB650CB8E8A3ECE5 /* LogsWindow.swift */; };
 		24B8E87A565AF3F88F031DF7 /* PersistenceItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54D13331E7067095DC0AEE17 /* PersistenceItem.swift */; };
+		24B9B2DCD2A2A0C7807EB531 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA402C099226A8A4B0F88D7B /* RootView.swift */; };
 		28214F1134BCA66E9F356017 /* PersistenceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E760B0CBDF97D4038125F9E1 /* PersistenceViewModel.swift */; };
 		28F76C71030A320D8687D4BA /* OWBinary in Frameworks */ = {isa = PBXBuildFile; productRef = E31B549812719EBEA5DDF202 /* OWBinary */; };
 		2A3BCF1308BDB51C79776AD6 /* OWLog in Frameworks */ = {isa = PBXBuildFile; productRef = D46A48954D1E9FA3595270DF /* OWLog */; };
@@ -75,6 +76,7 @@
 		C1E4F2FCF63BFEE3D826A0CF /* owlwatch-icon.svg */ = {isa = PBXFileReference; path = "owlwatch-icon.svg"; sourceTree = "<group>"; };
 		C57AAFA08BEB63D2B9CB632C /* AppSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSection.swift; sourceTree = "<group>"; };
 		C8B3F7198CBC17EF7D1CB927 /* PersistenceWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceWindow.swift; sourceTree = "<group>"; };
+		CA402C099226A8A4B0F88D7B /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		DF3253B96EE22E3904329236 /* PersistenceSidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceSidebar.swift; sourceTree = "<group>"; };
 		E760B0CBDF97D4038125F9E1 /* PersistenceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceViewModel.swift; sourceTree = "<group>"; };
 		FBFAE1539794428E55548293 /* DevicesWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevicesWindow.swift; sourceTree = "<group>"; };
@@ -141,6 +143,7 @@
 				C8B3F7198CBC17EF7D1CB927 /* PersistenceWindow.swift */,
 				B60FD47D6152FB295E78CF8E /* ProcessesViewModel.swift */,
 				0C42A75643E000DAB3165252 /* ProcessesWindow.swift */,
+				CA402C099226A8A4B0F88D7B /* RootView.swift */,
 				4124BFCCB4142E00ECD85AE8 /* Design */,
 			);
 			path = Sources;
@@ -302,6 +305,7 @@
 				69DB910D0201D6AF08099447 /* PersistenceWindow.swift in Sources */,
 				752CDD43B83C02F05AAB4AD8 /* ProcessesViewModel.swift in Sources */,
 				EC5F04BBBCE76B47784FE024 /* ProcessesWindow.swift in Sources */,
+				24B9B2DCD2A2A0C7807EB531 /* RootView.swift in Sources */,
 				AE6201E24E0703D086B2AEB9 /* Tokens.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

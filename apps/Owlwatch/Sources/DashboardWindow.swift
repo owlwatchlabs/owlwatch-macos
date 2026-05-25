@@ -11,7 +11,7 @@ import SwiftUI
 /// land).
 struct DashboardWindow: View {
     @State private var viewModel = DashboardViewModel()
-    @Environment(\.openWindow) private var openWindow
+    @EnvironmentObject private var model: AppModel
 
     var body: some View {
         ScrollView {
@@ -176,37 +176,37 @@ struct DashboardWindow: View {
                     title: "Processes",
                     symbol: "cpu"
                 ) {
-                    openWindow(id: OwlwatchApp.processesWindowID)
+                    model.section = .processes
                 }
                 NavigationButton(
                     title: "Network",
                     symbol: "network"
                 ) {
-                    openWindow(id: OwlwatchApp.networkWindowID)
+                    model.section = .network
                 }
                 NavigationButton(
                     title: "Persistence",
                     symbol: "play.circle"
                 ) {
-                    openWindow(id: OwlwatchApp.persistenceWindowID)
+                    model.section = .persistence
                 }
                 NavigationButton(
                     title: "Devices",
                     symbol: "camera"
                 ) {
-                    openWindow(id: OwlwatchApp.devicesWindowID)
+                    model.section = .devices
                 }
                 NavigationButton(
                     title: "Logs",
                     symbol: "doc.text"
                 ) {
-                    openWindow(id: OwlwatchApp.logsWindowID)
+                    model.section = .logs
                 }
                 NavigationButton(
                     title: "Inspector",
                     symbol: "doc.text.magnifyingglass"
                 ) {
-                    openWindow(id: OwlwatchApp.binaryInspectorWindowID)
+                    model.section = .inspector
                 }
             }
         }
