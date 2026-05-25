@@ -210,11 +210,7 @@ private struct DevicesDetailPane: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         } else {
-            ContentUnavailableView(
-                "Select an item",
-                systemImage: "list.bullet.indent",
-                description: Text("Pick a device or event on the left to see its details.")
-            )
+            EmptyState(text: "Select a device to see its details.")
         }
     }
 

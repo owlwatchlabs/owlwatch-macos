@@ -132,7 +132,7 @@ private struct ProcessRow: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text("\(process.pid)")
+            Text(raw(process.pid))
                 .font(.caption.monospaced())
                 .foregroundStyle(.secondary)
                 .frame(width: 60, alignment: .trailing)
@@ -149,7 +149,7 @@ private struct ProcessRow: View {
                 }
             }
             Spacer()
-            Text("uid \(process.userId)")
+            Text("uid \(raw(process.userId))")
                 .font(.caption.monospaced())
                 .foregroundStyle(.secondary)
         }

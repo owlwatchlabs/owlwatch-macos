@@ -315,12 +315,7 @@ private struct LogsDetailPane: View {
                         DetailField("Binary", requesting.binaryPath)
                     }
                 } else {
-                    ContentUnavailableView(
-                        "Select an entry",
-                        systemImage: "list.bullet.indent",
-                        description: Text("Pick a row on the left to see its details.")
-                    )
-                    .padding()
+                    EmptyState(text: "Select a log entry to see its details.")
                 }
             }
             .padding()

@@ -138,7 +138,7 @@ private struct NetworkRow: View {
                 Text(processName ?? "?")
                     .font(.caption)
                     .lineLimit(1)
-                Text("pid \(connection.pid)")
+                Text("pid \(raw(connection.pid))")
                     .font(.caption2.monospaced())
                     .foregroundStyle(.secondary)
             }
@@ -209,7 +209,7 @@ private struct NetworkDetailPane: View {
         if let connection = viewModel.selectedConnection {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(viewModel.processNames[connection.pid] ?? "pid \(connection.pid)")
+                    Text(viewModel.processNames[connection.pid] ?? "pid \(raw(connection.pid))")
                         .font(.title2).bold()
                     Divider()
                     DetailField("Protocol", protocolLabel(connection))
@@ -228,18 +228,14 @@ private struct NetworkDetailPane: View {
                     }
                     Divider()
                     DetailField("Process", viewModel.processNames[connection.pid] ?? "(unknown)")
-                    DetailField("PID", String(connection.pid))
-                    DetailField("File descriptor", String(connection.fd))
+                    DetailField("PID", raw(connection.pid))
+                    DetailField("File descriptor", raw(connection.fd))
                 }
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         } else {
-            ContentUnavailableView(
-                "Select a connection",
-                systemImage: "list.bullet.indent",
-                description: Text("Pick a socket on the left to see its details.")
-            )
+            EmptyState(text: "Select a connection to see its details.")
         }
     }
 
