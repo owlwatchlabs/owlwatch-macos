@@ -70,40 +70,51 @@ struct DashboardView: View {
                 .font(.title3.bold())
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                SummaryCard(
-                    icon: "cpu",
-                    label: "Processes",
-                    primary: "\(viewModel.processCount)",
-                    secondary: "running"
-                )
-                SummaryCard(
-                    icon: "play.circle",
-                    label: "Launch services",
-                    primary: "\(viewModel.launchServiceCount)",
-                    secondary: "\(viewModel.launchServiceUserCount) in ~/Library/LaunchAgents"
-                )
-                SummaryCard(
-                    icon: "person.circle",
-                    label: "Login items",
-                    primary: "\(viewModel.loginItemCount)",
-                    secondary: "\(viewModel.loginItemEnabledCount) enabled"
-                )
-                SummaryCard(
-                    icon: "network",
-                    label: "Network",
-                    primary: "\(viewModel.networkEstablishedCount) active",
-                    secondary: "\(viewModel.networkListenerCount) listeners"
-                )
-                SummaryCard(
-                    icon: "camera",
-                    label: "Devices",
-                    primary: "\(viewModel.cameraCount + viewModel.microphoneCount)",
-                    secondary:
-                        "\(viewModel.cameraCount) cam / \(viewModel.microphoneCount) mic"
-                            + (viewModel.deviceInUseCount > 0
-                               ? " · \(viewModel.deviceInUseCount) in use"
-                               : "")
-                )
+                Button { model.section = .processes } label: {
+                    SummaryCard(
+                        icon: "cpu",
+                        label: "Processes",
+                        primary: "\(viewModel.processCount)",
+                        secondary: "running"
+                    )
+                }.buttonStyle(.plain)
+                Button { model.section = .persistence } label: {
+                    SummaryCard(
+                        icon: "play.circle",
+                        label: "Launch services",
+                        primary: "\(viewModel.launchServiceCount)",
+                        secondary: "\(viewModel.launchServiceUserCount) in ~/Library/LaunchAgents"
+                    )
+                }.buttonStyle(.plain)
+                Button { model.section = .persistence } label: {
+                    SummaryCard(
+                        icon: "person.circle",
+                        label: "Login items",
+                        primary: viewModel.loginItemCount.map(String.init) ?? "—",
+                        secondary: viewModel.loginItemEnabledCount.map { "\($0) enabled" }
+                            ?? "view in Persistence"
+                    )
+                }.buttonStyle(.plain)
+                Button { model.section = .network } label: {
+                    SummaryCard(
+                        icon: "network",
+                        label: "Network",
+                        primary: "\(viewModel.networkEstablishedCount) active",
+                        secondary: "\(viewModel.networkListenerCount) listeners"
+                    )
+                }.buttonStyle(.plain)
+                Button { model.section = .devices } label: {
+                    SummaryCard(
+                        icon: "camera",
+                        label: "Devices",
+                        primary: "\(viewModel.cameraCount + viewModel.microphoneCount)",
+                        secondary:
+                            "\(viewModel.cameraCount) cam / \(viewModel.microphoneCount) mic"
+                                + (viewModel.deviceInUseCount > 0
+                                   ? " · \(viewModel.deviceInUseCount) in use"
+                                   : "")
+                    )
+                }.buttonStyle(.plain)
             }
         }
     }

@@ -39,6 +39,12 @@ final class PersistenceViewModel {
     var isLoading: Bool = false
     var lastRefresh: Date?
 
+    /// `true` once `OWPersistence.loginItems()` has been called
+    /// successfully this session. Used to keep the sfltool prompt
+    /// gated behind explicit user navigation to Login Items — the
+    /// prompt fires once per process lifetime, not every refresh.
+    @ObservationIgnored private var hasFetchedLoginItems: Bool = false
+
     /// Currently-selected sidebar kind. The center list shows items
     /// of this kind. Defaults to ``PersistenceKind/launchServices``.
     var selectedKind: PersistenceKind = .launchServices {
@@ -46,6 +52,13 @@ final class PersistenceViewModel {
             // Visiting the Live tab clears the unread badge.
             if selectedKind == .liveEvents {
                 unseenLiveEventCount = 0
+            }
+            // Selecting Login Items triggers a lazy first-fetch.
+            // `sfltool dumpbtm` prompts for the user password, so we
+            // never call it until the user explicitly looks at the
+            // Login Items tab.
+            if selectedKind == .loginItems && !hasFetchedLoginItems {
+                Task { await fetchLoginItems() }
             }
         }
     }
@@ -144,29 +157,51 @@ final class PersistenceViewModel {
         }
     }
 
-    /// Refresh every kind. Snapshot calls run off-main; the resulting
-    /// arrays publish back here on the main actor.
+    /// Refresh every kind **except login items**. Snapshot calls run
+    /// off-main; the resulting arrays publish back here on the main
+    /// actor.
+    ///
+    /// Login items are intentionally not part of the bulk refresh —
+    /// `OWPersistence.loginItems()` shells to `sfltool dumpbtm`
+    /// which prompts for the user password, so it only runs when
+    /// the user explicitly selects the Login Items sub-tab (via the
+    /// `selectedKind.didSet` lazy-fetch) or hits refresh while on
+    /// that tab.
     func refresh() async {
         isLoading = true
         defer { isLoading = false }
 
         async let services = Task.detached { OWPersistence.launchServices() }.value
-        async let btmItems = Task.detached { OWPersistence.loginItems() }.value
         async let sysExt = Task.detached { OWPersistence.systemExtensions() }.value
         async let kernExt = Task.detached { OWPersistence.kernelExtensions() }.value
         async let hookList = Task.detached { OWPersistence.loginLogoutHooks() }.value
 
         launchServices = await services
-        loginItems = await btmItems
         systemExtensions = await sysExt
         kernelExtensions = await kernExt
         loginHooks = await hookList
         lastRefresh = Date()
+
+        // Refresh login items only if we've already paid the auth
+        // prompt this session and the user is looking at that tab.
+        if hasFetchedLoginItems && selectedKind == .loginItems {
+            await fetchLoginItems()
+        }
 
         // Drop a stale selection if the underlying items changed.
         if let id = selectedItemID,
            !items(for: selectedKind).contains(where: { $0.id == id }) {
             selectedItemID = nil
         }
+    }
+
+    /// Lazy login-items fetch. Called from `selectedKind.didSet` the
+    /// first time the user selects Login Items, and from `refresh()`
+    /// thereafter while on that tab. Idempotent — safe to call from
+    /// either site.
+    private func fetchLoginItems() async {
+        let items = await Task.detached { OWPersistence.loginItems() }.value
+        loginItems = items
+        hasFetchedLoginItems = true
     }
 }

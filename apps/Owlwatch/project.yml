@@ -54,6 +54,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.owlwatchlabs.owlwatch
         PRODUCT_NAME: Owlwatch
         GENERATE_INFOPLIST_FILE: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     dependencies:
       - package: Owlwatch
         product: OWCore

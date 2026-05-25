@@ -9,6 +9,7 @@ import SwiftUI
 /// tabs are now the segmented sub-nav.
 struct LogsView: View {
     @State private var viewModel = LogsViewModel()
+    @EnvironmentObject private var model: AppModel
 
     var body: some View {
         VStack(spacing: 0) {
@@ -33,6 +34,20 @@ struct LogsView: View {
         .onDisappear {
             viewModel.stopLiveTail()
         }
+        .onAppear { applyFocus() }
+        .onChange(of: model.focus) { _, _ in applyFocus() }
+    }
+
+    /// Cross-link target from another section. `.process(pid:name:)`
+    /// pre-filters the TCC tab to that process name (LogQuery's
+    /// `process` field matches the short name `log show` reports,
+    /// not the PID — so the name is what we wire).
+    private func applyFocus() {
+        guard case .process(_, let name)? = model.focus else { return }
+        viewModel.selectedTab = .tcc
+        viewModel.processFilter = name
+        Task { await viewModel.apply() }
+        model.focus = nil
     }
 
     @ViewBuilder
@@ -300,12 +315,7 @@ private struct LogsDetailPane: View {
                         DetailField("Binary", requesting.binaryPath)
                     }
                 } else {
-                    ContentUnavailableView(
-                        "Select an entry",
-                        systemImage: "list.bullet.indent",
-                        description: Text("Pick a row on the left to see its details.")
-                    )
-                    .padding()
+                    EmptyState(text: "Select a log entry to see its details.")
                 }
             }
             .padding()

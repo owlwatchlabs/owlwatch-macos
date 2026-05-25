@@ -21,11 +21,7 @@ struct PersistenceItemDetail: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         } else {
-            ContentUnavailableView(
-                "Select an item",
-                systemImage: "list.bullet.indent",
-                description: Text("Pick a persistence item on the left to see its details.")
-            )
+            EmptyState(text: "Select a persistence item to see its details.")
         }
     }
 

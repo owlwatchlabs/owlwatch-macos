@@ -14,6 +14,7 @@ import UniformTypeIdentifiers
 /// file URL onto the content to load.
 struct InspectorView: View {
     @State private var viewModel = BinaryInspectorViewModel()
+    @EnvironmentObject private var model: AppModel
 
     var body: some View {
         VStack(spacing: 0) {
@@ -37,6 +38,16 @@ struct InspectorView: View {
                     return true
                 }
         }
+        .onAppear { applyFocus() }
+        .onChange(of: model.focus) { _, _ in applyFocus() }
+    }
+
+    /// Cross-link target: load the supplied binary URL. Set from
+    /// the Processes detail panel.
+    private func applyFocus() {
+        guard case .binary(let url)? = model.focus else { return }
+        Task { await viewModel.load(url: url) }
+        model.focus = nil
     }
 
     @ViewBuilder

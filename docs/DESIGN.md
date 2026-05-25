@@ -37,8 +37,8 @@ Saturated color is **rationed** — it only appears when it carries meaning (sig
 | `owlText` | `#E8E6DF` | Primary text |
 | `owlTextMuted` | `#9BA1A8` | Secondary text, column headers |
 | `owlTextDim` | `#5A616A` | Tertiary text, hints, disabled |
-| `owlAmber` | `#E8C95A` | **Brand** + signed / known-good |
-| `owlAmberDim` | `#8A7A3E` | Idle status dot |
+| `owlAmber` | `#E8C95A` | **Brand** + signed / known-good + idle status |
+| `owlAmberDim` | `#8A7A3E` | _Reserved_ — was the idle status; superseded by `owlAmber` |
 | `owlGreen` | `#3FBF95` | Verified / active / capturing |
 | `owlRed` | `#F0726F` | Unsigned / camera or mic live / danger |
 | `owlBlue` | `#6FA8E0` | Network / outbound connections / links |
@@ -60,8 +60,8 @@ extension Color {
     static let owlTextMuted = Color(hex: 0x9BA1A8)
     static let owlTextDim   = Color(hex: 0x5A616A)
     // Brand + signal (use only where the color MEANS something)
-    static let owlAmber     = Color(hex: 0xE8C95A) // brand / signed
-    static let owlAmberDim  = Color(hex: 0x8A7A3E) // idle status
+    static let owlAmber     = Color(hex: 0xE8C95A) // brand / signed / idle status
+    static let owlAmberDim  = Color(hex: 0x8A7A3E) // active sub-nav pill stroke (§10.3)
     static let owlGreen     = Color(hex: 0x3FBF95) // verified / capturing
     static let owlRed       = Color(hex: 0xF0726F) // unsigned / capture live
     static let owlBlue      = Color(hex: 0x6FA8E0) // network / links
@@ -97,7 +97,7 @@ Only the **disc color** changes; the pupil is always a **solid black eye, never 
 
 | State | Disc color | Token |
 |---|---|---|
-| Idle / nothing capturing | dim gold | `owlAmberDim` |
+| Idle / nothing capturing | brand amber | `owlAmber` |
 | Something is capturing data | green | `owlGreen` |
 | Camera or microphone is live | red | `owlRed` |
 
@@ -106,7 +106,7 @@ enum CaptureState { case idle, capturing, cameraOrMicLive }
 
 func statusColor(_ s: CaptureState) -> Color {
     switch s {
-    case .idle:             return .owlAmberDim
+    case .idle:             return .owlAmber
     case .capturing:        return .owlGreen
     case .cameraOrMicLive:  return .owlRed
     }
@@ -148,12 +148,12 @@ func owlStatusImage(tint: NSColor, size: CGFloat = 18) -> NSImage {
 }
 
 let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-statusItem.button?.image = owlStatusImage(tint: NSColor(hex: 0x8A7A3E)) // idle
+statusItem.button?.image = owlStatusImage(tint: NSColor(hex: 0xE8C95A)) // idle (brand amber)
 
 func updateStatus(_ state: CaptureState) {
     let color: NSColor
     switch state {
-    case .idle:            color = NSColor(hex: 0x8A7A3E)  // dim gold
+    case .idle:            color = NSColor(hex: 0xE8C95A)  // brand amber
     case .capturing:       color = NSColor(hex: 0x3FBF95)  // green
     case .cameraOrMicLive: color = NSColor(hex: 0xF0726F)  // red
     }
