@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0788BDA28AE63B1EC0B72AB3 /* MenuRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED3E251A707A8196D57D247B /* MenuRouter.swift */; };
 		166CB230F105B4F170E6A247 /* AppSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C57AAFA08BEB63D2B9CB632C /* AppSection.swift */; };
 		1FDE35E49D8D9BED4A9BA0DF /* OWDevices in Frameworks */ = {isa = PBXBuildFile; productRef = 97E7E4F808C63E3696874A03 /* OWDevices */; };
 		209733615DCE7C1896B6D794 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 405CD72A3F9471F910F1FBF7 /* Components.swift */; };
@@ -82,6 +83,7 @@
 		CA402C099226A8A4B0F88D7B /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		DF3253B96EE22E3904329236 /* PersistenceSidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceSidebar.swift; sourceTree = "<group>"; };
 		E760B0CBDF97D4038125F9E1 /* PersistenceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceViewModel.swift; sourceTree = "<group>"; };
+		ED3E251A707A8196D57D247B /* MenuRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuRouter.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -166,6 +168,7 @@
 				0970F8F3F0B59EA70150BEE1 /* AppModel.swift */,
 				C57AAFA08BEB63D2B9CB632C /* AppSection.swift */,
 				405CD72A3F9471F910F1FBF7 /* Components.swift */,
+				ED3E251A707A8196D57D247B /* MenuRouter.swift */,
 				B5DA4A85B1E576488B966939 /* OwlMark.swift */,
 				2934ECFD7F93399E45603B94 /* Tokens.swift */,
 			);
@@ -297,6 +300,7 @@
 				EF7CFE667D887DA220067F3D /* LogsView.swift in Sources */,
 				669DC23441C1E293A41E553C /* LogsViewModel.swift in Sources */,
 				F995B56C2B64C1231C207C26 /* MenuBarStatusModel.swift in Sources */,
+				0788BDA28AE63B1EC0B72AB3 /* MenuRouter.swift in Sources */,
 				FC95847A7B66AC1E8D301B6B /* NetworkView.swift in Sources */,
 				54413CA5546526C8EE245540 /* NetworkViewModel.swift in Sources */,
 				DACEAE72470BBB581AD3B9CD /* OwlMark.swift in Sources */,

@@ -15,16 +15,21 @@ struct OwlwatchApp: App {
     @StateObject private var model = AppModel.shared
 
     /// Live status model that drives the menu-bar indicator and
-    /// dropdown header. Kept from M16.6; reconciled with
-    /// `AppModel.captureState` in M17.5.
+    /// dropdown header. Camera/mic in-use is mirrored into
+    /// `AppModel.captureState` so the in-app `OwlMark` and the
+    /// menu-bar mark stay in sync.
     @State private var status = MenuBarStatusModel()
 
     var body: some Scene {
         MenuBarExtra {
             OwlwatchMenuBarContent(status: status)
                 .task { status.start() }
+                .onChange(of: status.devicesInUseCount) { _, newCount in
+                    model.captureState = newCount > 0 ? .cameraOrMicLive : .idle
+                }
         } label: {
-            MenuBarIcon(status: status)
+            MenuBarMark()
+                .environmentObject(model)
         }
         .menuBarExtraStyle(.menu)
 
@@ -39,41 +44,34 @@ struct OwlwatchApp: App {
     }
 }
 
-/// The menu-bar icon. Swaps between a neutral shield, an in-use shield
-/// (red), and an attention shield (orange, for recent TCC denials).
-/// Driven by `MenuBarStatusModel`. Will swap to `OwlMark` tinted by
-/// `statusColor(_:)` in M17.5 — kept as the shield variant here so
-/// the icon doesn't regress mid-milestone.
-private struct MenuBarIcon: View {
-    @Bindable var status: MenuBarStatusModel
+/// The menu-bar mark — the same OwlMark from `Design/OwlMark.swift`
+/// tinted by capture state. Per DESIGN.md §2: red (camera/mic live)
+/// outranks green (capturing) outranks dim gold (idle).
+///
+/// SwiftUI's MenuBarExtra renders the label closure as a NSImage
+/// internally; the resulting bitmap is **not** marked as a template,
+/// so the gold/green/red disc colors come through.
+private struct MenuBarMark: View {
+    @EnvironmentObject var model: AppModel
 
     var body: some View {
-        if status.devicesInUseCount > 0 {
-            Image(systemName: "shield.lefthalf.filled")
-                .foregroundStyle(.red)
-        } else if status.recentTCCDenialCount > 0 {
-            Image(systemName: "shield.fill")
-                .foregroundStyle(.orange)
-        } else {
-            Image(systemName: "shield")
-        }
+        OwlMark(iris: statusColor(model.captureState))
+            .frame(width: 18, height: 18)
     }
 }
 
 /// Content of the menu-bar dropdown. Live status header from M16.6
-/// plus a single "Open Owlwatch" item that fronts the consolidated
-/// window. M17.5 expands this back into per-section selectors that
-/// drive `AppModel.show(_:)` instead of opening windows.
+/// plus per-section open items (⌘⇧[DPSNLBI]) that select a section
+/// in the single consolidated window via `MenuRouter`.
 private struct OwlwatchMenuBarContent: View {
     @Bindable var status: MenuBarStatusModel
-    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        // The header surfaces the same signal the menu-bar icon shows.
-        // Buttons in a `.menu`-styled MenuBarExtra render as menu items,
-        // not full Views — so the header is implemented as Text nodes,
-        // not a custom HStack. macOS clips arbitrary layout in a menu
-        // and the result looks broken.
+        // The header surfaces the same signal the menu-bar mark
+        // shows, plus the TCC-denial count. Buttons in a `.menu`-
+        // styled MenuBarExtra render as menu items, not full Views,
+        // so the header is implemented as Text nodes — macOS clips
+        // arbitrary layout in a menu and the result looks broken.
         Text("Owlwatch")
             .font(.headline)
         if status.devicesInUseCount > 0 {
@@ -86,14 +84,21 @@ private struct OwlwatchMenuBarContent: View {
             Text("All quiet")
         }
         Divider()
-        Button("Open Owlwatch") {
-            // LSUIElement apps don't activate on openWindow alone —
-            // the new window appears behind whatever's frontmost.
-            // Explicit activation is required.
-            NSApp.activate()
-            openWindow(id: OwlwatchApp.mainWindowID)
-        }
-        .keyboardShortcut("o", modifiers: [.command, .shift])
+        Button("Open dashboard")    { MenuRouter.open(.dashboard) }
+            .keyboardShortcut("h", modifiers: [.command, .shift])
+        Divider()
+        Button("Open processes")    { MenuRouter.open(.processes) }
+            .keyboardShortcut("s", modifiers: [.command, .shift])
+        Button("Open network")      { MenuRouter.open(.network) }
+            .keyboardShortcut("n", modifiers: [.command, .shift])
+        Button("Open persistence")  { MenuRouter.open(.persistence) }
+            .keyboardShortcut("p", modifiers: [.command, .shift])
+        Button("Open devices")      { MenuRouter.open(.devices) }
+            .keyboardShortcut("d", modifiers: [.command, .shift])
+        Button("Open logs")         { MenuRouter.open(.logs) }
+            .keyboardShortcut("l", modifiers: [.command, .shift])
+        Button("Open inspector")    { MenuRouter.open(.inspector) }
+            .keyboardShortcut("i", modifiers: [.command, .shift])
         Divider()
         Button("Quit Owlwatch") {
             NSApp.terminate(nil)
@@ -104,10 +109,10 @@ private struct OwlwatchMenuBarContent: View {
     private var devicesSummary: String {
         var parts: [String] = []
         if status.cameraInUseCount > 0 {
-            parts.append("\(status.cameraInUseCount) camera\(status.cameraInUseCount == 1 ? "" : "s")")
+            parts.append("\(raw(status.cameraInUseCount)) camera\(status.cameraInUseCount == 1 ? "" : "s")")
         }
         if status.microphoneInUseCount > 0 {
-            parts.append("\(status.microphoneInUseCount) mic\(status.microphoneInUseCount == 1 ? "" : "s")")
+            parts.append("\(raw(status.microphoneInUseCount)) mic\(status.microphoneInUseCount == 1 ? "" : "s")")
         }
         return parts.joined(separator: " + ") + " in use"
     }
