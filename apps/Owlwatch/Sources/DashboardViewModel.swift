@@ -22,8 +22,15 @@ final class DashboardViewModel {
     var processCount: Int = 0
     var launchServiceCount: Int = 0
     var launchServiceUserCount: Int = 0
-    var loginItemCount: Int = 0
-    var loginItemEnabledCount: Int = 0
+    /// `nil` = the Dashboard does not auto-fetch login items.
+    /// `OWPersistence.loginItems()` shells out to `sfltool dumpbtm`,
+    /// which prompts for the user password on Sonoma+. Surfacing
+    /// the count on every Dashboard refresh would mean an auth
+    /// prompt every time the user opens the app — unacceptable.
+    /// The Persistence section fetches lazily when the user actually
+    /// navigates to its Login Items sub-tab.
+    var loginItemCount: Int?
+    var loginItemEnabledCount: Int?
     var networkListenerCount: Int = 0
     var networkEstablishedCount: Int = 0
     var cameraCount: Int = 0
@@ -57,7 +64,8 @@ final class DashboardViewModel {
             (try? OWProcess.all(includeArguments: false, includeOpenFiles: false)) ?? []
         }.value
         async let launchServices = Task.detached { OWPersistence.launchServices() }.value
-        async let loginItems = Task.detached { OWPersistence.loginItems() }.value
+        // Login items intentionally NOT fetched here — see the
+        // loginItemCount declaration's docstring.
         async let connections = Task.detached { try? OWNetwork.snapshot() }.value
         async let cameras = Task.detached { OWDevices.cameras() }.value
         async let microphones = Task.detached { OWDevices.microphones() }.value
@@ -69,7 +77,6 @@ final class DashboardViewModel {
         }.value
 
         let services = await launchServices
-        let items = await loginItems
         let conns = await connections ?? []
         let cams = await cameras
         let mics = await microphones
@@ -77,8 +84,6 @@ final class DashboardViewModel {
         processCount = await processes.count
         launchServiceCount = services.count
         launchServiceUserCount = services.filter { $0.scope == .userAgent }.count
-        loginItemCount = items.count
-        loginItemEnabledCount = items.filter(\.isEnabled).count
         networkListenerCount = conns.filter(\.isListener).count
         networkEstablishedCount = conns.filter { $0.tcpState == .established }.count
         cameraCount = cams.count

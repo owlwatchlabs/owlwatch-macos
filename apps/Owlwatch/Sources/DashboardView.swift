@@ -90,8 +90,9 @@ struct DashboardView: View {
                     SummaryCard(
                         icon: "person.circle",
                         label: "Login items",
-                        primary: "\(viewModel.loginItemCount)",
-                        secondary: "\(viewModel.loginItemEnabledCount) enabled"
+                        primary: viewModel.loginItemCount.map(String.init) ?? "—",
+                        secondary: viewModel.loginItemEnabledCount.map { "\($0) enabled" }
+                            ?? "view in Persistence"
                     )
                 }.buttonStyle(.plain)
                 Button { model.section = .network } label: {
