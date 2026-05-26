@@ -31,12 +31,23 @@ final class ProcessListModel: ObservableObject {
     @Published var selection: pid_t?
     @Published private(set) var isLoading: Bool = false
 
+    /// Raw findings indexed by pid for the dossier (M18.5). Cleared
+    /// at the start of each refresh and repopulated when stage 2
+    /// finishes the OWRules scan. The row's `ruleCount` /
+    /// `maxSeverity` are the summary; this dictionary is the detail.
+    @Published private(set) var findingsByPid: [pid_t: [Finding]] = [:]
+
     // MARK: - State
 
     /// Per-path signer cache. SecStaticCode inspection is ~10–50ms
     /// per binary; caching means subsequent refreshes only pay the
     /// inspect cost for paths that weren't running last time.
     private var pathSignerCache: [String: Signer] = [:]
+
+    /// Per-pid LaunchService matches — used by the dossier to render
+    /// the "Launched by" section when a process is persistent.
+    /// Repopulated each refresh from the launch-services snapshot.
+    private var launchByPid: [pid_t: [LaunchService]] = [:]
 
     /// Loaded once, reused across refreshes.
     private var cachedRules: [Rule]?
@@ -111,9 +122,24 @@ final class ProcessListModel: ObservableObject {
         let launchServices = await launchT
 
         let connsByPid = Dictionary(grouping: connections, by: { $0.pid })
-        let persistentPaths: Set<String> = Set(
-            launchServices.compactMap { $0.executablePath }
+        let launchByPath = Dictionary(
+            grouping: launchServices.filter { $0.executablePath != nil },
+            by: { $0.executablePath! }
         )
+        let persistentPaths: Set<String> = Set(launchByPath.keys)
+
+        // Rebuild per-pid launch service index used by the dossier
+        // (M18.5). Keyed by pid so the detail pane doesn't have to
+        // re-scan all launch services.
+        var byPid: [pid_t: [LaunchService]] = [:]
+        for process in processes {
+            if let path = process.path, let matches = launchByPath[path] {
+                byPid[process.pid] = matches
+            }
+        }
+        launchByPid = byPid
+        // Findings are repopulated in stage 2; clear the stale view.
+        findingsByPid = [:]
 
         // Stage 1: build rows with unknown signers and no rule
         // findings. List paints instantly.
@@ -208,18 +234,17 @@ final class ProcessListModel: ObservableObject {
             OWRules.scan(rules: rules, snapshot: snapshot)
         }.value
 
-        var findingsByPid: [pid_t: (count: Int, maxSev: Severity)] = [:]
+        var grouped: [pid_t: [Finding]] = [:]
         for finding in report.findings {
             guard finding.targetID.hasPrefix("pid:"),
                   let pidValue = pid_t(finding.targetID.dropFirst(4)) else { continue }
-            var entry = findingsByPid[pidValue] ?? (count: 0, maxSev: .info)
-            entry.count += 1
-            if finding.severity > entry.maxSev { entry.maxSev = finding.severity }
-            findingsByPid[pidValue] = entry
+            grouped[pidValue, default: []].append(finding)
         }
+        findingsByPid = grouped
 
         rows = rows.map { row in
-            guard let entry = findingsByPid[row.pid] else { return row }
+            guard let findings = grouped[row.pid], !findings.isEmpty else { return row }
+            let maxSev = findings.map(\.severity).max() ?? .info
             return ProcessRowVM(
                 pid: row.pid,
                 parentPid: row.parentPid,
@@ -232,10 +257,25 @@ final class ProcessListModel: ObservableObject {
                 isPersistent: row.isPersistent,
                 tccCount: row.tccCount,
                 isSuspiciousPath: row.isSuspiciousPath,
-                ruleCount: entry.count,
-                maxSeverity: entry.count > 0 ? entry.maxSev : nil
+                ruleCount: findings.count,
+                maxSeverity: maxSev
             )
         }
+    }
+
+    // MARK: - Dossier accessors (M18.5)
+
+    /// Rule findings for a given pid, sorted highest severity first.
+    /// Empty for pids with no findings or before stage 2 enrichment
+    /// completes.
+    func findings(for pid: pid_t) -> [Finding] {
+        (findingsByPid[pid] ?? []).sorted { $0.severity > $1.severity }
+    }
+
+    /// LaunchService entries whose executable path matches the given
+    /// pid's process path. Used by the dossier's persistence section.
+    func launchServices(for pid: pid_t) -> [LaunchService] {
+        launchByPid[pid] ?? []
     }
 
     // MARK: - Helpers
@@ -285,17 +325,19 @@ final class ProcessListModel: ObservableObject {
         return (path, Signer(sig))
     }
 
-    /// Locate the shipped rules library. In a built app this is
-    /// `Contents/Resources/Rules`; in a development run from the
-    /// checkout, fall back to `packages/Rules` relative to the
-    /// repo root. Returns an empty list if neither resolves.
+    /// Locate the shipped rules library. xcodegen's `name: Rules`
+    /// flattens the contents into `Contents/Resources/` rather than
+    /// nesting them under a `Rules/` subdir, so `Bundle.main.url(
+    /// forResource: "Rules")` returns nil. Loading the entire
+    /// `resourceURL` works because `OWRules.loadRules(from:)`
+    /// already filters to `*.yml` / `*.yaml` and ignores everything
+    /// else (icons, plists, etc.). Development checkout falls back
+    /// to the source tree.
     nonisolated private static func loadShippedRules() throws -> [Rule] {
-        // Bundled at Contents/Resources/Rules (see project.yml).
-        if let bundleURL = Bundle.main.url(forResource: "Rules", withExtension: nil) {
-            return try OWRules.loadRules(from: bundleURL)
+        if let resourceURL = Bundle.main.resourceURL {
+            let rules = try OWRules.loadRules(from: resourceURL)
+            if !rules.isEmpty { return rules }
         }
-        // Development checkout fallback. The CWD when running
-        // from Xcode is the project root; the rules sit two dirs up.
         let fileManager = FileManager.default
         let candidates = [
             URL(fileURLWithPath: "packages/Rules"),
