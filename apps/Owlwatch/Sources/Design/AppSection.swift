@@ -6,7 +6,7 @@ import Foundation
 /// inside each section's header rather than as their own sidebar
 /// rows. See `docs/DESIGN.md` §9.
 enum AppSection: String, CaseIterable, Identifiable {
-    case dashboard
+    case overview
     case processes
     case network
     case persistence
@@ -18,7 +18,7 @@ enum AppSection: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .dashboard:   return "Dashboard"
+        case .overview:    return "Overview"
         case .processes:   return "Processes"
         case .network:     return "Network"
         case .persistence: return "Persistence"
@@ -31,7 +31,7 @@ enum AppSection: String, CaseIterable, Identifiable {
     /// SF Symbol for sidebar + menu-bar rows.
     var icon: String {
         switch self {
-        case .dashboard:   return "square.grid.2x2"
+        case .overview:    return "square.grid.2x2"
         case .processes:   return "cpu"
         case .network:     return "globe"
         case .persistence: return "play.circle"
