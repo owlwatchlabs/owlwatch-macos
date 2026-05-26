@@ -20,6 +20,7 @@
 		2A3BCF1308BDB51C79776AD6 /* OWLog in Frameworks */ = {isa = PBXBuildFile; productRef = D46A48954D1E9FA3595270DF /* OWLog */; };
 		30086B3023C630861C97A4FF /* OWProcess in Frameworks */ = {isa = PBXBuildFile; productRef = 54DECE2B6767ACF115F976B3 /* OWProcess */; };
 		35B66968C3FAB0F2CAEB1EB6 /* PersistenceItemDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44039B583CCA48E977787553 /* PersistenceItemDetail.swift */; };
+		36D7C26A1F1A3D536CD3DD37 /* OWTriage in Frameworks */ = {isa = PBXBuildFile; productRef = B103AE877397B9F6F182247F /* OWTriage */; };
 		3D441249D8F77F5AF317954C /* DevicesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D127C31DA4EAA2B4917A6F3 /* DevicesViewModel.swift */; };
 		43DDD430FED51795849EDE9F /* owlwatch-icon.svg in Resources */ = {isa = PBXBuildFile; fileRef = C1E4F2FCF63BFEE3D826A0CF /* owlwatch-icon.svg */; };
 		4A3D90CEB339A0BC0F4017AC /* ProcessesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F1ADC1EE38306838A98D41A /* ProcessesView.swift */; };
@@ -36,6 +37,7 @@
 		8290DB5194013522014861F8 /* JetBrainsMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5B438CBFBFE97AA958F19BEC /* JetBrainsMono-Regular.ttf */; };
 		83A438F76F038A442F6C74E4 /* InspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2768BA7FCC3811E6AA136F22 /* InspectorView.swift */; };
 		88DA62341C83EA8F586DD97D /* OWCore in Frameworks */ = {isa = PBXBuildFile; productRef = 214AE25A461CC3BEF29D2677 /* OWCore */; };
+		894AC8EE3B325BFAB5ECD4F6 /* TriageStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 827572352364E562ECB2691F /* TriageStyles.swift */; };
 		8CEF095D32B246522938118C /* OWPersistence in Frameworks */ = {isa = PBXBuildFile; productRef = 372EF516759FEB18843357AD /* OWPersistence */; };
 		ABA81CF230328513F16720C6 /* OWCodeSigning in Frameworks */ = {isa = PBXBuildFile; productRef = 897C389B7082CAF5B986B27F /* OWCodeSigning */; };
 		AE6201E24E0703D086B2AEB9 /* Tokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2934ECFD7F93399E45603B94 /* Tokens.swift */; };
@@ -75,6 +77,7 @@
 		7DFA576C822612D439823624 /* owlwatch-mark.svg */ = {isa = PBXFileReference; path = "owlwatch-mark.svg"; sourceTree = "<group>"; };
 		7E438A3EE40CC96C0081E55E /* Owlwatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Owlwatch.entitlements; sourceTree = "<group>"; };
 		8217D3A1A6327137DE7BA101 /* SpaceGrotesk-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SpaceGrotesk-Medium.ttf"; sourceTree = "<group>"; };
+		827572352364E562ECB2691F /* TriageStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriageStyles.swift; sourceTree = "<group>"; };
 		852CCFEE2D3C49898E1FBAAE /* owlwatch-icon-1024.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "owlwatch-icon-1024.png"; sourceTree = "<group>"; };
 		900DB9C9FAC9F6D97A4410E8 /* LogsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogsView.swift; sourceTree = "<group>"; };
 		B5DA4A85B1E576488B966939 /* OwlMark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OwlMark.swift; sourceTree = "<group>"; };
@@ -103,6 +106,7 @@
 				2A3BCF1308BDB51C79776AD6 /* OWLog in Frameworks */,
 				28F76C71030A320D8687D4BA /* OWBinary in Frameworks */,
 				ABA81CF230328513F16720C6 /* OWCodeSigning in Frameworks */,
+				36D7C26A1F1A3D536CD3DD37 /* OWTriage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -176,6 +180,7 @@
 				ED3E251A707A8196D57D247B /* MenuRouter.swift */,
 				B5DA4A85B1E576488B966939 /* OwlMark.swift */,
 				2934ECFD7F93399E45603B94 /* Tokens.swift */,
+				827572352364E562ECB2691F /* TriageStyles.swift */,
 			);
 			path = Design;
 			sourceTree = "<group>";
@@ -233,6 +238,7 @@
 				D46A48954D1E9FA3595270DF /* OWLog */,
 				E31B549812719EBEA5DDF202 /* OWBinary */,
 				897C389B7082CAF5B986B27F /* OWCodeSigning */,
+				B103AE877397B9F6F182247F /* OWTriage */,
 			);
 			productName = Owlwatch;
 			productReference = 26AAF1F70F3C064DFC041B38 /* Owlwatch.app */;
@@ -323,6 +329,7 @@
 				752CDD43B83C02F05AAB4AD8 /* ProcessesViewModel.swift in Sources */,
 				24B9B2DCD2A2A0C7807EB531 /* RootView.swift in Sources */,
 				AE6201E24E0703D086B2AEB9 /* Tokens.swift in Sources */,
+				894AC8EE3B325BFAB5ECD4F6 /* TriageStyles.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -552,6 +559,10 @@
 		9AB02C19DDEC9E21BC9A5868 /* OWNetwork */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = OWNetwork;
+		};
+		B103AE877397B9F6F182247F /* OWTriage */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = OWTriage;
 		};
 		D46A48954D1E9FA3595270DF /* OWLog */ = {
 			isa = XCSwiftPackageProductDependency;
