@@ -72,3 +72,5 @@ targets:
         product: OWBinary
       - package: Owlwatch
         product: OWCodeSigning
+      - package: Owlwatch
+        product: OWTriage

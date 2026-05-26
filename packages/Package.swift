@@ -18,6 +18,7 @@ let modules: [String] = [
     "OWProtocol",
     "OWRules",
     "OWStore",
+    "OWTriage",
     "OWUIKit"
 ]
 
@@ -45,6 +46,8 @@ let package = Package(
             //   via OWLog.
             // - OWRules (M13.1) evaluates detection rules over process
             //   + persistence snapshots, parsed from YAML via Yams.
+            // - OWTriage (M18.3) wraps OWNetwork + OWCodeSigning types
+            //   in triage-oriented classifications for the app UI.
             let deps: [Target.Dependency]
             switch name {
             case "OWDevices":
@@ -57,6 +60,11 @@ let package = Package(
                     .byName(name: "OWProcess"),
                     .byName(name: "OWPersistence"),
                     .product(name: "Yams", package: "Yams")
+                ]
+            case "OWTriage":
+                deps = [
+                    .byName(name: "OWCodeSigning"),
+                    .byName(name: "OWNetwork")
                 ]
             default:
                 deps = []
