@@ -1,159 +1,75 @@
 import OWProcess
 import SwiftUI
 
-/// The M17 Processes section. SectionHeader (with SubnavPicker over
-/// `ProcessesTab` + a FilterField + the refresh control) on top;
-/// below, a nested NavigationSplitView with center list + trailing
-/// detail. The former per-window sub-sidebar (All / Tree) is now
-/// the segmented sub-nav in the header per DESIGN.md §10.3.
+/// The M18.4 Processes section.
+///
+/// Two panes: the new faceted list on the left (see
+/// `ProcessListView`), the existing M17.6 detail pane on the right.
+/// The detail pane is reused as-is until M18.5 lands the rules-first
+/// dossier; this PR is scoped to the left pane + the data joins
+/// powering it.
 struct ProcessesView: View {
+    /// Detail-pane data layer. Owns selection + on-demand detail
+    /// loading (argv + open files). M18.5 may absorb its
+    /// responsibilities into `ProcessListModel`, but for M18.4 the
+    /// two coexist with a small bridge in `.onChange`.
     @State private var viewModel = ProcessesViewModel()
 
+    /// New M18.4 row model — owns the facets, query, and joined
+    /// `[ProcessRowVM]`.
+    @StateObject private var listModel = ProcessListModel()
+
     var body: some View {
-        VStack(spacing: 0) {
-            SectionHeader(title: "Processes") {
-                SubnavPicker(
-                    selection: $viewModel.selectedTab,
-                    options: ProcessesTab.allCases.map { ($0, $0.displayName) }
-                )
-                FilterField(text: $viewModel.searchText,
-                            placeholder: "Filter by name, path, or PID")
-                    .frame(maxWidth: 320)
-                Spacer()
-                refreshGroup
-            }
-            NavigationSplitView {
-                ProcessesCenterPane(viewModel: viewModel)
-                    .navigationSplitViewColumnWidth(min: 360, ideal: 480)
-            } detail: {
-                ProcessesDetailPane(viewModel: viewModel)
-                    .navigationSplitViewColumnWidth(min: 320, ideal: 380)
-            }
-            .tint(.owlAmber)
+        NavigationSplitView {
+            ProcessListView(model: listModel)
+                .navigationSplitViewColumnWidth(min: 420, ideal: 520)
+        } detail: {
+            ProcessesDetailPane(viewModel: viewModel)
+                .navigationSplitViewColumnWidth(min: 320, ideal: 380)
         }
+        .tint(.owlAmber)
         .task {
-            if viewModel.lastRefresh == nil {
-                await viewModel.refresh()
+            if listModel.rows.isEmpty {
+                await listModel.refresh()
             }
         }
-        .onChange(of: viewModel.selectedPID) { _, newPID in
-            if let pid = newPID {
-                Task { await viewModel.loadDetail(for: pid) }
-            } else {
-                viewModel.detailProcess = nil
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var refreshGroup: some View {
-        if let last = viewModel.lastRefresh {
-            let when = last.formatted(date: .omitted, time: .standard)
-            Text("last refresh \(when) · \(grouped(viewModel.processes.count)) processes")
-                .font(.owlMono(11))
-                .foregroundStyle(Color.owlTextDim)
-        }
-        Button {
-            Task { await viewModel.refresh() }
-        } label: {
-            if viewModel.isLoading {
-                ProgressView().controlSize(.small)
-            } else {
-                Image(systemName: "arrow.clockwise")
-                    .foregroundStyle(Color.owlTextMuted)
-            }
-        }
-        .buttonStyle(.plain)
-        .disabled(viewModel.isLoading)
-        .keyboardShortcut("r", modifiers: .command)
-    }
-}
-
-// MARK: - Center pane
-
-private struct ProcessesCenterPane: View {
-    @Bindable var viewModel: ProcessesViewModel
-
-    var body: some View {
-        switch viewModel.selectedTab {
-        case .all:
-            ProcessesFlatList(viewModel: viewModel)
-        case .tree:
-            ProcessesTreeView(viewModel: viewModel)
-        }
-    }
-}
-
-private struct ProcessesFlatList: View {
-    @Bindable var viewModel: ProcessesViewModel
-
-    var body: some View {
-        let items = viewModel.visibleProcesses
-        if items.isEmpty {
-            EmptyState(
-                text: viewModel.searchText.isEmpty
-                    ? "No processes found."
-                    : "No processes match this filter.",
-                symbol: "cpu"
-            )
-        } else {
-            List(items, id: \.pid, selection: $viewModel.selectedPID) { process in
-                ProcessRow(process: process).tag(process.pid)
-            }
-            .listStyle(.inset)
-        }
-    }
-}
-
-private struct ProcessesTreeView: View {
-    @Bindable var viewModel: ProcessesViewModel
-
-    var body: some View {
-        let nodes = viewModel.processTree
-        if nodes.isEmpty {
-            EmptyState(text: "No processes found.", symbol: "rectangle.3.group")
-        } else {
-            List(selection: $viewModel.selectedPID) {
-                OutlineGroup(nodes, children: \.children) { node in
-                    ProcessRow(process: node.process).tag(node.process.pid)
+        .onChange(of: listModel.selection) { _, newPID in
+            // Bridge to the detail pane's data layer. Deferred per
+            // M18.2 fix so the .onChange mutation doesn't trip the
+            // SwiftUI "publishing during view updates" fault.
+            Task { @MainActor in
+                viewModel.selectedPID = newPID
+                if let pid = newPID {
+                    await viewModel.loadDetail(for: pid)
+                } else {
+                    viewModel.detailProcess = nil
                 }
             }
-            .listStyle(.inset)
         }
-    }
-}
-
-private struct ProcessRow: View {
-    let process: RunningProcess
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(raw(process.pid))
-                .font(.caption.monospaced())
-                .foregroundStyle(.secondary)
-                .frame(width: 60, alignment: .trailing)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(process.name)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                if let path = process.path {
-                    Text(path)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+        .onChange(of: listModel.rows) { _, rows in
+            // Mirror identity stubs into ProcessesViewModel so the
+            // existing detail pane's `selectedProcess` lookup
+            // resolves by pid. M18.5 will drop this bridge by
+            // having the detail pane consume `ProcessRowVM`
+            // directly.
+            Task { @MainActor in
+                viewModel.processes = rows.map { row in
+                    RunningProcess(
+                        pid: row.pid,
+                        parentPid: row.parentPid,
+                        name: row.name,
+                        path: row.path,
+                        userId: row.userId,
+                        arguments: nil,
+                        openFiles: nil
+                    )
                 }
             }
-            Spacer()
-            Text("uid \(raw(process.userId))")
-                .font(.caption.monospaced())
-                .foregroundStyle(.secondary)
         }
-        .padding(.vertical, 1)
     }
 }
 
-// MARK: - Detail pane
+// MARK: - Detail pane (M17.6; reused as-is until M18.5)
 
 private struct ProcessesDetailPane: View {
     @Bindable var viewModel: ProcessesViewModel
@@ -195,10 +111,6 @@ private struct ProcessesDetailPane: View {
         }
     }
 
-    /// Cross-link rows per DESIGN.md §6 — switch section and set
-    /// `model.focus` so the target view can pre-filter to this
-    /// process. Three jumps cover the common follow-the-thread
-    /// flows from a process.
     @ViewBuilder
     private func crossLinks(for process: RunningProcess) -> some View {
         LinkedRow(
