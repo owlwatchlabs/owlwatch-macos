@@ -5,27 +5,28 @@ import OWNetwork
 import OWPersistence
 import OWProcess
 
-/// Drives the M16.1 status-dashboard window. Pulls a thin slice of
-/// every data source we ship and exposes it as a few headline numbers
-/// + a recent-activity list. Heavy work (full snapshots, log queries)
-/// runs off the main actor; results publish back here on completion.
+/// Drives the M18 Overview section (was the M16.1 Dashboard window).
+/// Pulls a thin slice of every data source we ship and exposes it as
+/// a few headline numbers + a recent-activity list. Heavy work (full
+/// snapshots, log queries) runs off the main actor; results publish
+/// back here on completion.
 ///
-/// Refresh model: pull-on-demand. The dashboard isn't trying to be a
+/// Refresh model: pull-on-demand. The Overview isn't trying to be a
 /// live console — it's the at-a-glance "what does Owlwatch see?" view.
 /// Live event streams (persistence mutations, device state changes,
-/// log tail) live in the dedicated windows for those sources.
+/// log tail) live in the dedicated sections for those sources.
 @MainActor
 @Observable
-final class DashboardViewModel {
+final class OverviewViewModel {
     // MARK: - Headline counts
 
     var processCount: Int = 0
     var launchServiceCount: Int = 0
     var launchServiceUserCount: Int = 0
-    /// `nil` = the Dashboard does not auto-fetch login items.
+    /// `nil` = the Overview does not auto-fetch login items.
     /// `OWPersistence.loginItems()` shells out to `sfltool dumpbtm`,
     /// which prompts for the user password on Sonoma+. Surfacing
-    /// the count on every Dashboard refresh would mean an auth
+    /// the count on every Overview refresh would mean an auth
     /// prompt every time the user opens the app — unacceptable.
     /// The Persistence section fetches lazily when the user actually
     /// navigates to its Login Items sub-tab.

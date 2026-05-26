@@ -3,17 +3,12 @@ import SwiftUI
 
 /// The single Owlwatch window's root.
 ///
-/// `NavigationSplitView` with a sidebar of `AppSection` rows on the
-/// left and the selected section's view on the right. Sub-categories
-/// (All / Listeners / TCP …) live inside each section's header in
-/// M17.3+, not as their own sidebar rows. See `docs/DESIGN.md` §9.
-///
-/// The detail switch reuses the existing top-level "window" views
-/// (`DashboardWindow`, `PersistenceWindow`, etc.) as drop-in detail
-/// content. These views still carry their own toolbars and
-/// navigationTitles from the M16 era — that styling is reconciled
-/// in M17.4 when each section is migrated to the design-system
-/// component library.
+/// `NavigationSplitView` with a grouped sidebar (Overview, then a
+/// `SYSTEM` cluster of live-state sections, then an unlabeled
+/// Logs/Inspector cluster) on the left and the selected section's
+/// view on the right. Sub-categories (All / Listeners / TCP …) live
+/// inside each section's header — not as their own sidebar rows.
+/// See `docs/DESIGN.md` §9 + M18 brief §2.
 struct RootView: View {
     @EnvironmentObject var model: AppModel
 
@@ -40,16 +35,42 @@ struct RootView: View {
     // MARK: - Sidebar
 
     private var sidebar: some View {
-        List(AppSection.allCases, selection: $model.section) { section in
-            // SidebarRow per §10.1 lands in M17.3. For M17.2 a
-            // plain Label gets us the icon + title in the sidebar
-            // without committing to component-library structure.
-            Label(section.title, systemImage: section.icon)
-                .tag(section)
+        // Per §2: Overview as a standalone row, then a "SYSTEM"-
+        // labeled group for the live-state sections (Processes /
+        // Network / Persistence / Devices), then an unlabeled group
+        // for the tool-style sections (Logs / Inspector). The two
+        // group dividers do the visual separation work.
+        List(selection: $model.section) {
+            row(.overview)
+
+            Section("System") {
+                row(.processes)
+                row(.network)
+                row(.persistence)
+                row(.devices)
+            }
+
+            // Unlabeled cluster — the empty Section header renders
+            // as a divider only.
+            Section {
+                row(.logs)
+                row(.inspector)
+            }
         }
         .listStyle(.sidebar)
+        // Selection accent. Window-level .tint isn't reliably
+        // propagating to List in macOS 14, so apply it here.
+        .tint(.owlAmber)
+        .environment(\.defaultMinListRowHeight, 30)
         .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 240)
         .navigationTitle("Owlwatch")
+    }
+
+    @ViewBuilder
+    private func row(_ section: AppSection) -> some View {
+        Label(section.title, systemImage: section.icon)
+            .font(.owlMono(13))
+            .tag(section)
     }
 
     // MARK: - Detail
@@ -57,7 +78,7 @@ struct RootView: View {
     @ViewBuilder
     private var detail: some View {
         switch model.section {
-        case .dashboard:   DashboardView()
+        case .overview:    OverviewView()
         case .processes:   ProcessesView()
         case .network:     NetworkView()
         case .persistence: PersistenceView()

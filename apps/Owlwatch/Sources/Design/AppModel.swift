@@ -17,7 +17,7 @@ final class AppModel: ObservableObject {
     /// Active sidebar section. Driving this value from anywhere
     /// (`AppModel.shared.section = .processes`) updates the
     /// detail pane.
-    @Published var section: AppSection = .dashboard
+    @Published var section: AppSection = .overview
 
     /// Coarse tri-state for the menu-bar mark color. Driven by the
     /// existing menu-bar status pipeline in `MenuBarStatusModel`

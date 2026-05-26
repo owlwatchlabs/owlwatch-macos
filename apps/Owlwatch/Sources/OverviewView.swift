@@ -1,18 +1,22 @@
 import OWLog
 import SwiftUI
 
-/// The M17 Dashboard section — the app "home". One scrolling view
+/// The M18 Overview section — the app "home". One scrolling view
 /// with headline counts from every data source plus a recent-
 /// activity list. Below: a quick-actions row that switches sections
 /// via AppModel. Wrapped in the M17 SectionHeader for visual
 /// consistency with the other sections.
-struct DashboardView: View {
-    @State private var viewModel = DashboardViewModel()
+///
+/// Renamed from `DashboardView` in M18.1 — the enum case + the
+/// header title + the sidebar label now all read "Overview" so
+/// nothing stray says "Dashboard".
+struct OverviewView: View {
+    @State private var viewModel = OverviewViewModel()
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
         VStack(spacing: 0) {
-            SectionHeader(title: "Dashboard") {
+            SectionHeader(title: "Overview") {
                 if viewModel.deviceInUseCount > 0 {
                     Text("\(raw(viewModel.deviceInUseCount)) device\(viewModel.deviceInUseCount == 1 ? "" : "s") in use")
                         .font(.owlMono(11))

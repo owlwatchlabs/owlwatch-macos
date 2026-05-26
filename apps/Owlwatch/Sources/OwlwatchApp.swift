@@ -131,7 +131,7 @@ private struct OwlwatchMenuBarContent: View {
             Text("All quiet")
         }
         Divider()
-        Button("Open dashboard")    { open(.dashboard) }
+        Button("Open overview")     { open(.overview) }
             .keyboardShortcut("h", modifiers: [.command, .shift])
         Divider()
         Button("Open processes")    { open(.processes) }
