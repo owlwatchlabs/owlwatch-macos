@@ -9,11 +9,7 @@ struct PersistenceItemList: View {
     var body: some View {
         let items = viewModel.visibleItems
         if items.isEmpty {
-            ContentUnavailableView(
-                emptyStateTitle,
-                systemImage: viewModel.selectedKind.symbolName,
-                description: Text(emptyStateBody)
-            )
+            EmptyState(text: emptyStateBody, symbol: viewModel.selectedKind.symbolName)
         } else {
             List(items, selection: $viewModel.selectedItemID) { item in
                 PersistenceItemRow(item: item)

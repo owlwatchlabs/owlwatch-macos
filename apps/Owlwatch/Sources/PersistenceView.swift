@@ -30,6 +30,7 @@ struct PersistenceView: View {
                 PersistenceItemDetail(item: viewModel.selectedItem)
                     .navigationSplitViewColumnWidth(min: 320, ideal: 380)
             }
+            .tint(.owlAmber)
         }
         .task {
             // Kick off the FSEvents-backed mutation monitor for the

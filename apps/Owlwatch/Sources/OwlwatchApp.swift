@@ -25,7 +25,14 @@ struct OwlwatchApp: App {
             OwlwatchMenuBarContent(status: status)
                 .task { status.start() }
                 .onChange(of: status.devicesInUseCount) { _, newCount in
-                    model.captureState = newCount > 0 ? .cameraOrMicLive : .idle
+                    // Defer the AppModel mutation to the next runloop —
+                    // .onChange fires during the view-update pass, and
+                    // synchronously writing one ObservableObject inside
+                    // another's onChange trips SwiftUI's "Publishing
+                    // changes from within view updates" fault.
+                    Task { @MainActor in
+                        model.captureState = newCount > 0 ? .cameraOrMicLive : .idle
+                    }
                 }
         } label: {
             MenuBarMark()

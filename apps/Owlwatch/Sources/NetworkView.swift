@@ -28,6 +28,7 @@ struct NetworkView: View {
                 NetworkDetailPane(viewModel: viewModel)
                     .navigationSplitViewColumnWidth(min: 320, ideal: 380)
             }
+            .tint(.owlAmber)
         }
         .task {
             if viewModel.lastRefresh == nil {
@@ -42,11 +43,19 @@ struct NetworkView: View {
     /// (`process(pid)`) and pre-filter to that PID. Always clears
     /// `model.focus` so the same target doesn't reapply on the next
     /// section switch.
+    ///
+    /// Called from `.onAppear` and `.onChange(of: model.focus)` —
+    /// both of those fire **during** SwiftUI's view-update pass, so
+    /// the @Observable mutations below must run on the next runloop
+    /// or SwiftUI logs "Publishing changes from within view updates"
+    /// and may drop the update.
     private func applyFocus() {
         guard case .process(let pid, _)? = model.focus else { return }
-        viewModel.searchText = raw(pid)
-        viewModel.selectedTab = .all
-        model.focus = nil
+        Task { @MainActor in
+            viewModel.searchText = raw(pid)
+            viewModel.selectedTab = .all
+            model.focus = nil
+        }
     }
 
     @ViewBuilder
@@ -81,14 +90,11 @@ private struct NetworkCenterPane: View {
     var body: some View {
         let items = viewModel.visibleConnections
         if items.isEmpty {
-            ContentUnavailableView(
-                viewModel.searchText.isEmpty
-                    ? "No \(viewModel.selectedTab.displayName)"
-                    : "No Matches",
-                systemImage: viewModel.selectedTab.symbolName,
-                description: Text(viewModel.searchText.isEmpty
-                                  ? emptyStateBody(for: viewModel.selectedTab)
-                                  : "Filter '\(viewModel.searchText)' matched nothing.")
+            EmptyState(
+                text: viewModel.searchText.isEmpty
+                    ? "No \(viewModel.selectedTab.displayName.lowercased())."
+                    : "No connections match this filter.",
+                symbol: viewModel.selectedTab.symbolName
             )
         } else {
             List(items,

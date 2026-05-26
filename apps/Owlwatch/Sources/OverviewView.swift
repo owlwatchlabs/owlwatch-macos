@@ -30,8 +30,6 @@ struct OverviewView: View {
                     summaryGrid
                     Divider()
                     recentActivitySection
-                    Divider()
-                    quickActionsSection
                 }
                 .padding(24)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -161,52 +159,8 @@ struct OverviewView: View {
         }
     }
 
-    // MARK: - Quick actions
-
-    private var quickActionsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Quick actions")
-                .font(.title3.bold())
-            HStack(spacing: 12) {
-                NavigationButton(
-                    title: "Processes",
-                    symbol: "cpu"
-                ) {
-                    model.section = .processes
-                }
-                NavigationButton(
-                    title: "Network",
-                    symbol: "network"
-                ) {
-                    model.section = .network
-                }
-                NavigationButton(
-                    title: "Persistence",
-                    symbol: "play.circle"
-                ) {
-                    model.section = .persistence
-                }
-                NavigationButton(
-                    title: "Devices",
-                    symbol: "camera"
-                ) {
-                    model.section = .devices
-                }
-                NavigationButton(
-                    title: "Logs",
-                    symbol: "doc.text"
-                ) {
-                    model.section = .logs
-                }
-                NavigationButton(
-                    title: "Inspector",
-                    symbol: "doc.text.magnifyingglass"
-                ) {
-                    model.section = .inspector
-                }
-            }
-        }
-    }
+    // (Quick actions row removed in M18.2 — duplicated the sidebar and
+    //  the summary cards above already drill into their sections.)
 }
 
 // MARK: - Reusable rows
@@ -302,27 +256,6 @@ private struct ErrorLogRow: View {
                 .truncationMode(.tail)
             Spacer()
         }
-    }
-}
-
-private struct NavigationButton: View {
-    let title: String
-    let symbol: String
-    let action: () -> Void
-
-    var body: some View {
-        Button {
-            // LSUIElement apps need to activate explicitly when opening
-            // a window from another window — the new one would appear
-            // behind whatever's frontmost otherwise.
-            NSApp.activate()
-            action()
-        } label: {
-            Label(title, systemImage: symbol)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-        }
-        .controlSize(.large)
     }
 }
 

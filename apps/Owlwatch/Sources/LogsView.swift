@@ -30,6 +30,7 @@ struct LogsView: View {
                 LogsDetailPane(viewModel: viewModel)
                     .navigationSplitViewColumnWidth(min: 320, ideal: 400)
             }
+            .tint(.owlAmber)
         }
         .onDisappear {
             viewModel.stopLiveTail()
@@ -42,12 +43,19 @@ struct LogsView: View {
     /// pre-filters the TCC tab to that process name (LogQuery's
     /// `process` field matches the short name `log show` reports,
     /// not the PID — so the name is what we wire).
+    ///
+    /// Called from `.onAppear` and `.onChange(of: model.focus)`
+    /// (both view-update phases), so mutations are deferred to the
+    /// next runloop to avoid the SwiftUI "Publishing changes from
+    /// within view updates" fault.
     private func applyFocus() {
         guard case .process(_, let name)? = model.focus else { return }
-        viewModel.selectedTab = .tcc
-        viewModel.processFilter = name
-        Task { await viewModel.apply() }
-        model.focus = nil
+        Task { @MainActor in
+            viewModel.selectedTab = .tcc
+            viewModel.processFilter = name
+            await viewModel.apply()
+            model.focus = nil
+        }
     }
 
     @ViewBuilder
@@ -147,12 +155,11 @@ private struct AllLogsList: View {
 
     var body: some View {
         if viewModel.logEntries.isEmpty {
-            ContentUnavailableView(
-                "No Log Entries",
-                systemImage: "doc.text",
-                description: Text(viewModel.lastRefresh == nil
-                                  ? "Set filters above and press Apply (⌘R) to query."
-                                  : "No entries matched. Widen the lookback or relax the filters.")
+            EmptyState(
+                text: viewModel.lastRefresh == nil
+                    ? "Set filters above and press Apply to query."
+                    : "No log entries match these filters.",
+                symbol: "doc.text"
             )
         } else {
             List(Array(viewModel.logEntries.enumerated()),
@@ -171,10 +178,9 @@ private struct LiveLogsList: View {
 
     var body: some View {
         if viewModel.liveEntries.isEmpty {
-            ContentUnavailableView(
-                "Live Tail",
-                systemImage: "dot.radiowaves.left.and.right",
-                description: Text("Set predicate filters above and press Start Tail (⌘R) to begin streaming.")
+            EmptyState(
+                text: "Set predicate filters above and press Start Tail to begin streaming.",
+                symbol: "dot.radiowaves.left.and.right"
             )
         } else {
             List(Array(viewModel.liveEntries.enumerated()),
@@ -193,12 +199,11 @@ private struct TCCEventsList: View {
 
     var body: some View {
         if viewModel.tccEvents.isEmpty {
-            ContentUnavailableView(
-                "No TCC Events",
-                systemImage: "lock.shield",
-                description: Text(viewModel.lastRefresh == nil
-                                  ? "Set filters above and press Apply (⌘R) to query."
-                                  : "No TCC transactions matched in the lookback window.")
+            EmptyState(
+                text: viewModel.lastRefresh == nil
+                    ? "Set filters above and press Apply to query."
+                    : "No TCC events match these filters.",
+                symbol: "lock.shield"
             )
         } else {
             List(viewModel.tccEvents,
