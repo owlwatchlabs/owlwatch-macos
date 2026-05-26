@@ -9,7 +9,12 @@ import SwiftUI
 struct FacetFlow: View {
     let facets: [ProcessFacet]
     @Binding var active: Set<ProcessFacet>
-    let count: (ProcessFacet) -> Int
+    /// Pre-resolved counts per facet. Passed as a value (not a
+    /// closure) so SwiftUI's struct-diffing sees fresh chip values
+    /// when the model's row set updates — a closure-typed property
+    /// is opaque to diffing and the chips ended up rendering with
+    /// stale (zero) counts.
+    let counts: [ProcessFacet: Int]
 
     var body: some View {
         FlowLayout(spacing: 6) {
@@ -17,7 +22,7 @@ struct FacetFlow: View {
                 FacetChip(
                     facet: facet,
                     isActive: active.contains(facet),
-                    count: count(facet)
+                    count: counts[facet] ?? 0
                 ) {
                     if active.contains(facet) {
                         active.remove(facet)

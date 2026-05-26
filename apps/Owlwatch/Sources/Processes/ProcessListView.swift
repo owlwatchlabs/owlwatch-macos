@@ -19,7 +19,9 @@ struct ProcessListView: View {
             FacetFlow(
                 facets: ProcessFacet.allCases,
                 active: $model.active,
-                count: model.count(_:)
+                counts: Dictionary(
+                    uniqueKeysWithValues: ProcessFacet.allCases.map { ($0, model.count($0)) }
+                )
             )
             statusRow
             Divider().overlay(Color.owlBorder)

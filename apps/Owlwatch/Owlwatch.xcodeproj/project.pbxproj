@@ -22,6 +22,7 @@
 		28214F1134BCA66E9F356017 /* PersistenceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E760B0CBDF97D4038125F9E1 /* PersistenceViewModel.swift */; };
 		28F76C71030A320D8687D4BA /* OWBinary in Frameworks */ = {isa = PBXBuildFile; productRef = E31B549812719EBEA5DDF202 /* OWBinary */; };
 		2A3BCF1308BDB51C79776AD6 /* OWLog in Frameworks */ = {isa = PBXBuildFile; productRef = D46A48954D1E9FA3595270DF /* OWLog */; };
+		2D64BFF6330EAE3F76569F11 /* MachOExpander.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C5FE670E887477D6B00856 /* MachOExpander.swift */; };
 		30086B3023C630861C97A4FF /* OWProcess in Frameworks */ = {isa = PBXBuildFile; productRef = 54DECE2B6767ACF115F976B3 /* OWProcess */; };
 		315C972D2048E05E2FD82C3B /* ProcessListModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9F4023019B6660B2F741FE4 /* ProcessListModel.swift */; };
 		3196A615905255DDCE2B1CFD /* T1564.001-process-in-hidden-dir.yml in Resources */ = {isa = PBXBuildFile; fileRef = BF4234C7D8A55FD0EA033FC7 /* T1564.001-process-in-hidden-dir.yml */; };
@@ -43,6 +44,7 @@
 		61ED2482F0FE14A21BADE3FB /* SpaceGrotesk-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8217D3A1A6327137DE7BA101 /* SpaceGrotesk-Medium.ttf */; };
 		669DC23441C1E293A41E553C /* LogsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A34451D50B9B2472FA4830A /* LogsViewModel.swift */; };
 		676A3127B37CF44C4B050028 /* T1546.004-launchagent-in-downloads.yml in Resources */ = {isa = PBXBuildFile; fileRef = 4FCD2C97A9FE63972299A444 /* T1546.004-launchagent-in-downloads.yml */; };
+		6C373B4486D8A0F99F66B173 /* TriageDossier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70561979E217CA91F3498741 /* TriageDossier.swift */; };
 		752CDD43B83C02F05AAB4AD8 /* ProcessesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B60FD47D6152FB295E78CF8E /* ProcessesViewModel.swift */; };
 		7920E096AB8ECC9A0AEA00A3 /* DevicesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C208052D3B33280B102FD84E /* DevicesView.swift */; };
 		8290DB5194013522014861F8 /* JetBrainsMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5B438CBFBFE97AA958F19BEC /* JetBrainsMono-Regular.ttf */; };
@@ -78,6 +80,7 @@
 
 /* Begin PBXFileReference section */
 		0970F8F3F0B59EA70150BEE1 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		17C5FE670E887477D6B00856 /* MachOExpander.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MachOExpander.swift; sourceTree = "<group>"; };
 		1AF22C7562FD827B232506BC /* MenuBarStatusModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarStatusModel.swift; sourceTree = "<group>"; };
 		1EB594B8241926AF224E7A18 /* OwlwatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OwlwatchApp.swift; sourceTree = "<group>"; };
 		23046FF903F8FF662AC40E27 /* NetworkViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkViewModel.swift; sourceTree = "<group>"; };
@@ -104,6 +107,7 @@
 		63900F3C092E8EC0B34DA6A8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		659A0D35E859A7A23939CDDB /* ProcessListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessListView.swift; sourceTree = "<group>"; };
 		65E5540D063BAC38169407A4 /* PersistenceItemList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceItemList.swift; sourceTree = "<group>"; };
+		70561979E217CA91F3498741 /* TriageDossier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriageDossier.swift; sourceTree = "<group>"; };
 		7A34451D50B9B2472FA4830A /* LogsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogsViewModel.swift; sourceTree = "<group>"; };
 		7BB0BFADD3D89069B166C453 /* T1553.005-developer-id-without-stapled-ticket.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = "T1553.005-developer-id-without-stapled-ticket.yml"; sourceTree = "<group>"; };
 		7DFA576C822612D439823624 /* owlwatch-mark.svg */ = {isa = PBXFileReference; path = "owlwatch-mark.svg"; sourceTree = "<group>"; };
@@ -165,11 +169,13 @@
 			isa = PBXGroup;
 			children = (
 				636F86A5E8EF0E07911EDD5D /* FacetFlow.swift */,
+				17C5FE670E887477D6B00856 /* MachOExpander.swift */,
 				AC2F150064DC1F3C1130D6B9 /* ProcessFacet.swift */,
 				D9F4023019B6660B2F741FE4 /* ProcessListModel.swift */,
 				659A0D35E859A7A23939CDDB /* ProcessListView.swift */,
 				D7D8B035B617C39FD254A4AA /* ProcessRow.swift */,
 				918F709858F305C37B617BAC /* ProcessRowVM.swift */,
+				70561979E217CA91F3498741 /* TriageDossier.swift */,
 			);
 			path = Processes;
 			sourceTree = "<group>";
@@ -435,6 +441,7 @@
 				83A438F76F038A442F6C74E4 /* InspectorView.swift in Sources */,
 				EF7CFE667D887DA220067F3D /* LogsView.swift in Sources */,
 				669DC23441C1E293A41E553C /* LogsViewModel.swift in Sources */,
+				2D64BFF6330EAE3F76569F11 /* MachOExpander.swift in Sources */,
 				F995B56C2B64C1231C207C26 /* MenuBarStatusModel.swift in Sources */,
 				0788BDA28AE63B1EC0B72AB3 /* MenuRouter.swift in Sources */,
 				FC95847A7B66AC1E8D301B6B /* NetworkView.swift in Sources */,
@@ -458,6 +465,7 @@
 				752CDD43B83C02F05AAB4AD8 /* ProcessesViewModel.swift in Sources */,
 				24B9B2DCD2A2A0C7807EB531 /* RootView.swift in Sources */,
 				AE6201E24E0703D086B2AEB9 /* Tokens.swift in Sources */,
+				6C373B4486D8A0F99F66B173 /* TriageDossier.swift in Sources */,
 				894AC8EE3B325BFAB5ECD4F6 /* TriageStyles.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
