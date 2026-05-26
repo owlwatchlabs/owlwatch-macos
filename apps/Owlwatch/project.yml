@@ -31,6 +31,13 @@ targets:
       - path: Sources
       - path: Resources
         buildPhase: resources
+      # Bundle the shipped OWRules YAML library as a Resources/Rules/
+      # subdirectory in the app. The faceted process list runs the
+      # rules engine on-the-fly to populate per-row rule counts and
+      # the "Flagged" facet.
+      - path: ../../packages/Rules
+        buildPhase: resources
+        name: Rules
     info:
       path: Sources/Info.plist
       properties:
@@ -72,5 +79,7 @@ targets:
         product: OWBinary
       - package: Owlwatch
         product: OWCodeSigning
+      - package: Owlwatch
+        product: OWRules
       - package: Owlwatch
         product: OWTriage
