@@ -26,6 +26,7 @@ struct DevicesView: View {
                 DevicesDetailPane(viewModel: viewModel)
                     .navigationSplitViewColumnWidth(min: 320, ideal: 380)
             }
+            .tint(.owlAmber)
         }
         .task {
             viewModel.startMonitor()
@@ -148,10 +149,7 @@ private struct DevicesList: View {
 
     var body: some View {
         if items.isEmpty {
-            ContentUnavailableView(
-                emptyTitle, systemImage: "questionmark.dashed",
-                description: Text(emptyBody)
-            )
+            EmptyState(text: emptyBody, symbol: "questionmark.dashed")
         } else {
             List(items, selection: $selection) { item in
                 DevicesRow(item: item).tag(item.id)

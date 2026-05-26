@@ -29,6 +29,7 @@ struct ProcessesView: View {
                 ProcessesDetailPane(viewModel: viewModel)
                     .navigationSplitViewColumnWidth(min: 320, ideal: 380)
             }
+            .tint(.owlAmber)
         }
         .task {
             if viewModel.lastRefresh == nil {
@@ -89,12 +90,11 @@ private struct ProcessesFlatList: View {
     var body: some View {
         let items = viewModel.visibleProcesses
         if items.isEmpty {
-            ContentUnavailableView(
-                viewModel.searchText.isEmpty ? "No Processes" : "No Matches",
-                systemImage: "cpu",
-                description: Text(viewModel.searchText.isEmpty
-                                  ? "OWProcess.all() returned an empty list."
-                                  : "Filter '\(viewModel.searchText)' matched nothing.")
+            EmptyState(
+                text: viewModel.searchText.isEmpty
+                    ? "No processes found."
+                    : "No processes match this filter.",
+                symbol: "cpu"
             )
         } else {
             List(items, id: \.pid, selection: $viewModel.selectedPID) { process in
@@ -111,11 +111,7 @@ private struct ProcessesTreeView: View {
     var body: some View {
         let nodes = viewModel.processTree
         if nodes.isEmpty {
-            ContentUnavailableView(
-                "No Processes",
-                systemImage: "rectangle.3.group",
-                description: Text("OWProcess.all() returned an empty list.")
-            )
+            EmptyState(text: "No processes found.", symbol: "rectangle.3.group")
         } else {
             List(selection: $viewModel.selectedPID) {
                 OutlineGroup(nodes, children: \.children) { node in

@@ -44,10 +44,17 @@ struct InspectorView: View {
 
     /// Cross-link target: load the supplied binary URL. Set from
     /// the Processes detail panel.
+    ///
+    /// Called from `.onAppear` and `.onChange(of: model.focus)`
+    /// (both view-update phases), so mutations run on the next
+    /// runloop to avoid the SwiftUI "Publishing changes from within
+    /// view updates" fault.
     private func applyFocus() {
         guard case .binary(let url)? = model.focus else { return }
-        Task { await viewModel.load(url: url) }
-        model.focus = nil
+        Task { @MainActor in
+            await viewModel.load(url: url)
+            model.focus = nil
+        }
     }
 
     @ViewBuilder
@@ -148,10 +155,9 @@ private struct BinaryInspectorContent: View {
 
     var body: some View {
         if viewModel.binary == nil && viewModel.path == nil {
-            ContentUnavailableView(
-                "No binary loaded",
-                systemImage: "doc.text.magnifyingglass",
-                description: Text("Use ⌘O to open a Mach-O binary or signed bundle.")
+            EmptyState(
+                text: "Use ⌘O to open a Mach-O binary or signed bundle.",
+                symbol: "doc.text.magnifyingglass"
             )
         } else {
             switch viewModel.selectedSection {
@@ -434,10 +440,9 @@ private struct SymbolsPane: View {
             .padding(.vertical, 8)
             Divider()
             if viewModel.currentSlice?.symbols == nil {
-                ContentUnavailableView(
-                    "Symbols not loaded",
-                    systemImage: "function",
-                    description: Text("Press Load symbols to parse the symbol table.")
+                EmptyState(
+                    text: "Press Load symbols to parse the symbol table.",
+                    symbol: "function"
                 )
             } else {
                 SymbolColumnHeader()
@@ -584,10 +589,9 @@ private struct EntitlementsPane: View {
             VStack(alignment: .leading, spacing: 12) {
                 if let entitlements = viewModel.signature?.entitlements {
                     if entitlements.isEmpty {
-                        ContentUnavailableView(
-                            "Entitlements blob present",
-                            systemImage: "key.horizontal",
-                            description: Text("Structural placeholder — no entries.")
+                        EmptyState(
+                            text: "Entitlements blob present but empty — structural placeholder.",
+                            symbol: "key.horizontal"
                         )
                     } else {
                         ForEach(entitlements.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
@@ -605,16 +609,11 @@ private struct EntitlementsPane: View {
                         }
                     }
                 } else if viewModel.signature?.isSigned == false {
-                    ContentUnavailableView(
-                        "No entitlements",
-                        systemImage: "key.horizontal",
-                        description: Text("Binary is unsigned.")
-                    )
+                    EmptyState(text: "Binary is unsigned — no entitlements.", symbol: "key.horizontal")
                 } else {
-                    ContentUnavailableView(
-                        "No entitlements embedded",
-                        systemImage: "key.horizontal",
-                        description: Text("Most Apple system binaries don't carry an entitlements blob.")
+                    EmptyState(
+                        text: "No entitlements embedded — most Apple system binaries don't carry one.",
+                        symbol: "key.horizontal"
                     )
                 }
             }
