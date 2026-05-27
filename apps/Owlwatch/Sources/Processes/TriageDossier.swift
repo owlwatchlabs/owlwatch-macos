@@ -24,7 +24,7 @@ struct TriageDossier: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 14) {
                 header
                 findingsSection
                 identitySection
@@ -32,11 +32,19 @@ struct TriageDossier: View {
                     persistenceSection
                 }
                 linkedSection
-                MachOExpander(path: row.path)
+                MachOExpander(
+                    path: row.path,
+                    onOpenInInspector: {
+                        guard let path = row.path else { return }
+                        app.focus = .binary(URL(fileURLWithPath: path))
+                        app.section = .inspector
+                    }
+                )
                 argumentsSection
                 openFilesSection
             }
-            .padding()
+            .padding(.horizontal, 12)
+            .padding(.vertical, 16)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
@@ -113,18 +121,24 @@ struct TriageDossier: View {
         }
     }
 
+    /// Cross-link cluster: the inline Network preview card plus the
+    /// Inspector / Logs single-line links. No section header — the
+    /// card's own "NETWORK" label and the link-row icons carry the
+    /// visual weight on their own.
     @ViewBuilder
     private var linkedSection: some View {
-        DossierSection("Linked")
-        VStack(alignment: .leading, spacing: 6) {
-            LinkedRow(
-                icon: "globe",
-                label: "Network · sockets owned by pid \(raw(row.pid))",
-                tint: .owlBlue
-            ) {
-                app.focus = .process(pid: row.pid, name: row.name)
-                app.section = .network
-            }
+        VStack(alignment: .leading, spacing: 8) {
+            // Network gets the inline preview card. Inspector and
+            // Logs stay one-line navigation links.
+            NetworkPreviewCard(
+                pid: row.pid,
+                processName: row.name,
+                connections: listModel.connections(for: row.pid),
+                onOpenInNetwork: {
+                    app.focus = .process(pid: row.pid, name: row.name)
+                    app.section = .network
+                }
+            )
             if let path = row.path {
                 LinkedRow(
                     icon: "doc.text.magnifyingglass",

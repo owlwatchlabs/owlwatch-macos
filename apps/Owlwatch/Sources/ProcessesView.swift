@@ -15,17 +15,24 @@ struct ProcessesView: View {
     @StateObject private var listModel = ProcessListModel()
 
     var body: some View {
-        NavigationSplitView {
+        // HSplitView (rather than a nested NavigationSplitView) is
+        // intentional: SwiftUI's nested NavigationSplitView doesn't
+        // honor the inner detail's `max: .infinity` column flex,
+        // and the inner panes ended up locked to their ideal widths
+        // with a dead band between them. HSplitView is a thin
+        // NSSplitView wrapper that fills its parent and respects
+        // per-pane `.frame` minimums.
+        HSplitView {
             ProcessListView(model: listModel)
-                .navigationSplitViewColumnWidth(min: 420, ideal: 520)
-        } detail: {
-            if let row = listModel.rows.first(where: { $0.pid == listModel.selection }) {
-                TriageDossier(row: row, listModel: listModel, viewModel: viewModel)
-                    .navigationSplitViewColumnWidth(min: 360, ideal: 420)
-            } else {
-                EmptyState(text: "Select a process to see its details.")
-                    .navigationSplitViewColumnWidth(min: 360, ideal: 420)
+                .frame(minWidth: 420, idealWidth: 520, maxWidth: 720)
+            Group {
+                if let row = listModel.rows.first(where: { $0.pid == listModel.selection }) {
+                    TriageDossier(row: row, listModel: listModel, viewModel: viewModel)
+                } else {
+                    EmptyState(text: "Select a process to see its details.")
+                }
             }
+            .frame(minWidth: 360, maxWidth: .infinity)
         }
         .tint(.owlAmber)
         .task {

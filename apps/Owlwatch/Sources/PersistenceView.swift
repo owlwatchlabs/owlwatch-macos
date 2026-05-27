@@ -23,12 +23,13 @@ struct PersistenceView: View {
                 Spacer()
                 refreshGroup
             }
-            NavigationSplitView {
+            // See ProcessesView — HSplitView avoids the nested-
+            // NavigationSplitView dead band.
+            HSplitView {
                 PersistenceItemList(viewModel: viewModel)
-                    .navigationSplitViewColumnWidth(min: 320, ideal: 420)
-            } detail: {
+                    .frame(minWidth: 320, idealWidth: 420, maxWidth: 720)
                 PersistenceItemDetail(item: viewModel.selectedItem)
-                    .navigationSplitViewColumnWidth(min: 320, ideal: 380)
+                    .frame(minWidth: 320, maxWidth: .infinity)
             }
             .tint(.owlAmber)
         }

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0788BDA28AE63B1EC0B72AB3 /* MenuRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED3E251A707A8196D57D247B /* MenuRouter.swift */; };
+		1329AF71F18DB4CACE40F92E /* NetworkPreviewCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B310013D9FF628F25D3AAEB4 /* NetworkPreviewCard.swift */; };
 		13886BE57A3821A5FDC66C38 /* T1059.004-process-from-tmp.yml in Resources */ = {isa = PBXBuildFile; fileRef = 445B2A5210D16F82471853AC /* T1059.004-process-from-tmp.yml */; };
 		166746063517580931B16E69 /* T1036.005-apple-binary-masquerade.yml in Resources */ = {isa = PBXBuildFile; fileRef = F88EBF5493917419509B5600 /* T1036.005-apple-binary-masquerade.yml */; };
 		166CB230F105B4F170E6A247 /* AppSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C57AAFA08BEB63D2B9CB632C /* AppSection.swift */; };
@@ -121,6 +122,7 @@
 		981E79BBA239109830F7EDB9 /* T1547.001-login-item-no-developer.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = "T1547.001-login-item-no-developer.yml"; sourceTree = "<group>"; };
 		9CE8E9AF31294ABC79F5670F /* T1547.006-third-party-kernel-extension.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = "T1547.006-third-party-kernel-extension.yml"; sourceTree = "<group>"; };
 		AC2F150064DC1F3C1130D6B9 /* ProcessFacet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessFacet.swift; sourceTree = "<group>"; };
+		B310013D9FF628F25D3AAEB4 /* NetworkPreviewCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkPreviewCard.swift; sourceTree = "<group>"; };
 		B5DA4A85B1E576488B966939 /* OwlMark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OwlMark.swift; sourceTree = "<group>"; };
 		B60FD47D6152FB295E78CF8E /* ProcessesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessesViewModel.swift; sourceTree = "<group>"; };
 		B865BA7F775CAE9B24E3EA0F /* T1059.004-curl-pipe-shell.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = "T1059.004-curl-pipe-shell.yml"; sourceTree = "<group>"; };
@@ -170,6 +172,7 @@
 			children = (
 				636F86A5E8EF0E07911EDD5D /* FacetFlow.swift */,
 				17C5FE670E887477D6B00856 /* MachOExpander.swift */,
+				B310013D9FF628F25D3AAEB4 /* NetworkPreviewCard.swift */,
 				AC2F150064DC1F3C1130D6B9 /* ProcessFacet.swift */,
 				D9F4023019B6660B2F741FE4 /* ProcessListModel.swift */,
 				659A0D35E859A7A23939CDDB /* ProcessListView.swift */,
@@ -444,6 +447,7 @@
 				2D64BFF6330EAE3F76569F11 /* MachOExpander.swift in Sources */,
 				F995B56C2B64C1231C207C26 /* MenuBarStatusModel.swift in Sources */,
 				0788BDA28AE63B1EC0B72AB3 /* MenuRouter.swift in Sources */,
+				1329AF71F18DB4CACE40F92E /* NetworkPreviewCard.swift in Sources */,
 				FC95847A7B66AC1E8D301B6B /* NetworkView.swift in Sources */,
 				54413CA5546526C8EE245540 /* NetworkViewModel.swift in Sources */,
 				EC422159D5A265A5A3631212 /* OverviewView.swift in Sources */,
