@@ -1,33 +1,40 @@
 import NetworkExtension
+import OWNetworkExt
 import os
 
-/// M7.1 Content Filter system extension — scaffold.
+/// M7.2 Content Filter system extension — the visibility provider.
 ///
-/// This subclass owns the NEFilterDataProvider lifecycle: the system
-/// instantiates it inside the sandboxed sysext process after the
-/// container app activates and enables the filter. M7.1 covers
-/// scaffolding only — the provider stands up, accepts the start /
-/// stop lifecycle, and pass-through-allows every flow. M7.2 will
-/// add the FlowEvent emission + XPC channel; M7.3 wires the UI.
+/// Subclass of `NEFilterDataProvider`. The system instantiates it
+/// inside the sandboxed sysext process once the container app
+/// activates and enables the filter.
+///
+/// Behavior:
+/// - `startFilter` brings up the `FlowEventListener` that the app
+///   dials in over XPC.
+/// - `handleNewFlow` shapes each `NEFilterSocketFlow` into a
+///   `FlowEvent` (see `FlowExtraction`) and hands it to the
+///   listener, which either pushes it to a connected app or
+///   buffers it for the next reconnect. Every flow returns
+///   `.allow()` — visibility milestone, no enforcement.
 ///
 /// Posture:
-/// - Visibility milestone, not enforcement. Every flow returns
-///   `.allow()`. The verdict structure is preserved so a future
-///   policy decision can be slotted in without re-architecting.
-/// - The provider has no disk / network access (sysext sandbox).
-///   Anything that needs to leave the sysext goes over XPC to the
-///   container app — landing in M7.2.
+/// - The sysext sandbox blocks disk and network. The only outbound
+///   path is XPC. The listener accepts a single peer at a time
+///   and verifies it against Team ID `8VA5VUL6X6` before
+///   delivering anything.
+/// - The verdict structure is preserved (`return .allow()`) so a
+///   future enforcement decision can drop in here without re-
+///   architecting handleNewFlow.
 final class ContentFilterProvider: NEFilterDataProvider {
     private let log = Logger(
         subsystem: "com.owlwatchlabs.owlwatch.contentfilter",
         category: "provider"
     )
+    private let listener = FlowEventListener()
 
     override func startFilter(completionHandler: @escaping (Error?) -> Void) {
-        log.info("startFilter — M7.1 visibility-only scaffold")
-        // No upstream state to load yet. M7.2 will dial the XPC
-        // channel here so the container app starts receiving events
-        // as soon as the system asks us to filter.
+        log.info("startFilter — M7.2 flow-event provider")
+        listener.resume()
         completionHandler(nil)
     }
 
@@ -35,15 +42,17 @@ final class ContentFilterProvider: NEFilterDataProvider {
         with reason: NEProviderStopReason,
         completionHandler: @escaping () -> Void
     ) {
-        log.info("stopFilter — reason=\(reason.rawValue)")
+        log.info("stopFilter — reason=\(reason.rawValue, privacy: .public)")
         completionHandler()
     }
 
     override func handleNewFlow(_ flow: NEFilterFlow) -> NEFilterNewFlowVerdict {
-        // M7.1: visibility-only pass-through. Returning `.allow()`
-        // tells the kernel filter we don't need to see the payload —
-        // socket open/close events still surface to handleNewFlow,
-        // which is exactly what M7.2's FlowEvent capture wants.
+        if let event = FlowExtraction.event(from: flow) {
+            listener.deliver(event)
+        }
+        // Visibility-only — every flow goes through. The kernel
+        // filter won't ask us about subsequent payload bytes
+        // because we don't request `.filterDataVerdict(...)`.
         return .allow()
     }
 }

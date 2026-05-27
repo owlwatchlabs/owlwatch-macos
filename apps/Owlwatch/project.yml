@@ -3,7 +3,7 @@ name: Owlwatch
 options:
   bundleIdPrefix: com.owlwatchlabs.owlwatch
   deploymentTarget:
-    macOS: "14.0"
+    macOS: "15.0"
   createIntermediateGroups: true
   generateEmptyDirectories: true
 
@@ -11,7 +11,7 @@ settings:
   base:
     SWIFT_VERSION: "6.0"
     SWIFT_STRICT_CONCURRENCY: complete
-    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    MACOSX_DEPLOYMENT_TARGET: "15.0"
     ENABLE_HARDENED_RUNTIME: YES
     # M7 signing posture. Apple Developer Program team
     # 8VA5VUL6X6 (OwlWatch Labs). See memory/signing-posture.md.
@@ -57,7 +57,7 @@ targets:
       path: Sources/Info.plist
       properties:
         LSUIElement: true
-        LSMinimumSystemVersion: "14.0"
+        LSMinimumSystemVersion: "15.0"
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSHumanReadableCopyright: "Copyright © 2026 Owlwatch contributors."
@@ -117,6 +117,11 @@ targets:
         product: OWRules
       - package: Owlwatch
         product: OWTriage
+      # M7.2 shared module — FlowEvent model + XPC protocols +
+      # client wrapper. The container app uses FlowEventClient to
+      # consume the live flow stream from the sysext.
+      - package: Owlwatch
+        product: OWNetworkExt
       # M7 — content-filter system extension. xcodegen's
       # `embed: true` on a system-extension target installs it
       # under Contents/Library/SystemExtensions/ in the app bundle
@@ -135,11 +140,22 @@ targets:
     platform: macOS
     sources:
       - path: OwlwatchContentFilter/Sources
+    dependencies:
+      # FlowEvent model + XPC listener wrapper. The extension
+      # uses FlowEventListener to advertise itself on the Mach
+      # service the container app dials.
+      - package: Owlwatch
+        product: OWNetworkExt
+      # `audit_token_to_pid` (libbsm) is required by FlowExtraction
+      # for resolving the source process of each NEFilterFlow.
+      # `proc_pidpath_audittoken` (libproc) is part of the system
+      # framework already; libbsm must be linked explicitly.
+      - sdk: libbsm.tbd
     info:
       path: OwlwatchContentFilter/Info.plist
       properties:
         CFBundleDisplayName: Owlwatch Content Filter
-        LSMinimumSystemVersion: "14.0"
+        LSMinimumSystemVersion: "15.0"
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSHumanReadableCopyright: "Copyright © 2026 Owlwatch contributors."

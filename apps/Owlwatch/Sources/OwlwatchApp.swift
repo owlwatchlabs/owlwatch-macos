@@ -20,6 +20,12 @@ struct OwlwatchApp: App {
     /// menu-bar mark stay in sync.
     @State private var status = MenuBarStatusModel()
 
+    /// M7.2 — app-wide consumer of the flow stream from the
+    /// OwlwatchContentFilter system extension. Held at the
+    /// scene level so it survives section switches and keeps a
+    /// rolling ring of recent events for the M7.3 Network surface.
+    @State private var flowStream = FlowEventStream()
+
     var body: some Scene {
         MenuBarExtra {
             OwlwatchMenuBarContent(status: status)
@@ -43,6 +49,15 @@ struct OwlwatchApp: App {
         Window("Owlwatch", id: Self.mainWindowID) {
             RootView()
                 .environmentObject(model)
+                .environment(flowStream)
+                .task {
+                    // Kick off the XPC dial to the sysext on
+                    // first appear. The client transitions to
+                    // `.disconnected(...)` if the sysext isn't
+                    // installed yet — that's expected and the
+                    // user can install it from Overview.
+                    flowStream.start()
+                }
                 .tint(.owlAmber)
                 .preferredColorScheme(.dark)
         }
