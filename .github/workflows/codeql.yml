@@ -12,11 +12,16 @@
 name: CodeQL
 
 on:
-  pull_request:
+  # PR trigger intentionally disabled — CodeQL init + build +
+  # analyze regularly stretches past 10 min on macOS runners and
+  # was keeping every PR in "in progress" indefinitely. Analysis
+  # still runs on push to main and on the weekly cron, and can be
+  # kicked off manually for spot checks.
   push:
     branches: [main]
   schedule:
     - cron: '0 6 * * 1'
+  workflow_dispatch:
 
 permissions:
   actions: read

@@ -23,12 +23,13 @@ struct LogsView: View {
             }
             LogsFilterBar(viewModel: viewModel)
             Divider()
-            NavigationSplitView {
+            // See ProcessesView — HSplitView avoids the nested-
+            // NavigationSplitView dead band.
+            HSplitView {
                 LogsCenterPane(viewModel: viewModel)
-                    .navigationSplitViewColumnWidth(min: 420, ideal: 560)
-            } detail: {
+                    .frame(minWidth: 420, idealWidth: 560, maxWidth: 780)
                 LogsDetailPane(viewModel: viewModel)
-                    .navigationSplitViewColumnWidth(min: 320, ideal: 400)
+                    .frame(minWidth: 320, maxWidth: .infinity)
             }
             .tint(.owlAmber)
         }

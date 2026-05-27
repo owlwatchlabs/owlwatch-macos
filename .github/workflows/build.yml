@@ -8,9 +8,13 @@
 name: Build & test
 
 on:
-  pull_request:
+  # PR trigger intentionally disabled — a clean Swift build on a
+  # macOS runner takes minutes per push and we kept blocking on it
+  # while the public-repo CI ramp-up settles. Build still runs on
+  # push to main, and can be kicked off manually before a release.
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read

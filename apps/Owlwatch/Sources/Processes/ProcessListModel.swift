@@ -49,6 +49,11 @@ final class ProcessListModel: ObservableObject {
     /// Repopulated each refresh from the launch-services snapshot.
     private var launchByPid: [pid_t: [LaunchService]] = [:]
 
+    /// Per-pid connections — used by the dossier's Network preview
+    /// card. Same data source the full Network section reads, just
+    /// indexed for the per-process view.
+    private var connectionsByPid: [pid_t: [Connection]] = [:]
+
     /// Loaded once, reused across refreshes.
     private var cachedRules: [Rule]?
 
@@ -122,6 +127,7 @@ final class ProcessListModel: ObservableObject {
         let launchServices = await launchT
 
         let connsByPid = Dictionary(grouping: connections, by: { $0.pid })
+        connectionsByPid = connsByPid
         let launchByPath = Dictionary(
             grouping: launchServices.filter { $0.executablePath != nil },
             by: { $0.executablePath! }
@@ -276,6 +282,12 @@ final class ProcessListModel: ObservableObject {
     /// pid's process path. Used by the dossier's persistence section.
     func launchServices(for pid: pid_t) -> [LaunchService] {
         launchByPid[pid] ?? []
+    }
+
+    /// Connections owned by the given pid. Used by the dossier's
+    /// Network preview card.
+    func connections(for pid: pid_t) -> [Connection] {
+        connectionsByPid[pid] ?? []
     }
 
     // MARK: - Helpers

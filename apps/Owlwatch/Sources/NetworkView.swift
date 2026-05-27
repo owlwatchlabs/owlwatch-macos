@@ -21,12 +21,15 @@ struct NetworkView: View {
                 Spacer()
                 refreshGroup
             }
-            NavigationSplitView {
+            // HSplitView, not a nested NavigationSplitView — the
+            // nested split doesn't honor the inner detail's column
+            // flex and leaves a dead band between the panes. See
+            // ProcessesView for the same fix.
+            HSplitView {
                 NetworkCenterPane(viewModel: viewModel)
-                    .navigationSplitViewColumnWidth(min: 400, ideal: 520)
-            } detail: {
+                    .frame(minWidth: 400, idealWidth: 520, maxWidth: 720)
                 NetworkDetailPane(viewModel: viewModel)
-                    .navigationSplitViewColumnWidth(min: 320, ideal: 380)
+                    .frame(minWidth: 320, maxWidth: .infinity)
             }
             .tint(.owlAmber)
         }
