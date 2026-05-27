@@ -105,7 +105,9 @@ final class ContentFilterActivator: NSObject {
         // Info.plist equivalent.
         let configuration = NEFilterProviderConfiguration()
         configuration.filterSockets = true
-        configuration.filterBrowsers = false
+        // `filterBrowsers` is deprecated on macOS (it never did
+        // anything outside iOS). `filterPackets` is for packet-
+        // tunnel providers, not what we want.
         configuration.filterPackets = false
         configuration.filterDataProviderBundleIdentifier = Self.extensionBundleID
         configuration.organization = "Owlwatch"

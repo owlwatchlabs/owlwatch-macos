@@ -38,6 +38,7 @@
 		4A3D90CEB339A0BC0F4017AC /* ProcessesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F1ADC1EE38306838A98D41A /* ProcessesView.swift */; };
 		4DCA699CC31C1A51AD7F6574 /* owlwatch-icon-1024.png in Resources */ = {isa = PBXBuildFile; fileRef = 852CCFEE2D3C49898E1FBAAE /* owlwatch-icon-1024.png */; };
 		54413CA5546526C8EE245540 /* NetworkViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23046FF903F8FF662AC40E27 /* NetworkViewModel.swift */; };
+		553503B78C325101D779EE22 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BB94C357719AE5F9085227F /* main.swift */; };
 		58E564F3FFE486AD0E59C474 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0970F8F3F0B59EA70150BEE1 /* AppModel.swift */; };
 		59CDB60D14F061605963AF2E /* OWNetwork in Frameworks */ = {isa = PBXBuildFile; productRef = 9AB02C19DDEC9E21BC9A5868 /* OWNetwork */; };
 		5AD25AC8D1762145AEEF7504 /* BinaryInspectorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFE9B9AE86185CD172F8F8F /* BinaryInspectorViewModel.swift */; };
@@ -108,6 +109,7 @@
 
 /* Begin PBXFileReference section */
 		0970F8F3F0B59EA70150BEE1 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		0BB94C357719AE5F9085227F /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		17C5FE670E887477D6B00856 /* MachOExpander.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MachOExpander.swift; sourceTree = "<group>"; };
 		1AF22C7562FD827B232506BC /* MenuBarStatusModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarStatusModel.swift; sourceTree = "<group>"; };
 		1EB594B8241926AF224E7A18 /* OwlwatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OwlwatchApp.swift; sourceTree = "<group>"; };
@@ -370,6 +372,7 @@
 			isa = PBXGroup;
 			children = (
 				4247ED8970C05F2B6B7EB888 /* ContentFilterProvider.swift */,
+				0BB94C357719AE5F9085227F /* main.swift */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -561,6 +564,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B0981F888843D8BFB03D95D4 /* ContentFilterProvider.swift in Sources */,
+				553503B78C325101D779EE22 /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
