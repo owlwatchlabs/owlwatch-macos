@@ -12,6 +12,7 @@ import SwiftUI
 /// nothing stray says "Dashboard".
 struct OverviewView: View {
     @State private var viewModel = OverviewViewModel()
+    @State private var contentFilter = ContentFilterActivator()
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
@@ -27,6 +28,7 @@ struct OverviewView: View {
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
+                    contentFilterCard
                     summaryGrid
                     Divider()
                     recentActivitySection
@@ -39,6 +41,82 @@ struct OverviewView: View {
             if viewModel.lastRefresh == nil {
                 await viewModel.refresh()
             }
+            await contentFilter.reconcileFromPreferences()
+        }
+    }
+
+    // MARK: - Content filter card (M7.1)
+
+    /// Minimal status + install affordance for the M7 content filter.
+    /// Scope here is intentionally tight — M7.3 will land richer
+    /// flow visibility on the Network surface. This card just makes
+    /// the activation flow reachable without a CLI.
+    @ViewBuilder
+    private var contentFilterCard: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "network.badge.shield.half.filled")
+                .font(.title2)
+                .foregroundStyle(filterStateColor)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Content filter")
+                    .font(.headline)
+                Text(filterStateLabel)
+                    .font(.owlMono(11))
+                    .foregroundStyle(Color.owlTextMuted)
+            }
+            Spacer()
+            Button(action: contentFilter.requestActivation) {
+                Text(filterButtonLabel)
+                    .font(.owlMono(12))
+                    .foregroundStyle(Color.owlAmber)
+            }
+            .buttonStyle(.plain)
+            .disabled(filterButtonDisabled)
+        }
+        .padding(12)
+        .background(Color.owlSurface, in: RoundedRectangle(cornerRadius: 9))
+        .overlay(
+            RoundedRectangle(cornerRadius: 9)
+                .stroke(Color.owlBorder, lineWidth: 1)
+        )
+    }
+
+    private var filterStateColor: Color {
+        switch contentFilter.state {
+        case .enabled:                          return .owlGreen
+        case .failed:                           return .owlRed
+        case .willCompleteAfterReboot,
+             .awaitingUserApproval:             return .owlAmber
+        default:                                return .owlTextMuted
+        }
+    }
+
+    private var filterStateLabel: String {
+        switch contentFilter.state {
+        case .idle:                         return "not installed"
+        case .requestingActivation:         return "requesting activation…"
+        case .awaitingUserApproval:         return "waiting on your approval in System Settings"
+        case .configuringFilter:            return "configuring filter…"
+        case .enabled:                      return "active · observing flows"
+        case .willCompleteAfterReboot:      return "will finish after reboot"
+        case .failed(let message):          return "failed: \(message)"
+        }
+    }
+
+    private var filterButtonLabel: String {
+        switch contentFilter.state {
+        case .enabled:  return "reinstall"
+        case .failed:   return "retry"
+        default:        return "install"
+        }
+    }
+
+    private var filterButtonDisabled: Bool {
+        switch contentFilter.state {
+        case .requestingActivation, .configuringFilter, .awaitingUserApproval:
+            return true
+        default:
+            return false
         }
     }
 
