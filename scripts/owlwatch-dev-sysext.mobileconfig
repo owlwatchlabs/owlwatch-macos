@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Owlwatch dev sysext authorization.
+
+  System-Extensions on macOS Tahoe (26+) require either notarization
+  or a com.apple.system-extension-policy MDM payload that pre-
+  authorizes the team / bundle. SIP off + developer mode on are
+  necessary but not sufficient — sysextd's policy evaluator still
+  refuses with "no policy, cannot allow apps outside /Applications"
+  for development-signed apps.
+
+  This profile authorizes Owlwatch's content-filter sysext on the
+  developer VM. It's a development-only artifact; production
+  release goes through Developer ID + notarization which doesn't
+  need this. Do NOT ship this profile to end users.
+
+  Install on the dev VM with:
+      sudo profiles -i -F /tmp/owlwatch-dev-sysext.mobileconfig
+
+  After install, sysextd's db.plist gets a populated
+  `extensionPolicies` array authorizing team 8VA5VUL6X6's content
+  filter, and OSSystemExtensionRequest activations succeed without
+  the System Settings approval prompt.
+-->
+<plist version="1.0">
+<dict>
+  <key>PayloadType</key>
+  <string>Configuration</string>
+  <key>PayloadIdentifier</key>
+  <string>com.owlwatchlabs.owlwatch.dev-sysext-policy</string>
+  <key>PayloadUUID</key>
+  <string>13068C4F-8F25-4C2C-ACF4-A56B9B7760A9</string>
+  <key>PayloadVersion</key>
+  <integer>1</integer>
+  <key>PayloadDisplayName</key>
+  <string>Owlwatch dev sysext authorization</string>
+  <key>PayloadDescription</key>
+  <string>Pre-authorizes Owlwatch's content-filter system extension for development.</string>
+  <key>PayloadOrganization</key>
+  <string>OwlWatch Labs (dev)</string>
+  <key>PayloadScope</key>
+  <string>System</string>
+  <key>PayloadContent</key>
+  <array>
+    <dict>
+      <key>PayloadType</key>
+      <string>com.apple.system-extension-policy</string>
+      <key>PayloadIdentifier</key>
+      <string>com.owlwatchlabs.owlwatch.dev-sysext-policy.payload</string>
+      <key>PayloadUUID</key>
+      <string>EABC2AA3-6DB8-4EF2-AD04-1180A232FAD1</string>
+      <key>PayloadVersion</key>
+      <integer>1</integer>
+      <key>PayloadDisplayName</key>
+      <string>Owlwatch sysext allowlist</string>
+      <key>PayloadDescription</key>
+      <string>Allows team 8VA5VUL6X6 to install com.owlwatchlabs.owlwatch.contentfilter.</string>
+      <key>PayloadEnabled</key>
+      <true/>
+      <key>AllowUserOverrides</key>
+      <true/>
+      <key>AllowedSystemExtensions</key>
+      <dict>
+        <key>8VA5VUL6X6</key>
+        <array>
+          <string>com.owlwatchlabs.owlwatch.contentfilter</string>
+        </array>
+      </dict>
+    </dict>
+  </array>
+</dict>
+</plist>

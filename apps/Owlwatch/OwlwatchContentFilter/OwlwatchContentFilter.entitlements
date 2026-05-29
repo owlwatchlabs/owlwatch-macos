@@ -4,11 +4,13 @@
 <dict>
 	<key>com.apple.developer.networking.networkextension</key>
 	<array>
-		<string>content-filter-provider-systemextension</string>
+		<string>content-filter-provider</string>
 	</array>
 	<key>com.apple.security.application-groups</key>
 	<array>
 		<string>group.com.owlwatchlabs.owlwatch</string>
 	</array>
+	<key>com.apple.security.get-task-allow</key>
+	<false/>
 </dict>
 </plist>

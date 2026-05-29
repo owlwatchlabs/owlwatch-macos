@@ -159,28 +159,45 @@ targets:
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSHumanReadableCopyright: "Copyright © 2026 Owlwatch contributors."
-        # Per verified Apple docs (2026): a content-filter sysext
-        # advertises itself through an NSExtension dict — not a
-        # top-level NetworkExtension dict. The principal class is
-        # the NEFilterDataProvider subclass.
+        # NSExtension dict is the canonical discovery key the
+        # SystemExtensions framework reads when scanning the
+        # parent app's Contents/Library/SystemExtensions/. The
+        # Xcode 26 build system warning ("Foundation extension
+        # must be in PlugIns") fires alongside but is a separate,
+        # cosmetic complaint — empirically the framework requires
+        # NSExtension to find the bundle.
         NSExtension:
           NSExtensionPointIdentifier: com.apple.networkextension.filter-data
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ContentFilterProvider
+        # NEProviderClasses is the legacy NE dict; included for
+        # belt-and-suspenders in case NEProvider's runtime lookup
+        # falls through NSExtension on macOS 15.
+        NetworkExtension:
+          NEProviderClasses:
+            com.apple.networkextension.filter-data: $(PRODUCT_MODULE_NAME).ContentFilterProvider
     # Sysext entitlements. Same xcodegen-overwrite caveat as the
     # container app — keys live in `properties:`, the .entitlements
     # XML is a generated artifact.
     #
-    # The `-systemextension` suffix on the networkextension array
-    # value is required for Developer-ID-signed sysexts (vs. the
-    # bare `content-filter-provider` value used by in-app NE
-    # targets). Verified against Apple's 2026 entitlement reference.
+    # `content-filter-provider` (bare, no `-systemextension`
+    # suffix) is what Apple's auto-generated Development
+    # provisioning profile authorizes. The Distribution
+    # (Developer ID + notarization) path uses the `-systemextension`
+    # suffix variant — when we add the release xcconfig (M15) it
+    # will override this entitlement value.
     entitlements:
       path: OwlwatchContentFilter/OwlwatchContentFilter.entitlements
       properties:
         com.apple.developer.networking.networkextension:
-          - content-filter-provider-systemextension
+          - content-filter-provider
         com.apple.security.application-groups:
           - group.com.owlwatchlabs.owlwatch
+        # Explicitly disable get-task-allow — Debug builds auto-
+        # inject `true` (lets Xcode attach a debugger), but macOS
+        # rejects sysexts with this flag set even on dev-signed
+        # builds, and the rejection surfaces as the catch-all
+        # "Extension not found" error from OSSystemExtensionRequest.
+        com.apple.security.get-task-allow: false
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.owlwatchlabs.owlwatch.contentfilter
