@@ -3,7 +3,7 @@ name: Owlwatch
 options:
   bundleIdPrefix: com.owlwatchlabs.owlwatch
   deploymentTarget:
-    macOS: "14.0"
+    macOS: "15.0"
   createIntermediateGroups: true
   generateEmptyDirectories: true
 
@@ -11,7 +11,7 @@ settings:
   base:
     SWIFT_VERSION: "6.0"
     SWIFT_STRICT_CONCURRENCY: complete
-    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    MACOSX_DEPLOYMENT_TARGET: "15.0"
     ENABLE_HARDENED_RUNTIME: YES
     # M7 signing posture. Apple Developer Program team
     # 8VA5VUL6X6 (OwlWatch Labs). See memory/signing-posture.md.
@@ -57,7 +57,7 @@ targets:
       path: Sources/Info.plist
       properties:
         LSUIElement: true
-        LSMinimumSystemVersion: "14.0"
+        LSMinimumSystemVersion: "15.0"
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSHumanReadableCopyright: "Copyright © 2026 Owlwatch contributors."
@@ -65,11 +65,10 @@ targets:
         # relative to the bundle's Resources root, so "Fonts" picks
         # up apps/Owlwatch/Resources/Fonts/.
         ATSApplicationFontsPath: "Fonts/"
-        # Shown to the user in the system-extension approval prompt
-        # when the app calls OSSystemExtensionRequest. macOS will
-        # display this in the "Security & Privacy" sheet that
-        # surfaces during the first M7 activation.
-        NSSystemExtensionUsageDescription: "Owlwatch installs a content filter system extension so it can show every network connection the system makes, with process attribution. The filter only observes — it does not block."
+        # NSSystemExtensionUsageDescription lives on the sysext's
+        # Info.plist, not the container's — see Objective-See's
+        # DNSMonitor for the documented placement. The approval
+        # sheet reads from the embedded sysext bundle.
     # Container-app entitlements. Declared inline here because
     # xcodegen overwrites the `path:` file at generate time — if
     # the keys live only in the .entitlements XML they get wiped
@@ -117,6 +116,11 @@ targets:
         product: OWRules
       - package: Owlwatch
         product: OWTriage
+      # M7.2 shared module — FlowEvent model + XPC protocols +
+      # client wrapper. The container app uses FlowEventClient to
+      # consume the live flow stream from the sysext.
+      - package: Owlwatch
+        product: OWNetworkExt
       # M7 — content-filter system extension. xcodegen's
       # `embed: true` on a system-extension target installs it
       # under Contents/Library/SystemExtensions/ in the app bundle
@@ -135,36 +139,62 @@ targets:
     platform: macOS
     sources:
       - path: OwlwatchContentFilter/Sources
+    dependencies:
+      # FlowEvent model + XPC listener wrapper. The extension
+      # uses FlowEventListener to advertise itself on the Mach
+      # service the container app dials.
+      - package: Owlwatch
+        product: OWNetworkExt
+      # `audit_token_to_pid` (libbsm) is required by FlowExtraction
+      # for resolving the source process of each NEFilterFlow.
+      # `proc_pidpath_audittoken` (libproc) is part of the system
+      # framework already; libbsm must be linked explicitly.
+      - sdk: libbsm.tbd
     info:
       path: OwlwatchContentFilter/Info.plist
       properties:
         CFBundleDisplayName: Owlwatch Content Filter
-        LSMinimumSystemVersion: "14.0"
+        LSMinimumSystemVersion: "15.0"
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSHumanReadableCopyright: "Copyright © 2026 Owlwatch contributors."
-        # Per verified Apple docs (2026): a content-filter sysext
-        # advertises itself through an NSExtension dict — not a
-        # top-level NetworkExtension dict. The principal class is
-        # the NEFilterDataProvider subclass.
-        NSExtension:
-          NSExtensionPointIdentifier: com.apple.networkextension.filter-data
-          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ContentFilterProvider
+        # Top-level NetworkExtension dict (NEProviderClasses) is the
+        # canonical sysext content-filter advertisement. The
+        # NSExtension dict — which marks the bundle as a Foundation
+        # app-extension — was removed after comparing with
+        # Objective-See's DNSMonitor: having both makes ExtensionKit
+        # see the bundle as two things at once and may be what was
+        # confusing the approval-UI handshake on Tahoe.
+        NetworkExtension:
+          NEProviderClasses:
+            com.apple.networkextension.filter-data: $(PRODUCT_MODULE_NAME).ContentFilterProvider
+        # User-facing copy for the system-extension approval sheet.
+        # Lives on the sysext (not the container) — that's where
+        # macOS reads it from, per DNSMonitor's placement.
+        NSSystemExtensionUsageDescription: "Owlwatch installs a content filter system extension so it can show every network connection the system makes, with process attribution. The filter only observes — it does not block."
     # Sysext entitlements. Same xcodegen-overwrite caveat as the
     # container app — keys live in `properties:`, the .entitlements
     # XML is a generated artifact.
     #
-    # The `-systemextension` suffix on the networkextension array
-    # value is required for Developer-ID-signed sysexts (vs. the
-    # bare `content-filter-provider` value used by in-app NE
-    # targets). Verified against Apple's 2026 entitlement reference.
+    # `content-filter-provider` (bare, no `-systemextension`
+    # suffix) is what Apple's auto-generated Development
+    # provisioning profile authorizes. The Distribution
+    # (Developer ID + notarization) path uses the `-systemextension`
+    # suffix variant — when we add the release xcconfig (M15) it
+    # will override this entitlement value.
     entitlements:
       path: OwlwatchContentFilter/OwlwatchContentFilter.entitlements
       properties:
         com.apple.developer.networking.networkextension:
-          - content-filter-provider-systemextension
+          - content-filter-provider
         com.apple.security.application-groups:
           - group.com.owlwatchlabs.owlwatch
+        # Explicitly disable get-task-allow — Debug builds auto-
+        # inject `true` (lets Xcode attach a debugger), but macOS
+        # rejects sysexts with this flag set even on dev-signed
+        # builds, and the rejection surfaces as the catch-all
+        # "Extension not found" error from OSSystemExtensionRequest.
+        com.apple.security.get-task-allow: false
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.owlwatchlabs.owlwatch.contentfilter
