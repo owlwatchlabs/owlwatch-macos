@@ -65,11 +65,10 @@ targets:
         # relative to the bundle's Resources root, so "Fonts" picks
         # up apps/Owlwatch/Resources/Fonts/.
         ATSApplicationFontsPath: "Fonts/"
-        # Shown to the user in the system-extension approval prompt
-        # when the app calls OSSystemExtensionRequest. macOS will
-        # display this in the "Security & Privacy" sheet that
-        # surfaces during the first M7 activation.
-        NSSystemExtensionUsageDescription: "Owlwatch installs a content filter system extension so it can show every network connection the system makes, with process attribution. The filter only observes — it does not block."
+        # NSSystemExtensionUsageDescription lives on the sysext's
+        # Info.plist, not the container's — see Objective-See's
+        # DNSMonitor for the documented placement. The approval
+        # sheet reads from the embedded sysext bundle.
     # Container-app entitlements. Declared inline here because
     # xcodegen overwrites the `path:` file at generate time — if
     # the keys live only in the .entitlements XML they get wiped
@@ -159,22 +158,20 @@ targets:
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSHumanReadableCopyright: "Copyright © 2026 Owlwatch contributors."
-        # NSExtension dict is the canonical discovery key the
-        # SystemExtensions framework reads when scanning the
-        # parent app's Contents/Library/SystemExtensions/. The
-        # Xcode 26 build system warning ("Foundation extension
-        # must be in PlugIns") fires alongside but is a separate,
-        # cosmetic complaint — empirically the framework requires
-        # NSExtension to find the bundle.
-        NSExtension:
-          NSExtensionPointIdentifier: com.apple.networkextension.filter-data
-          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ContentFilterProvider
-        # NEProviderClasses is the legacy NE dict; included for
-        # belt-and-suspenders in case NEProvider's runtime lookup
-        # falls through NSExtension on macOS 15.
+        # Top-level NetworkExtension dict (NEProviderClasses) is the
+        # canonical sysext content-filter advertisement. The
+        # NSExtension dict — which marks the bundle as a Foundation
+        # app-extension — was removed after comparing with
+        # Objective-See's DNSMonitor: having both makes ExtensionKit
+        # see the bundle as two things at once and may be what was
+        # confusing the approval-UI handshake on Tahoe.
         NetworkExtension:
           NEProviderClasses:
             com.apple.networkextension.filter-data: $(PRODUCT_MODULE_NAME).ContentFilterProvider
+        # User-facing copy for the system-extension approval sheet.
+        # Lives on the sysext (not the container) — that's where
+        # macOS reads it from, per DNSMonitor's placement.
+        NSSystemExtensionUsageDescription: "Owlwatch installs a content filter system extension so it can show every network connection the system makes, with process attribution. The filter only observes — it does not block."
     # Sysext entitlements. Same xcodegen-overwrite caveat as the
     # container app — keys live in `properties:`, the .entitlements
     # XML is a generated artifact.

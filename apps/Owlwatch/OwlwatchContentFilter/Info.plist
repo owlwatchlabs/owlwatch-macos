@@ -20,15 +20,10 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>15.0</string>
-	<key>NSExtension</key>
-	<dict>
-		<key>NSExtensionPointIdentifier</key>
-		<string>com.apple.networkextension.filter-data</string>
-		<key>NSExtensionPrincipalClass</key>
-		<string>$(PRODUCT_MODULE_NAME).ContentFilterProvider</string>
-	</dict>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 Owlwatch contributors.</string>
+	<key>NSSystemExtensionUsageDescription</key>
+	<string>Owlwatch installs a content filter system extension so it can show every network connection the system makes, with process attribution. The filter only observes — it does not block.</string>
 	<key>NetworkExtension</key>
 	<dict>
 		<key>NEProviderClasses</key>
